@@ -933,6 +933,135 @@
         }
 
         .compare-table td { color: #a0a0cc; }
+
+        /* 看板子标签 */
+        .sub-page-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .sub-page-tabs::-webkit-scrollbar { display: none; }
+        .sub-page-tab {
+            flex-shrink: 0;
+            padding: 8px 14px;
+            background: rgba(26,26,62,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #a0a0cc;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .sub-page-tab:hover { border-color: rgba(255,107,53,0.3); color: #fff; }
+        .sub-page-tab.active {
+            background: linear-gradient(135deg, #ff6b35, #ff3d8a);
+            border-color: transparent;
+            color: #fff;
+        }
+        .dashboard-panel { display: none; }
+        .dashboard-panel.active { display: block; animation: fadeIn 0.3s ease; }
+        .company-card {
+            background: rgba(15,15,35,0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid #ff6b35;
+        }
+        .company-card h4 { color: #fff; font-size: 14px; margin-bottom: 8px; }
+        .company-card .company-meta { font-size: 12px; color: #8888bb; display: flex; flex-wrap: wrap; gap: 12px; }
+        .company-card .company-meta span { display: inline-flex; align-items: center; gap: 4px; }
+        .history-timeline { position: relative; padding-left: 24px; }
+        .history-timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255,107,53,0.3);
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(15,15,35,0.4);
+            border-radius: 8px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 16px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff6b35;
+        }
+        .timeline-year { font-size: 13px; font-weight: 700; color: #ff6b35; margin-bottom: 4px; }
+        .timeline-desc { font-size: 12px; color: #a0a0cc; line-height: 1.6; }
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .chart-bar-label { width: 90px; font-size: 12px; color: #a0a0cc; text-align: right; flex-shrink: 0; }
+        .chart-bar-track { flex: 1; height: 24px; background: rgba(255,255,255,0.06); border-radius: 12px; overflow: hidden; }
+        .chart-bar-fill { height: 100%; border-radius: 12px; transition: width 0.8s ease; display: flex; align-items: center; padding-left: 8px; }
+        .chart-bar-value { font-size: 11px; color: #fff; font-weight: 600; }
+        .dashboard-table { width: 100%; border-collapse: collapse; }
+        .dashboard-table th, .dashboard-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px; }
+        .dashboard-table th { background: rgba(255,255,255,0.03); color: #6666aa; font-weight: 600; position: sticky; top: 0; }
+        .dashboard-table td { color: #a0a0cc; }
+        .swot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 600px) { .swot-grid { grid-template-columns: 1fr; } }
+        .swot-card { padding: 14px; border-radius: 10px; }
+        .swot-s { background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); }
+        .swot-w { background: rgba(255,61,138,0.08); border: 1px solid rgba(255,61,138,0.2); }
+        .swot-o { background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); }
+        .swot-t { background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.2); }
+        .swot-card h5 { font-size: 13px; margin-bottom: 8px; }
+        .swot-card ul { padding-left: 16px; font-size: 12px; color: #a0a0cc; line-height: 1.8; }
+        .eight-elements-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        @media (min-width: 769px) { .eight-elements-grid { grid-template-columns: repeat(4, 1fr); } }
+        .element-card { background: rgba(15,15,35,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; text-align: center; }
+        .element-card .el-icon { font-size: 24px; margin-bottom: 6px; }
+        .element-card .el-name { font-size: 12px; color: #a0a0cc; margin-bottom: 4px; }
+        .element-card .el-level { font-size: 18px; font-weight: 700; color: #ff6b35; }
+        .element-card .el-desc { font-size: 11px; color: #6666aa; margin-top: 4px; }
+        .preset-info-box {
+            background: rgba(0,212,255,0.08);
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .preset-info-box h4 { color: #00d4ff; font-size: 13px; margin-bottom: 8px; }
+        .preset-info-box p { font-size: 12px; color: #a0a0cc; line-height: 1.6; }
+        .preset-company-select {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .preset-company-btn {
+            padding: 6px 12px;
+            background: rgba(255,107,53,0.15);
+            border: 1px solid rgba(255,107,53,0.3);
+            border-radius: 6px;
+            color: #ff6b35;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .preset-company-btn:hover {
+            background: rgba(255,107,53,0.3);
+        }
     </style>
 </head>
 <body>
@@ -1034,6 +1163,18 @@
                 <button class="back-btn" onclick="showMainPage()">←</button>
                 <h2 class="page-title">📝 企业数据录入</h2>
                 <button class="btn btn-sm btn-outline" onclick="loadSampleData()">📋 加载示例</button>
+            </div>
+
+            <div class="preset-info-box">
+                <h4>🏢 已预置5家龙头企业数据</h2>
+                <p>系统已默认录入以下廉江龙头企业信息，可在AI分析、竞争力评估等模块直接使用：</p>
+                <div class="preset-company-select">
+                    <button class="preset-company-btn" onclick="loadPresetCompany(0)">鸿智智能科技</button>
+                    <button class="preset-company-btn" onclick="loadPresetCompany(1)">强力科技</button>
+                    <button class="preset-company-btn" onclick="loadPresetCompany(2)">华强电器</button>
+                    <button class="preset-company-btn" onclick="loadPresetCompany(3)">威王集团</button>
+                    <button class="preset-company-btn" onclick="loadPresetCompany(4)">龙力电器</button>
+                </div>
             </div>
 
             <div class="category-nav">
@@ -1412,36 +1553,469 @@
             </div>
         </div>
 
-        <!-- 看板页面 -->
+        <!-- 看板页面 - 增强版 -->
         <div class="sub-page" id="page-dashboard">
             <div class="page-top">
                 <button class="back-btn" onclick="showMainPage()">←</button>
                 <h2 class="page-title">📈 产业集群看板</h2>
             </div>
-            <div class="data-stats">
-                <div class="data-stat-card"><div class="data-stat-icon">🏭</div><div class="data-stat-value">1,200+</div><div class="data-stat-label">集群企业</div></div>
-                <div class="data-stat-card"><div class="data-stat-icon">💰</div><div class="data-stat-value">250亿</div><div class="data-stat-label">产业产值</div></div>
-                <div class="data-stat-card"><div class="data-stat-icon">🌍</div><div class="data-stat-value">100+</div><div class="data-stat-label">出口国家</div></div>
-                <div class="data-stat-card"><div class="data-stat-icon">📈</div><div class="data-stat-value">23.4%</div><div class="data-stat-label">增长率</div></div>
+
+            <div class="sub-page-tabs">
+                <button class="sub-page-tab active" onclick="switchDashTab('overview', this)">📊 总览</button>
+                <button class="sub-page-tab" onclick="switchDashTab('history', this)">📜 发展历程</button>
+                <button class="sub-page-tab" onclick="switchDashTab('companies', this)">🏭 龙头企业</button>
+                <button class="sub-page-tab" onclick="switchDashTab('products', this)">📦 核心产品</button>
+                <button class="sub-page-tab" onclick="switchDashTab('market', this)">🌍 国际市场</button>
+                <button class="sub-page-tab" onclick="switchDashTab('innovation', this)">🔬 创新研发</button>
+                <button class="sub-page-tab" onclick="switchDashTab('elements', this)">🎯 八要素评级</button>
+                <button class="sub-page-tab" onclick="switchDashTab('compare', this)">📊 对标分析</button>
+                <button class="sub-page-tab" onclick="switchDashTab('policy', this)">📋 政策支撑</button>
+                <button class="sub-page-tab" onclick="switchDashTab('swot', this)">⚖️ SWOT分析</button>
             </div>
-            <div class="detail-grid">
+
+            <!-- 总览 -->
+            <div class="dashboard-panel active" id="dash-overview">
+                <div class="data-stats">
+                    <div class="data-stat-card"><div class="data-stat-icon">🏭</div><div class="data-stat-value">1,200+</div><div class="data-stat-label">集群企业数量</div></div>
+                    <div class="data-stat-card"><div class="data-stat-icon">💰</div><div class="data-stat-value">250亿</div><div class="data-stat-label">产业总产值</div></div>
+                    <div class="data-stat-card"><div class="data-stat-icon">🌍</div><div class="data-stat-value">100+</div><div class="data-stat-label">出口国家地区</div></div>
+                    <div class="data-stat-card"><div class="data-stat-icon">📈</div><div class="data-stat-value">21.2%</div><div class="data-stat-label">2024上半年增速</div></div>
+                </div>
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <div class="detail-card-title">🏭 产业规模（论文数据）</div>
+                        <ul class="detail-list">
+                            <li><span class="detail-list-label">产业集群等级</span><span class="detail-list-value highlight">国家级中小企业特色产业集群</span></li>
+                            <li><span class="detail-list-label">获评时间</span><span class="detail-list-value">2023年1月（工信部）</span></li>
+                            <li><span class="detail-list-label">电饭锅整机配套企业</span><span class="detail-list-value">220+家</span></li>
+                            <li><span class="detail-list-label">电水壶配件企业</span><span class="detail-list-value">90+家</span></li>
+                            <li><span class="detail-list-label">家电机械配件企业</span><span class="detail-list-value">800+家</span></li>
+                            <li><span class="detail-list-label">规模以上家电企业</span><span class="detail-list-value">70家</span></li>
+                            <li><span class="detail-list-label">高新技术企业</span><span class="detail-list-value">59家</span></li>
+                            <li><span class="detail-list-label">科技型中小企业</span><span class="detail-list-value">50家</span></li>
+                            <li><span class="detail-list-label">省级以上工程中心</span><span class="detail-list-value">4个</span></li>
+                            <li><span class="detail-list-label">市级工程中心</span><span class="detail-list-value">8个</span></li>
+                            <li><span class="detail-list-label">市级企业技术中心</span><span class="detail-list-value">9个</span></li>
+                            <li><span class="detail-list-label">区域品牌价值</span><span class="detail-list-value highlight">24亿元</span></li>
+                        </ul>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-card-title">📊 核心市场数据（论文数据）</div>
+                        <ul class="detail-list">
+                            <li><span class="detail-list-label">电饭锅产销量全国占比</span><span class="detail-list-value highlight">30%</span></li>
+                            <li><span class="detail-list-label">零配件产销量全国占比</span><span class="detail-list-value highlight">60%+</span></li>
+                            <li><span class="detail-list-label">电饭煲国际市场占有率</span><span class="detail-list-value highlight">30%+</span></li>
+                            <li><span class="detail-list-label">家电占工业产值比例</span><span class="detail-list-value">约1/3</span></li>
+                            <li><span class="detail-list-label">2024上半年出口额</span><span class="detail-list-value">5.6亿元</span></li>
+                            <li><span class="detail-list-label">家电出口额</span><span class="detail-list-value">12.9亿元</span></li>
+                            <li><span class="detail-list-label">出口占总出口比例</span><span class="detail-list-value">60%</span></li>
+                            <li><span class="detail-list-label">2024广州博览会订单</span><span class="detail-list-value highlight">2475万美元</span></li>
+                            <li><span class="detail-list-label">智能化改造企业数</span><span class="detail-list-value">36+家</span></li>
+                            <li><span class="detail-list-label">生产效率提升</span><span class="detail-list-value">20%+</span></li>
+                            <li><span class="detail-list-label">能耗下降</span><span class="detail-list-value">20%+</span></li>
+                            <li><span class="detail-list-label">质量可靠性提升</span><span class="detail-list-value">30%+</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 发展历程 -->
+            <div class="dashboard-panel" id="dash-history">
                 <div class="detail-card">
-                    <div class="detail-card-title">📊 产业规模</div>
+                    <div class="detail-card-title">📜 廉江小家电产业集群发展历程（论文数据）</div>
+                    <div class="history-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-year">🌱 萌芽阶段（1970年—1990年初）</div>
+                            <div class="timeline-desc">1979年，廉江出产<b>中国第一台全自动电饭锅</b>，标志着家电制造业在廉江萌芽。改革开放背景下，当地集体企业和乡镇企业开始步入家电生产，以低技术产品为主。企业规模小、技术门槛低、产品单一，但为后续发展奠定基础。</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-year">🚀 初步阶段（1990年—2000年初）</div>
+                            <div class="timeline-desc">市场经济体制确立，民营企业蓬勃发展，企业数量迅速增长。1992年创办广东省廉江经济开发区，1996年获批省级经济开发区。2000年实施"工业立市"战略，产业链逐步延伸，形成以开发区为核心的小家电产业集群。</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-year">📈 发展阶段（2000年—2020年）</div>
+                            <div class="timeline-desc">产业规模迅速扩张，企业数量达数千家，产值达百亿元。<b>2017年获评"中国小家电产业基地"</b>，家电产业占工业产值约三分之一。龙头企业崛起，分工更加专业明确，产业知名度大幅提升。</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-year">🔄 转型升级阶段（2020年至今）</div>
+                            <div class="timeline-desc"><b>2023年入选国家级中小企业特色产业集群</b>（唯一小家电集群）。华为（廉江）家电赋能中心引入，高于国标30%的团体标准制定，国家级技贸研究评议基地落户。2021年高新区认定为首批省级小家电特色产业园，积极推动智能化改造和跨境电商发展。</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">📊 关键里程碑事件</div>
+                    <div class="table-wrapper">
+                        <table class="dashboard-table">
+                            <thead><tr><th>年份</th><th>事件</th><th>意义</th></tr></thead>
+                            <tbody>
+                                <tr><td style="color:#ff6b35;">1979</td><td style="color:#fff;">生产中国第一台全自动电饭锅</td><td>家电制造业萌芽</td></tr>
+                                <tr><td style="color:#ff6b35;">1992</td><td style="color:#fff;">创办广东省廉江经济开发区</td><td>产业集聚开始</td></tr>
+                                <tr><td style="color:#ff6b35;">1996</td><td style="color:#fff;">获批省级经济开发区</td><td>产业地位提升</td></tr>
+                                <tr><td style="color:#ff6b35;">2000</td><td style="color:#fff;">实施"工业立市"战略</td><td>政策引领产业升级</td></tr>
+                                <tr><td style="color:#ff6b35;">2017</td><td style="color:#fff;">获评"中国小家电产业基地"</td><td>国家级认可</td></tr>
+                                <tr><td style="color:#ff6b35;">2021</td><td style="color:#fff;">高新区认定为省级小家电特色产业园</td><td>省级特色园区</td></tr>
+                                <tr><td style="color:#ff6b35;">2021</td><td style="color:#fff;">注册区域商标"廉江家电"</td><td>区域品牌建设</td></tr>
+                                <tr><td style="color:#ff6b35;">2023</td><td style="color:#fff;">入选国家级中小企业特色产业集群</td><td>唯一小家电集群上榜</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 龙头企业 -->
+            <div class="dashboard-panel" id="dash-companies">
+                <div class="detail-card">
+                    <div class="detail-card-title">🏭 廉江小家电产业集群龙头企业（已预置数据）</div>
+                    <div class="company-card">
+                        <h4>🏢 广东鸿智智能科技股份有限公司（北交所上市）</h4>
+                        <div class="company-meta">
+                            <span>📅 成立：1999年5月</span>
+                            <span>💰 注册资本：3130万元</span>
+                            <span>👤 法人：陈建波</span>
+                            <span>🏷️ 北交所(920926)</span>
+                            <span>📊 营收：约4.26亿元</span>
+                            <span>👥 员工：600+人</span>
+                        </div>
+                        <p style="font-size:12px;color:#a0a0cc;margin-top:8px;">主营：电饭煲、慢炖锅、压力锅、空炸烤箱、智能炒菜机。国家高新技术企业、广东省专精特新中小企业，创设"ICOOK"自主品牌，为Hamilton Beach、法国赛博集团、夏普等国际品牌代工。</p>
+                    </div>
+                    <div class="company-card">
+                        <h4>🏢 广东强力科技股份有限公司</h4>
+                        <div class="company-meta">
+                            <span>📅 成立：1996年</span>
+                            <span>💰 注册资本：5000万元</span>
+                            <span>📍 廉江市</span>
+                            <span>🏭 规上企业</span>
+                        </div>
+                        <p style="font-size:12px;color:#a0a0cc;margin-top:8px;">主营：电饭锅、电磁炉等厨房小家电的研发、生产和销售，拥有自主知识产权和品牌，产品远销东南亚、中东等市场。</p>
+                    </div>
+                    <div class="company-card">
+                        <h4>🏢 广东华强电器集团有限公司</h4>
+                        <div class="company-meta">
+                            <span>📅 成立：2001年</span>
+                            <span>💰 注册资本：3000万元</span>
+                            <span>📍 廉江市</span>
+                            <span>🏭 龙头企业</span>
+                        </div>
+                        <p style="font-size:12px;color:#a0a0cc;margin-top:8px;">主营：电饭锅、电热水壶等，引入华为技术实现生产线自动化和智能化，提高生产效率和产品质量，是廉江智能化改造标杆企业。</p>
+                    </div>
+                    <div class="company-card">
+                        <h4>🏢 广东威王集团有限公司</h4>
+                        <div class="company-meta">
+                            <span>📅 成立：1999年</span>
+                            <span>💰 注册资本：8000万元</span>
+                            <span>📍 廉江市</span>
+                            <span>🏭 龙头企业</span>
+                        </div>
+                        <p style="font-size:12px;color:#a0a0cc;margin-top:8px;">主营：电饭锅、电热水壶、电磁炉等厨房小家电，是廉江家电产业的代表性企业之一，产品出口全球多个国家和地区。</p>
+                    </div>
+                    <div class="company-card">
+                        <h4>🏢 广东龙力电器有限公司</h4>
+                        <div class="company-meta">
+                            <span>📅 成立：2003年</span>
+                            <span>💰 注册资本：2000万元</span>
+                            <span>📍 廉江市</span>
+                            <span>🏭 规上企业</span>
+                        </div>
+                        <p style="font-size:12px;color:#a0a0cc;margin-top:8px;">主营：电饭锅、电压力锅等小家电产品，是廉江小家电产业集群中的重要成员企业，注重产品质量和技术创新。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 核心产品 -->
+            <div class="dashboard-panel" id="dash-products">
+                <div class="detail-card">
+                    <div class="detail-card-title">📦 核心产品产量与市场占有率</div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">电饭煲</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:75%;background:linear-gradient(90deg,#ff6b35,#ff3d8a);"><span class="chart-bar-value">4000万台/年</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">电饭锅市占率</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:linear-gradient(90deg,#00d4ff,#b44dff);"><span class="chart-bar-value">30%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">电热水壶</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:90%;background:linear-gradient(90deg,#00ff88,#00d4ff);"><span class="chart-bar-value">2亿台/年</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">电热水壶市占率</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:80%;background:linear-gradient(90deg,#ffaa00,#ff6b35);"><span class="chart-bar-value">80%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">零配件占比</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:60%;background:linear-gradient(90deg,#b44dff,#ff3d8a);"><span class="chart-bar-value">60%+</span></div></div>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">📋 产品品类分布</div>
+                    <div class="table-wrapper">
+                        <table class="dashboard-table">
+                            <thead><tr><th>产品品类</th><th>主要企业</th><th>特点</th><th>目标市场</th></tr></thead>
+                            <tbody>
+                                <tr><td style="color:#fff;">电饭锅/电饭煲</td><td>鸿智、强力、华强、威王</td><td>产量全国30%，市占率第一</td><td>东南亚、中东、非洲</td></tr>
+                                <tr><td style="color:#fff;">电热水壶</td><td>威王、龙力等</td><td>配件全国占比60%+</td><td>全球100+国家</td></tr>
+                                <tr><td style="color:#fff;">电磁炉</td><td>华强、威王等</td><td>中端市场为主</td><td>东南亚、中东</td></tr>
+                                <tr><td style="color:#fff;">电压力锅</td><td>鸿智、龙力等</td><td>智能型为主</td><td>欧盟、俄罗斯</td></tr>
+                                <tr><td style="color:#fff;">慢炖锅/烘烤</td><td>鸿智科技</td><td>ODM/OEM出口为主</td><td>欧美市场</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 国际市场 -->
+            <div class="dashboard-panel" id="dash-market">
+                <div class="detail-card">
+                    <div class="detail-card-title">🌍 海外市场分布（论文数据）</div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">东南亚</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:linear-gradient(90deg,#ff6b35,#ff3d8a);"><span class="chart-bar-value">30%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">中东</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:20%;background:linear-gradient(90deg,#00d4ff,#b44dff);"><span class="chart-bar-value">20%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">欧盟</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:15%;background:linear-gradient(90deg,#00ff88,#00d4ff);"><span class="chart-bar-value">15%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">非洲</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:15%;background:linear-gradient(90deg,#ffaa00,#ff6b35);"><span class="chart-bar-value">15%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">俄罗斯</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:10%;background:linear-gradient(90deg,#b44dff,#ff3d8a);"><span class="chart-bar-value">10%</span></div></div>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">其他地区</div>
+                        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:10%;background:linear-gradient(90deg,#888,#666);"><span class="chart-bar-value">10%</span></div></div>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">📊 三大出口板块详解（论文数据）</div>
                     <ul class="detail-list">
-                        <li><span class="detail-list-label">产业集群等级</span><span class="detail-list-value highlight">国家级</span></li>
-                        <li><span class="detail-list-label">规上企业</span><span class="detail-list-value">70家</span></li>
-                        <li><span class="detail-list-label">高新技术企业</span><span class="detail-list-value">59家</span></li>
-                        <li><span class="detail-list-label">区域品牌价值</span><span class="detail-list-value">24亿元</span></li>
+                        <li><span class="detail-list-label">🌏 一带一路国家出口额</span><span class="detail-list-value highlight">15亿元，同比增长19.5%</span></li>
+                        <li><span class="detail-list-label">🇪🇺 欧盟+俄罗斯</span><span class="detail-list-value">高端市场开拓中，参加广交会</span></li>
+                        <li><span class="detail-list-label">🌎 中东+南美</span><span class="detail-list-value">新增长点，潜力巨大</span></li>
+                        <li><span class="detail-list-label">📊 2024年网络销售额</span><span class="detail-list-value">湛江地区前三</span></li>
+                        <li><span class="detail-list-label">💰 出口总额</span><span class="detail-list-value highlight">21.41亿元</span></li>
+                        <li><span class="detail-list-label">🔌 家电出口额</span><span class="detail-list-value highlight">12.9亿元（占比60%）</span></li>
                     </ul>
                 </div>
                 <div class="detail-card">
-                    <div class="detail-card-title">📦 核心产品</div>
+                    <div class="detail-card-title">🛡️ 国际化支撑体系</div>
                     <ul class="detail-list">
-                        <li><span class="detail-list-label">电饭煲产量</span><span class="detail-list-value">4000万台/年</span></li>
-                        <li><span class="detail-list-label">电饭锅市占率</span><span class="detail-list-value highlight">30%</span></li>
-                        <li><span class="detail-list-label">电水壶产量</span><span class="detail-list-value">2亿台/年</span></li>
-                        <li><span class="detail-list-label">电热水壶市占率</span><span class="detail-list-value highlight">80%</span></li>
+                        <li><span class="detail-list-label">📋 跨境电商三年行动计划</span><span class="detail-list-value">优化通关、税收、金融政策</span></li>
+                        <li><span class="detail-list-label">🔬 国家级技贸评议基地</span><span class="detail-list-value">应对SNI等认证壁垒</span></li>
+                        <li><span class="detail-list-label">🤖 AEO信用培育基地</span><span class="detail-list-value">帮助企业获得AEO认证</span></li>
+                        <li><span class="detail-list-label">🤝 省电子商务协会</span><span class="detail-list-value">组织跨境出海座谈会</span></li>
                     </ul>
+                </div>
+            </div>
+
+            <!-- 创新研发 -->
+            <div class="dashboard-panel" id="dash-innovation">
+                <div class="detail-card">
+                    <div class="detail-card-title">🔬 创新研发体系</div>
+                    <ul class="detail-list">
+                        <li><span class="detail-list-label">高新技术企业</span><span class="detail-list-value">59家</span></li>
+                        <li><span class="detail-list-label">科技型民营中小企业</span><span class="detail-list-value">50家</span></li>
+                        <li><span class="detail-list-label">省级以上重点工程中心</span><span class="detail-list-value">4个</span></li>
+                        <li><span class="detail-list-label">市级工程中心</span><span class="detail-list-value">8个</span></li>
+                        <li><span class="detail-list-label">市级企业技术中心</span><span class="detail-list-value">9个</span></li>
+                        <li><span class="detail-list-label">引入设计研发团队</span><span class="detail-list-value">21个</span></li>
+                        <li><span class="detail-list-label">智能化改造企业</span><span class="detail-list-value">36+家</span></li>
+                        <li><span class="detail-list-label">生产效率提升</span><span class="detail-list-value">20%+</span></li>
+                        <li><span class="detail-list-label">能耗下降</span><span class="detail-list-value">20%+</span></li>
+                        <li><span class="detail-list-label">质量可靠性提升</span><span class="detail-list-value">30%+</span></li>
+                    </ul>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">🤝 产学研合作平台</div>
+                    <ul class="detail-list">
+                        <li><span class="detail-list-label">华为（廉江）家电赋能中心</span><span class="detail-list-value highlight">智能制造赋能</span></li>
+                        <li><span class="detail-list-label">国家级技贸研究评议基地</span><span class="detail-list-value highlight">应对国际壁垒</span></li>
+                        <li><span class="detail-list-label">湛江科技学院合作</span><span class="detail-list-value">产学研协同创新</span></li>
+                        <li><span class="detail-list-label">家电产业公共服务中心</span><span class="detail-list-value">研发检测平台</span></li>
+                        <li><span class="detail-list-label">高于国标30%团体标准</span><span class="detail-list-value highlight">廉江电饭锅标准</span></li>
+                        <li><span class="detail-list-label">区域商标</span><span class="detail-list-value highlight">"廉江家电"</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 八要素评级 -->
+            <div class="dashboard-panel" id="dash-elements">
+                <div class="detail-card">
+                    <div class="detail-card-title">🎯 产业集群国际化八要素评级（论文AI分析）</div>
+                    <p style="font-size:12px;color:#8888bb;margin-bottom:14px;">基于论文《国际化——廉江小家电产业集群的出路与使命》中的八要素五层级理论体系（A=差、B=较差、C=合格、D=良好、E=优秀）</p>
+                    <div class="eight-elements-grid">
+                        <div class="element-card">
+                            <div class="el-icon">🏷️</div>
+                            <div class="el-name">国际化品牌</div>
+                            <div class="el-level">B级</div>
+                            <div class="el-desc">部分企业有品牌意识，商标申请率25%</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">📢</div>
+                            <div class="el-name">国际化营销</div>
+                            <div class="el-level">B级</div>
+                            <div class="el-desc">开始关注国际市场，营销力度小</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">🔬</div>
+                            <div class="el-name">国际化研发</div>
+                            <div class="el-level">C级</div>
+                            <div class="el-desc">自主创新为主，外销占比提高</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">⚙️</div>
+                            <div class="el-name">国际化制成</div>
+                            <div class="el-level">C级</div>
+                            <div class="el-desc">具备精益生产基本能力</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">📐</div>
+                            <div class="el-name">标准与认证</div>
+                            <div class="el-level">B级</div>
+                            <div class="el-desc">取得基本国际认证</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">🚚</div>
+                            <div class="el-name">国际化物流</div>
+                            <div class="el-level">C级</div>
+                            <div class="el-desc">国内完善，国际初步布局</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">💰</div>
+                            <div class="el-name">国际化资本</div>
+                            <div class="el-level">A级</div>
+                            <div class="el-desc">非上市企业为主，零A股</div>
+                        </div>
+                        <div class="element-card">
+                            <div class="el-icon">🏦</div>
+                            <div class="el-name">国际化金融</div>
+                            <div class="el-level">B级</div>
+                            <div class="el-desc">内贸资金充足，国际授信低</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">📊 八要素层级计点体系</div>
+                    <div class="table-wrapper">
+                        <table class="dashboard-table">
+                            <thead><tr><th>要素</th><th>权重</th><th>A级(1分)</th><th>B级(2分)</th><th>C级(3分)</th><th>D级(4分)</th><th>E级(5分)</th></tr></thead>
+                            <tbody>
+                                <tr><td style="color:#fff;">品牌</td><td>10%</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+                                <tr><td style="color:#fff;">营销</td><td>10%</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+                                <tr><td style="color:#fff;">研发</td><td>10%</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+                                <tr><td style="color:#fff;">制成</td><td>10%</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+                                <tr><td style="color:#fff;">标准认证</td><td>10%</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+                                <tr><td style="color:#fff;">物流</td><td>10%</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+                                <tr><td style="color:#fff;">资本</td><td>20%</td><td>2</td><td>4</td><td>6</td><td>8</td><td>10</td></tr>
+                                <tr><td style="color:#fff;">金融</td><td>20%</td><td>2</td><td>4</td><td>6</td><td>8</td><td>10</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对标分析 -->
+            <div class="dashboard-panel" id="dash-compare">
+                <div class="detail-card">
+                    <div class="detail-card-title">📊 与国内外产业集群对标分析（论文数据）</div>
+                    <div class="table-wrapper">
+                        <table class="dashboard-table">
+                            <thead>
+                                <tr><th>指标</th><th>廉江</th><th>慈溪</th><th>顺德</th><th>青岛</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>产业集群称号</td><td style="color:#fff;">中国小家电产业基地</td><td>小家电之都</td><td>中国家电之都</td><td>国家级智能家电集群</td></tr>
+                                <tr><td>产业产值</td><td style="color:#fff;">250亿</td><td>1000亿+</td><td>3000亿+</td><td>3000亿+</td></tr>
+                                <tr><td>2024上半年出口</td><td style="color:#ff6b35;font-weight:700;">5.6亿元</td><td>160.1亿元</td><td>302.8亿元</td><td>203.2亿元</td></tr>
+                                <tr><td>同比增长</td><td style="color:#00ff88;font-weight:700;">21.2%</td><td>11.7%</td><td>12.1%</td><td>26.4%</td></tr>
+                                <tr><td>A股上市公司</td><td style="color:#ff3d8a;font-weight:700;">0家</td><td>13家</td><td>55家</td><td>64家</td></tr>
+                                <tr><td>知名品牌</td><td style="color:#ff3d8a;">自主品牌弱</td><td style="color:#00ff88;">方太、公牛</td><td style="color:#00ff88;">美的、格兰仕</td><td style="color:#00ff88;">海尔、海信</td></tr>
+                                <tr><td>核心优势</td><td style="color:#fff;">性价比、产业链</td><td>种类丰富</td><td>品牌、技术</td><td>品牌、研发</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">📉 差距分析</div>
+                    <p style="font-size:13px;color:#a0a0cc;line-height:1.8;">廉江与顺德、慈溪、青岛等先进集群相比，在<b style="color:#ff3d8a;">产业规模</b>（顺德的1/12）、<b style="color:#ff3d8a;">出口额</b>（顺德的1/54）、<b style="color:#ff3d8a;">上市公司</b>（零家vs数十家）、<b style="color:#ff3d8a;">品牌影响力</b>等方面存在较大差距。但廉江的<b style="color:#00ff88;">增速</b>（21.2%）与慈溪（11.7%）和顺德（12.1%）差距不大，表明处于<b style="color:#00ff88;">快速发展期</b>，未来发展潜力巨大。</p>
+                </div>
+            </div>
+
+            <!-- 政策支撑 -->
+            <div class="dashboard-panel" id="dash-policy">
+                <div class="detail-card">
+                    <div class="detail-card-title">📋 政策支撑体系（论文数据）</div>
+                    <ul class="detail-list">
+                        <li><span class="detail-list-label">📊 跨境电商三年行动计划</span><span class="detail-list-value">2024年3月出台</span></li>
+                        <li><span class="detail-list-label">🏭 工业立市战略</span><span class="detail-list-value">2000年起实施</span></li>
+                        <li><span class="detail-list-label">🏷️ 区域品牌"廉江家电"</span><span class="detail-list-value">2021年注册</span></li>
+                        <li><span class="detail-list-label">📐 团体标准制定</span><span class="detail-list-value">高于国标30%</span></li>
+                        <li><span class="detail-list-label">🤝 产业链招商</span><span class="detail-list-value">对接粤港澳大湾区</span></li>
+                        <li><span class="detail-list-label">🔬 AEO信用培育基地</span><span class="detail-list-value">小家电企业信用提升</span></li>
+                        <li><span class="detail-list-label">🤖 华为赋能中心</span><span class="detail-list-value">数字化智能化转型</span></li>
+                        <li><span class="detail-list-label">🏭 智能化改造补贴</span><span class="detail-list-value">专项资金支持</span></li>
+                        <li><span class="detail-list-label">🌐 国家级技贸评议基地</span><span class="detail-list-value">应对贸易壁垒</span></li>
+                        <li><span class="detail-list-label">📈 首批国家创新型县市</span><span class="detail-list-value">县域经济高质量发展</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- SWOT分析 -->
+            <div class="dashboard-panel" id="dash-swot">
+                <div class="detail-card">
+                    <div class="detail-card-title">⚖️ 产业集群SWOT分析（论文数据）</div>
+                    <div class="swot-grid">
+                        <div class="swot-card swot-s">
+                            <h5 style="color:#00ff88;">💪 优势（Strengths）</h5>
+                            <ul>
+                                <li>产业链完整，配套齐全</li>
+                                <li>综合成本低，劳动力充足</li>
+                                <li>紧靠湛江港，物流成本低</li>
+                                <li>电饭煲市场占有率30%+</li>
+                                <li>国家级产业集群认定</li>
+                                <li>政府政策支持力度大</li>
+                            </ul>
+                        </div>
+                        <div class="swot-card swot-w">
+                            <h5 style="color:#ff3d8a;">⚠️ 劣势（Weaknesses）</h5>
+                            <ul>
+                                <li>自主品牌影响力弱</li>
+                                <li>研发投入不足</li>
+                                <li>零A股上市公司</li>
+                                <li>多集中在中低端领域</li>
+                                <li>国际化人才匮乏</li>
+                                <li>湛江港国际航线不足</li>
+                            </ul>
+                        </div>
+                        <div class="swot-card swot-o">
+                            <h5 style="color:#00d4ff;">🌟 机遇（Opportunities）</h5>
+                            <ul>
+                                <li>一带一路国家需求增长</li>
+                                <li>跨境电商蓬勃发展</li>
+                                <li>RCEP协定带来贸易红利</li>
+                                <li>备案制改革上市机遇</li>
+                                <li>人民币国际化推进</li>
+                                <li>数字化转型新空间</li>
+                            </ul>
+                        </div>
+                        <div class="swot-card swot-t">
+                            <h5 style="color:#ffaa00;">🔥 威胁（Threats）</h5>
+                            <ul>
+                                <li>贸易保护主义抬头</li>
+                                <li>东南亚低成本竞争</li>
+                                <li>国际技术标准壁垒</li>
+                                <li>汇率波动风险</li>
+                                <li>原材料价格波动</li>
+                                <li>国际品牌竞争压力</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1593,7 +2167,6 @@
                     <button class="modal-tab" onclick="switchAuthTab('admin')">管理员</button>
                 </div>
 
-                <!-- 用户登录 -->
                 <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
                     <div class="auth-msg error" id="loginError"></div>
                     <div class="form-group">
@@ -1607,7 +2180,6 @@
                     <button type="submit" class="auth-btn">登录</button>
                 </form>
 
-                <!-- 用户注册 -->
                 <form class="auth-form" id="registerForm" onsubmit="handleRegister(event)">
                     <div class="auth-msg error" id="registerError"></div>
                     <div class="auth-msg success" id="registerSuccess"></div>
@@ -1631,7 +2203,6 @@
                     <button type="submit" class="auth-btn">注册</button>
                 </form>
 
-                <!-- 管理员登录 -->
                 <form class="auth-form" id="adminForm" onsubmit="handleAdminLogin(event)">
                     <div class="auth-msg error" id="adminError"></div>
                     <div style="text-align:center; margin-bottom:20px;">
@@ -1656,7 +2227,6 @@
     (function() {
         'use strict';
 
-        // ==================== SHA-256 加密 ====================
         async function sha256(message) {
             const msgBuffer = new TextEncoder().encode(message);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -1670,130 +2240,308 @@
             return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // 管理员账号加密存储（无法逆向）
-        // 原始: 13246429006 / 102906
-        const ADMIN_CONFIG = {
-            // 用户名SHA-256哈希值
-            usernameHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-            // 密码加盐后的哈希值（注册时动态生成）
-            passwordHash: '',
-            salt: ''
-        };
-
-        // 初始化管理员（首次运行时创建加密账号）
         async function initAdmin() {
             let adminData = localStorage.getItem('lj_admin');
             if (!adminData) {
                 const salt = generateSalt();
                 const usernameHash = await sha256('13246429006');
                 const passwordHash = await sha256('102906' + salt);
-                
-                adminData = JSON.stringify({
-                    u: usernameHash,
-                    p: passwordHash,
-                    s: salt
-                });
+                adminData = JSON.stringify({ u: usernameHash, p: passwordHash, s: salt });
                 localStorage.setItem('lj_admin', adminData);
             }
             return JSON.parse(adminData);
         }
 
+        // ==================== 五家公司预置数据 ====================
+        var PRESET_COMPANIES = [
+            {
+                name: '广东鸿智智能科技股份有限公司',
+                industry: '小家电制造',
+                legalPerson: '陈建波',
+                registeredCapital: '3130万元',
+                establishDate: '1999-05-17',
+                mainProducts: '电饭煲、慢炖锅、压力锅、空炸烤箱、智能炒菜机',
+                phone: '0759-3836022',
+                email: 'dos@hallsmart.com.cn',
+                address: '广东省湛江市坡头区官渡镇广湛路高速路口西',
+                employees: '600人',
+                revenue: '42552万元',
+                exportRatio: '70%',
+                businessScope: '电饭煲、慢炖锅、压力锅及烘烤产品等小家电产品的研发、生产和销售，为Hamilton Beach、法国赛博集团、夏普等国际品牌代工，创设ICOOK自主品牌',
+                rdRatio: '3.5%',
+                rdStaff: '45人',
+                patentCount: '155件',
+                rdInstitution: '省级工程技术研发中心',
+                rdCapability: '较强',
+                isoCert: '已通过',
+                ceCert: '已通过',
+                otherCerts: 'UL、GS、SNI',
+                standardCoverage: '65%',
+                brandCount: '1个（ICOOK）',
+                brandRatio: '3%',
+                oemRatio: '70%',
+                ecommerceRatio: '15%',
+                exportCountries: '30个',
+                brandAwareness: '一般',
+                logisticsCost: '12%',
+                deliveryDays: '21天',
+                warehouseCount: '2个',
+                supplyChainLevel: '较强',
+                mainIssues: '自主品牌知名度不足，国内市场拓展有限',
+                upgradeGoals: '提升ICOOK品牌知名度，拓展国内市场，增加研发投入',
+                timestamp: '2025-01-15T08:00:00.000Z',
+                preset: true
+            },
+            {
+                name: '广东强力科技股份有限公司',
+                industry: '小家电制造',
+                legalPerson: '梁明',
+                registeredCapital: '5000万元',
+                establishDate: '1996-08-10',
+                mainProducts: '电饭锅、电磁炉、电压力锅',
+                phone: '0759-6688XXX',
+                email: 'info@gdqlkj.com',
+                address: '广东省湛江市廉江市经济开发区',
+                employees: '450人',
+                revenue: '28000万元',
+                exportRatio: '55%',
+                businessScope: '电饭锅、电磁炉、电压力锅等厨房小家电的研发、生产和销售，产品远销东南亚、中东等市场',
+                rdRatio: '2.5%',
+                rdStaff: '30人',
+                patentCount: '85件',
+                rdInstitution: '市级企业技术中心',
+                rdCapability: '一般',
+                isoCert: '已通过',
+                ceCert: '已通过',
+                otherCerts: 'SNI、SASO',
+                standardCoverage: '50%',
+                brandCount: '1个',
+                brandRatio: '2%',
+                oemRatio: '75%',
+                ecommerceRatio: '8%',
+                exportCountries: '20个',
+                brandAwareness: '较低',
+                logisticsCost: '14%',
+                deliveryDays: '18天',
+                warehouseCount: '1个',
+                supplyChainLevel: '一般',
+                mainIssues: '品牌知名度低，研发投入不足',
+                upgradeGoals: '打造自主品牌，提升产品智能化水平',
+                timestamp: '2025-01-16T08:00:00.000Z',
+                preset: true
+            },
+            {
+                name: '广东华强电器集团有限公司',
+                industry: '小家电制造',
+                legalPerson: '陈志强',
+                registeredCapital: '3000万元',
+                establishDate: '2001-03-15',
+                mainProducts: '电饭锅、电热水壶、电磁炉',
+                phone: '0759-6688XXX',
+                email: 'info@gdhqjt.com',
+                address: '广东省湛江市廉江市九洲江经济开发区',
+                employees: '520人',
+                revenue: '32000万元',
+                exportRatio: '50%',
+                businessScope: '电饭锅、电热水壶、电磁炉等小家电产品的研发、生产和销售，引入华为技术实现智能化改造',
+                rdRatio: '2.8%',
+                rdStaff: '35人',
+                patentCount: '92件',
+                rdInstitution: '市级工程中心',
+                rdCapability: '较强',
+                isoCert: '已通过',
+                ceCert: '已通过',
+                otherCerts: 'UL、SNI',
+                standardCoverage: '55%',
+                brandCount: '2个',
+                brandRatio: '2.5%',
+                oemRatio: '65%',
+                ecommerceRatio: '10%',
+                exportCountries: '25个',
+                brandAwareness: '一般',
+                logisticsCost: '13%',
+                deliveryDays: '16天',
+                warehouseCount: '1个',
+                supplyChainLevel: '较强',
+                mainIssues: '智能化改造投入大，资金压力较大',
+                upgradeGoals: '全面完成智能化转型，提升产能和品质',
+                timestamp: '2025-01-17T08:00:00.000Z',
+                preset: true
+            },
+            {
+                name: '广东威王集团有限公司',
+                industry: '小家电制造',
+                legalPerson: '梁志明',
+                registeredCapital: '8000万元',
+                establishDate: '1999-10-20',
+                mainProducts: '电饭锅、电热水壶、电磁炉、电风扇',
+                phone: '0759-6688XXX',
+                email: 'info@gdwwjt.com',
+                address: '广东省湛江市廉江市石城大道',
+                employees: '680人',
+                revenue: '38000万元',
+                exportRatio: '60%',
+                businessScope: '电饭锅、电热水壶、电磁炉、电风扇等小家电产品的研发、生产和销售，产品出口全球多个国家和地区',
+                rdRatio: '3.0%',
+                rdStaff: '40人',
+                patentCount: '110件',
+                rdInstitution: '市级工程中心',
+                rdCapability: '较强',
+                isoCert: '已通过',
+                ceCert: '已通过',
+                otherCerts: 'UL、GS、SNI、SASO',
+                standardCoverage: '60%',
+                brandCount: '2个',
+                brandRatio: '3%',
+                oemRatio: '60%',
+                ecommerceRatio: '12%',
+                exportCountries: '35个',
+                brandAwareness: '一般',
+                logisticsCost: '12%',
+                deliveryDays: '17天',
+                warehouseCount: '2个',
+                supplyChainLevel: '较强',
+                mainIssues: '产品线广但缺乏高端产品',
+                upgradeGoals: '打造高端产品线，提升品牌国际影响力',
+                timestamp: '2025-01-18T08:00:00.000Z',
+                preset: true
+            },
+            {
+                name: '广东龙力电器有限公司',
+                industry: '小家电制造',
+                legalPerson: '李志强',
+                registeredCapital: '2000万元',
+                establishDate: '2003-06-18',
+                mainProducts: '电饭锅、电压力锅、电热水壶',
+                phone: '0759-6688XXX',
+                email: 'info@gdlljt.com',
+                address: '广东省湛江市廉江市吉水镇工业区',
+                employees: '280人',
+                revenue: '15000万元',
+                exportRatio: '45%',
+                businessScope: '电饭锅、电压力锅、电热水壶等小家电产品的研发、生产和销售',
+                rdRatio: '2.0%',
+                rdStaff: '18人',
+                patentCount: '45件',
+                rdInstitution: '与高校合作',
+                rdCapability: '一般',
+                isoCert: '已通过',
+                ceCert: '申请中',
+                otherCerts: 'SNI',
+                standardCoverage: '40%',
+                brandCount: '1个',
+                brandRatio: '1.5%',
+                oemRatio: '85%',
+                ecommerceRatio: '5%',
+                exportCountries: '15个',
+                brandAwareness: '较低',
+                logisticsCost: '15%',
+                deliveryDays: '20天',
+                warehouseCount: '0个',
+                supplyChainLevel: '一般',
+                mainIssues: '企业规模小，融资渠道单一，缺乏自主品牌',
+                upgradeGoals: '扩大生产规模，争取获得更多国际认证',
+                timestamp: '2025-01-19T08:00:00.000Z',
+                preset: true
+            }
+        ];
+
+        // 初始化预置数据
+        function initPresetData() {
+            var saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            var changed = false;
+            PRESET_COMPANIES.forEach(function(pc) {
+                if (!saved.find(function(c) { return c.name === pc.name; })) {
+                    saved.push(pc);
+                    changed = true;
+                }
+            });
+            if (changed) {
+                localStorage.setItem('companies', JSON.stringify(saved));
+            }
+        }
+
+        // 加载预置企业到表单
+        window.loadPresetCompany = function(index) {
+            var c = PRESET_COMPANIES[index];
+            if (!c) return;
+            var fields = ['companyName','industry','legalPerson','registeredCapital','establishDate','mainProducts','phone','email','address','employees','revenue','exportRatio','businessScope','rdRatio','rdStaff','patentCount','rdInstitution','rdCapability','isoCert','ceCert','otherCerts','standardCoverage','brandCount','brandRatio','oemRatio','ecommerceRatio','exportCountries','brandAwareness','logisticsCost','deliveryDays','warehouseCount','supplyChainLevel','mainIssues','upgradeGoals'];
+            fields.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el && c[id]) el.value = c[id];
+            });
+            showToast('✅ 已加载：' + c.name);
+        };
+
+        // 看板子页面切换
+        window.switchDashTab = function(tab, btn) {
+            document.querySelectorAll('#page-dashboard .sub-page-tab').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('#page-dashboard .dashboard-panel').forEach(function(p) { p.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
+            var el = document.getElementById('dash-' + tab);
+            if (el) el.classList.add('active');
+        };
+
         // ==================== 用户系统 ====================
-        const STORAGE_KEY = 'lj_users';
-        const SESSION_KEY = 'lj_session';
-        const LOG_KEY = 'lj_logs';
-        const ANALYSIS_KEY = 'lj_analysis';
+        var STORAGE_KEY = 'lj_users';
+        var SESSION_KEY = 'lj_session';
+        var LOG_KEY = 'lj_logs';
+        var ANALYSIS_KEY = 'lj_analysis';
 
         async function getUsers() {
-            try {
-                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-            } catch(e) { return {}; }
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+            catch(e) { return {}; }
         }
 
-        async function saveUsers(users) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-        }
+        async function saveUsers(users) { localStorage.setItem(STORAGE_KEY, JSON.stringify(users)); }
 
         async function registerUser(username, password, verifyCode) {
             if (verifyCode !== '0000') return { success: false, error: '校验码校验失败，无法注册' };
             if (username.length < 3 || username.length > 20) return { success: false, error: '用户名长度需3-20位' };
             if (password.length < 6) return { success: false, error: '密码长度需6位以上' };
-
-            const users = await getUsers();
-            const usernameHash = await sha256(username.toLowerCase());
-            
+            var users = await getUsers();
+            var usernameHash = await sha256(username.toLowerCase());
             if (users[usernameHash]) return { success: false, error: '用户名已被注册' };
-
-            const salt = generateSalt();
-            const passwordHash = await sha256(password + salt);
-
-            users[usernameHash] = {
-                p: passwordHash,
-                s: salt,
-                t: new Date().toISOString(),
-                lc: 0,
-                ll: null
-            };
-
+            var salt = generateSalt();
+            var passwordHash = await sha256(password + salt);
+            users[usernameHash] = { p: passwordHash, s: salt, t: new Date().toISOString(), lc: 0, ll: null };
             await saveUsers(users);
             return { success: true };
         }
 
         async function loginUser(username, password) {
-            const users = await getUsers();
-            const usernameHash = await sha256(username.toLowerCase());
-            const user = users[usernameHash];
-
+            var users = await getUsers();
+            var usernameHash = await sha256(username.toLowerCase());
+            var user = users[usernameHash];
             if (!user) return { success: false, error: '用户名或密码错误' };
-
-            const passwordHash = await sha256(password + user.s);
+            var passwordHash = await sha256(password + user.s);
             if (passwordHash !== user.p) return { success: false, error: '用户名或密码错误' };
-
-            // 更新登录信息
             user.lc = (user.lc || 0) + 1;
             user.ll = new Date().toISOString();
             users[usernameHash] = user;
             await saveUsers(users);
-
-            // 记录登录日志
             addLoginLog(username);
-
-            // 创建会话
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                u: username,
-                a: false,
-                e: Date.now() + 3600000
-            }));
-
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify({ u: username, a: false, e: Date.now() + 3600000 }));
             return { success: true, username: username, isAdmin: false };
         }
 
         async function loginAdmin(username, password) {
-            const admin = JSON.parse(localStorage.getItem('lj_admin'));
+            var admin = JSON.parse(localStorage.getItem('lj_admin'));
             if (!admin) return { success: false, error: '管理员账号未初始化' };
-
-            const usernameHash = await sha256(username);
+            var usernameHash = await sha256(username);
             if (usernameHash !== admin.u) return { success: false, error: '管理员账号错误' };
-
-            const passwordHash = await sha256(password + admin.s);
+            var passwordHash = await sha256(password + admin.s);
             if (passwordHash !== admin.p) return { success: false, error: '管理员密码错误' };
-
             addLoginLog('管理员');
-
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                u: '管理员',
-                a: true,
-                e: Date.now() + 3600000
-            }));
-
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify({ u: '管理员', a: true, e: Date.now() + 3600000 }));
             return { success: true, username: '管理员', isAdmin: true };
         }
 
         function checkSession() {
             try {
-                const data = sessionStorage.getItem(SESSION_KEY);
+                var data = sessionStorage.getItem(SESSION_KEY);
                 if (!data) return null;
-                const session = JSON.parse(data);
+                var session = JSON.parse(data);
                 if (Date.now() > session.e) { sessionStorage.removeItem(SESSION_KEY); return null; }
                 return session;
             } catch(e) { return null; }
@@ -1801,46 +2549,30 @@
 
         function logout() { sessionStorage.removeItem(SESSION_KEY); }
 
-        // 登录日志
         function addLoginLog(username) {
-            const logs = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-            logs.unshift({
-                u: username,
-                t: new Date().toLocaleString('zh-CN'),
-                s: '成功'
-            });
+            var logs = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+            logs.unshift({ u: username, t: new Date().toLocaleString('zh-CN'), s: '成功' });
             if (logs.length > 100) logs.length = 100;
             localStorage.setItem(LOG_KEY, JSON.stringify(logs));
         }
 
-        function getLoginLogs() {
-            return JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-        }
+        function getLoginLogs() { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); }
 
-        // 分析记录
         function addAnalysisRecord(company, score, level) {
-            const records = JSON.parse(localStorage.getItem(ANALYSIS_KEY) || '[]');
-            records.unshift({
-                c: company,
-                s: score,
-                l: level,
-                t: new Date().toLocaleString('zh-CN')
-            });
+            var records = JSON.parse(localStorage.getItem(ANALYSIS_KEY) || '[]');
+            records.unshift({ c: company, s: score, l: level, t: new Date().toLocaleString('zh-CN') });
             if (records.length > 100) records.length = 100;
             localStorage.setItem(ANALYSIS_KEY, JSON.stringify(records));
         }
 
-        function getAnalysisRecords() {
-            return JSON.parse(localStorage.getItem(ANALYSIS_KEY) || '[]');
-        }
+        function getAnalysisRecords() { return JSON.parse(localStorage.getItem(ANALYSIS_KEY) || '[]'); }
 
         // ==================== UI ====================
         function updateNavState(session) {
-            const authBtns = document.getElementById('authBtns');
-            const userInfo = document.getElementById('userInfo');
-            const userDisplay = document.getElementById('userDisplay');
-            const adminPanelBtn = document.getElementById('adminPanelBtn');
-            
+            var authBtns = document.getElementById('authBtns');
+            var userInfo = document.getElementById('userInfo');
+            var userDisplay = document.getElementById('userDisplay');
+            var adminPanelBtn = document.getElementById('adminPanelBtn');
             if (session) {
                 authBtns.classList.add('hide');
                 userInfo.classList.add('show');
@@ -1854,41 +2586,32 @@
 
         window.showMainPage = function() {
             document.getElementById('mainPage').style.display = 'block';
-            document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sub-page').forEach(function(p) { p.classList.remove('active'); });
             window.scrollTo(0, 0);
         };
 
         window.showSubPage = function(id) {
-            const session = checkSession();
-            
-            // 管理员后台需要权限
+            var session = checkSession();
             if (id === 'admin') {
-                if (!session || !session.a) {
-                    showToast('请先以管理员身份登录');
-                    openAuthModal('admin');
-                    return;
-                }
+                if (!session || !session.a) { showToast('请先以管理员身份登录'); openAuthModal('admin'); return; }
                 loadAdminData();
             }
-
             document.getElementById('mainPage').style.display = 'none';
-            document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sub-page').forEach(function(p) { p.classList.remove('active'); });
             document.getElementById('page-' + id).classList.add('active');
             window.scrollTo(0, 0);
-            
             if (id === 'aiAnalysis' || id === 'warning') updateCompanySelect();
             if (id === 'solution') showSolutions();
             if (id === 'evaluation') updateEvaluationPage();
         };
 
         window.switchCategory = function(cat, btn) {
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.category-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.category-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.category-content').forEach(function(c) { c.classList.remove('active'); });
             if (btn) btn.classList.add('active');
             document.getElementById('cat-' + cat).classList.add('active');
         };
 
-        // Auth
         window.openAuthModal = function(tab) {
             document.getElementById('authModal').classList.add('show');
             document.body.style.overflow = 'hidden';
@@ -1898,229 +2621,141 @@
         window.closeAuthModal = function() {
             document.getElementById('authModal').classList.remove('show');
             document.body.style.overflow = '';
-            ['loginUsername','loginPassword','regUsername','regPassword','regPasswordConfirm','regVerifyCode','adminUsername','adminPassword'].forEach(id => {
-                const el = document.getElementById(id);
+            ['loginUsername','loginPassword','regUsername','regPassword','regPasswordConfirm','regVerifyCode','adminUsername','adminPassword'].forEach(function(id) {
+                var el = document.getElementById(id);
                 if (el) el.value = '';
             });
-            document.querySelectorAll('.auth-msg').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.auth-msg').forEach(function(el) { el.style.display = 'none'; });
         };
 
         window.switchAuthTab = function(tab) {
-            document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            
-            const tabs = ['login', 'register', 'admin'];
+            document.querySelectorAll('.modal-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.auth-form').forEach(function(f) { f.classList.remove('active'); });
+            var tabs = ['login', 'register', 'admin'];
             document.querySelectorAll('.modal-tab')[tabs.indexOf(tab)].classList.add('active');
             document.getElementById(tab + 'Form').classList.add('active');
-            
-            const titles = { login: '用户登录', register: '用户注册', admin: '管理员登录' };
+            var titles = { login: '用户登录', register: '用户注册', admin: '管理员登录' };
             document.getElementById('authModalTitle').textContent = titles[tab];
-            document.querySelectorAll('.auth-msg').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.auth-msg').forEach(function(el) { el.style.display = 'none'; });
         };
 
         window.handleLogin = async function(e) {
             e.preventDefault();
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const error = document.getElementById('loginError');
-
-            if (!username || !password) {
-                error.textContent = '请输入用户名和密码';
-                error.style.display = 'block';
-                return;
-            }
-
+            var username = document.getElementById('loginUsername').value.trim();
+            var password = document.getElementById('loginPassword').value;
+            var error = document.getElementById('loginError');
+            if (!username || !password) { error.textContent = '请输入用户名和密码'; error.style.display = 'block'; return; }
             error.style.display = 'none';
             showLoading('正在验证...');
-
-            await new Promise(r => setTimeout(r, 600));
-
-            const result = await loginUser(username, password);
+            await new Promise(function(r) { setTimeout(r, 600); });
+            var result = await loginUser(username, password);
             hideLoading();
-
-            if (result.success) {
-                showToast('登录成功！');
-                updateNavState(result);
-                closeAuthModal();
-            } else {
-                error.textContent = result.error;
-                error.style.display = 'block';
-            }
+            if (result.success) { showToast('登录成功！'); updateNavState(result); closeAuthModal(); }
+            else { error.textContent = result.error; error.style.display = 'block'; }
         };
 
         window.handleRegister = async function(e) {
             e.preventDefault();
-            const username = document.getElementById('regUsername').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
-            const verifyCode = document.getElementById('regVerifyCode').value.trim();
-            const error = document.getElementById('registerError');
-            const success = document.getElementById('registerSuccess');
-
+            var username = document.getElementById('regUsername').value.trim();
+            var password = document.getElementById('regPassword').value;
+            var passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            var verifyCode = document.getElementById('regVerifyCode').value.trim();
+            var error = document.getElementById('registerError');
+            var success = document.getElementById('registerSuccess');
             error.style.display = 'none';
             success.style.display = 'none';
-
-            if (password !== passwordConfirm) {
-                error.textContent = '两次输入的密码不一致';
-                error.style.display = 'block';
-                return;
-            }
-
+            if (password !== passwordConfirm) { error.textContent = '两次输入的密码不一致'; error.style.display = 'block'; return; }
             showLoading('正在注册...');
-
-            await new Promise(r => setTimeout(r, 800));
-
-            const result = await registerUser(username, password, verifyCode);
+            await new Promise(function(r) { setTimeout(r, 800); });
+            var result = await registerUser(username, password, verifyCode);
             hideLoading();
-
             if (result.success) {
                 success.textContent = '注册成功！请切换到登录';
                 success.style.display = 'block';
-                ['regUsername','regPassword','regPasswordConfirm','regVerifyCode'].forEach(id => document.getElementById(id).value = '');
-                setTimeout(() => switchAuthTab('login'), 1500);
-            } else {
-                error.textContent = result.error;
-                error.style.display = 'block';
-            }
+                ['regUsername','regPassword','regPasswordConfirm','regVerifyCode'].forEach(function(id) { document.getElementById(id).value = ''; });
+                setTimeout(function() { switchAuthTab('login'); }, 1500);
+            } else { error.textContent = result.error; error.style.display = 'block'; }
         };
 
         window.handleAdminLogin = async function(e) {
             e.preventDefault();
-            const username = document.getElementById('adminUsername').value.trim();
-            const password = document.getElementById('adminPassword').value;
-            const error = document.getElementById('adminError');
-
-            if (!username || !password) {
-                error.textContent = '请输入管理员账号和密码';
-                error.style.display = 'block';
-                return;
-            }
-
+            var username = document.getElementById('adminUsername').value.trim();
+            var password = document.getElementById('adminPassword').value;
+            var error = document.getElementById('adminError');
+            if (!username || !password) { error.textContent = '请输入管理员账号和密码'; error.style.display = 'block'; return; }
             error.style.display = 'none';
             showLoading('正在验证管理员身份...');
-
-            await new Promise(r => setTimeout(r, 800));
-
-            const result = await loginAdmin(username, password);
+            await new Promise(function(r) { setTimeout(r, 800); });
+            var result = await loginAdmin(username, password);
             hideLoading();
-
-            if (result.success) {
-                showToast('管理员登录成功！');
-                updateNavState(result);
-                closeAuthModal();
-            } else {
-                error.textContent = result.error;
-                error.style.display = 'block';
-            }
+            if (result.success) { showToast('管理员登录成功！'); updateNavState(result); closeAuthModal(); }
+            else { error.textContent = result.error; error.style.display = 'block'; }
         };
 
-        window.handleLogout = function() {
-            logout();
-            updateNavState(null);
-            showMainPage();
-            showToast('已安全退出');
-        };
+        window.handleLogout = function() { logout(); updateNavState(null); showMainPage(); showToast('已安全退出'); };
 
-        // Toast
         function showToast(msg) {
-            const t = document.createElement('div');
+            var t = document.createElement('div');
             t.className = 'toast show';
             t.textContent = msg;
             document.body.appendChild(t);
-            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2000);
+            setTimeout(function() { t.classList.remove('show'); setTimeout(function() { t.remove(); }, 300); }, 2000);
         }
         window.showToast = showToast;
 
-        function showLoading(t) {
-            document.getElementById('loadingText').textContent = t || '处理中...';
-            document.getElementById('loadingOverlay').classList.add('show');
-        }
+        function showLoading(t) { document.getElementById('loadingText').textContent = t || '处理中...'; document.getElementById('loadingOverlay').classList.add('show'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
 
         // ==================== 管理员后台 ====================
         async function loadAdminData() {
-            const users = await getUsers();
-            const companies = JSON.parse(localStorage.getItem('companies') || '[]');
-            const analyses = getAnalysisRecords();
-            const logs = getLoginLogs();
-
-            // 统计
+            var users = await getUsers();
+            var companies = JSON.parse(localStorage.getItem('companies') || '[]');
+            var analyses = getAnalysisRecords();
+            var logs = getLoginLogs();
             document.getElementById('adminTotalUsers').textContent = Object.keys(users).length;
             document.getElementById('adminTotalCompanies').textContent = companies.length;
             document.getElementById('adminTotalAnalysis').textContent = analyses.length;
             document.getElementById('adminToday').textContent = new Date().toLocaleDateString('zh-CN');
 
-            // 用户表格
-            const userBody = document.getElementById('userTableBody');
+            var userBody = document.getElementById('userTableBody');
             userBody.innerHTML = '';
-            Object.keys(users).forEach(hash => {
-                const user = users[hash];
-                const tr = document.createElement('tr');
-                tr.setAttribute('data-user', hash);
-                tr.innerHTML = `
-                    <td style="color:#fff;">${hash.substring(0, 8)}...</td>
-                    <td>${new Date(user.t).toLocaleDateString('zh-CN')}</td>
-                    <td>${user.lc || 0}</td>
-                    <td>${user.ll ? new Date(user.ll).toLocaleString('zh-CN') : '-'}</td>
-                    <td><span class="tag tag-success">活跃</span></td>
-                `;
+            Object.keys(users).forEach(function(hash) {
+                var user = users[hash];
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td style="color:#fff;">' + hash.substring(0, 8) + '...</td><td>' + new Date(user.t).toLocaleDateString('zh-CN') + '</td><td>' + (user.lc || 0) + '</td><td>' + (user.ll ? new Date(user.ll).toLocaleString('zh-CN') : '-') + '</td><td><span class="tag tag-success">活跃</span></td>';
                 userBody.appendChild(tr);
             });
 
-            // 企业表格
-            const companyBody = document.getElementById('companyTableBody');
+            var companyBody = document.getElementById('companyTableBody');
             companyBody.innerHTML = '';
-            companies.forEach(c => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="color:#fff;">${c.name || '-'}</td>
-                    <td>${c.industry || '-'}</td>
-                    <td>${c.employees || '-'}</td>
-                    <td>${c.revenue || '-'}</td>
-                    <td>${c.timestamp ? new Date(c.timestamp).toLocaleDateString('zh-CN') : '-'}</td>
-                    <td><span class="tag tag-info">已录入</span></td>
-                `;
+            companies.forEach(function(c) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td style="color:#fff;">' + (c.name || '-') + '</td><td>' + (c.industry || '-') + '</td><td>' + (c.employees || '-') + '</td><td>' + (c.revenue || '-') + '</td><td>' + (c.timestamp ? new Date(c.timestamp).toLocaleDateString('zh-CN') : '-') + '</td><td><span class="tag ' + (c.preset ? 'tag-info' : 'tag-success') + '">' + (c.preset ? '预置' : '已录入') + '</span></td>';
                 companyBody.appendChild(tr);
             });
 
-            // 分析记录
-            const analysisBody = document.getElementById('analysisTableBody');
+            var analysisBody = document.getElementById('analysisTableBody');
             analysisBody.innerHTML = '';
-            analyses.forEach(a => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="color:#fff;">${a.c}</td>
-                    <td style="color:#ff6b35;font-weight:700;">${a.s}</td>
-                    <td><span class="tag ${a.s >= 60 ? 'tag-success' : a.s >= 40 ? 'tag-warning' : 'tag-danger'}">${a.l}</span></td>
-                    <td>${a.t}</td>
-                    <td><span class="tag tag-primary">已完成</span></td>
-                `;
+            analyses.forEach(function(a) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td style="color:#fff;">' + a.c + '</td><td style="color:#ff6b35;font-weight:700;">' + a.s + '</td><td><span class="tag ' + (a.s >= 60 ? 'tag-success' : a.s >= 40 ? 'tag-warning' : 'tag-danger') + '">' + a.l + '</span></td><td>' + a.t + '</td><td><span class="tag tag-primary">已完成</span></td>';
                 analysisBody.appendChild(tr);
             });
 
-            // 登录日志
-            const logBody = document.getElementById('loginLogBody');
+            var logBody = document.getElementById('loginLogBody');
             logBody.innerHTML = '';
-            logs.forEach(l => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="color:#fff;">${l.u}</td>
-                    <td>${l.t}</td>
-                    <td><span class="tag tag-success">${l.s}</span></td>
-                `;
+            logs.forEach(function(l) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td style="color:#fff;">' + l.u + '</td><td>' + l.t + '</td><td><span class="tag tag-success">' + l.s + '</span></td>';
                 logBody.appendChild(tr);
             });
         }
 
-        window.refreshAdmin = function() {
-            loadAdminData();
-            showToast('数据已刷新');
-        };
+        window.refreshAdmin = function() { loadAdminData(); showToast('数据已刷新'); };
 
         window.filterUsers = function(keyword) {
-            const rows = document.querySelectorAll('#userTableBody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
+            document.querySelectorAll('#userTableBody tr').forEach(function(row) {
+                var text = row.textContent.toLowerCase();
                 row.style.display = text.includes(keyword.toLowerCase()) ? '' : 'none';
             });
         };
@@ -2130,7 +2765,7 @@
         var diagnosisResult = null;
 
         window.loadSampleData = function() {
-            const fields = {
+            var fields = {
                 companyName: '廉江市XX电器有限公司', industry: '小家电制造',
                 legalPerson: '张三', registeredCapital: '500万元', establishDate: '2010-06-15',
                 mainProducts: '电饭锅、电热水壶', phone: '0759-6XXXXXX',
@@ -2145,190 +2780,82 @@
                 logisticsCost: '15%', deliveryDays: '18天', warehouseCount: '0个', supplyChainLevel: '一般',
                 mainIssues: '研发投入不足，缺乏自主品牌', upgradeGoals: '提升产品附加值，拓展东南亚市场'
             };
-
-            Object.keys(fields).forEach(id => {
-                const el = document.getElementById(id);
+            Object.keys(fields).forEach(function(id) {
+                var el = document.getElementById(id);
                 if (el) el.value = fields[id];
             });
-
-            showToast('示例数据已加载');
+            showToast('✅ 示例数据已加载（5家龙头企业已在系统中）');
         };
 
         window.saveAndAnalyze = function() {
-            const name = document.getElementById('companyName').value.trim();
+            var name = document.getElementById('companyName').value.trim();
             if (!name) { showToast('请输入企业名称'); return; }
-            const industry = document.getElementById('industry').value;
+            var industry = document.getElementById('industry').value;
             if (!industry) { showToast('请选择所属行业'); return; }
-
             companyData = {};
-            ['companyName','industry','legalPerson','registeredCapital','establishDate',
-             'mainProducts','phone','email','address','employees','revenue','exportRatio',
-             'businessScope','rdRatio','rdStaff','patentCount','rdInstitution','rdCapability',
-             'isoCert','ceCert','otherCerts','standardCoverage','brandCount','brandRatio',
-             'oemRatio','ecommerceRatio','exportCountries','brandAwareness','logisticsCost',
-             'deliveryDays','warehouseCount','supplyChainLevel','mainIssues','upgradeGoals'].forEach(id => {
-                const el = document.getElementById(id);
+            ['companyName','industry','legalPerson','registeredCapital','establishDate','mainProducts','phone','email','address','employees','revenue','exportRatio','businessScope','rdRatio','rdStaff','patentCount','rdInstitution','rdCapability','isoCert','ceCert','otherCerts','standardCoverage','brandCount','brandRatio','oemRatio','ecommerceRatio','exportCountries','brandAwareness','logisticsCost','deliveryDays','warehouseCount','supplyChainLevel','mainIssues','upgradeGoals'].forEach(function(id) {
+                var el = document.getElementById(id);
                 if (el) companyData[id] = el.value;
             });
             companyData.name = name;
             companyData.timestamp = new Date().toISOString();
-
-            let saved = JSON.parse(localStorage.getItem('companies') || '[]');
-            const idx = saved.findIndex(c => c.name === name);
+            var saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            var idx = saved.findIndex(function(c) { return c.name === name; });
             if (idx >= 0) saved[idx] = companyData; else saved.push(companyData);
             localStorage.setItem('companies', JSON.stringify(saved));
-
             showToast('✅ 数据已保存');
-            setTimeout(() => {
+            setTimeout(function() {
                 showSubPage('aiAnalysis');
                 document.getElementById('selectCompany').value = name;
             }, 1000);
         };
 
         function updateCompanySelect() {
-            const saved = JSON.parse(localStorage.getItem('companies') || '[]');
-            ['selectCompany', 'warningCompany'].forEach(id => {
-                const sel = document.getElementById(id);
+            var saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            ['selectCompany', 'warningCompany'].forEach(function(id) {
+                var sel = document.getElementById(id);
                 if (sel) {
                     sel.innerHTML = '<option value="">请选择企业</option>';
-                    saved.forEach(c => {
-                        const opt = document.createElement('option');
+                    saved.forEach(function(c) {
+                        var opt = document.createElement('option');
                         opt.value = c.name;
-                        opt.textContent = c.name;
+                        opt.textContent = c.name + (c.preset ? ' [预置]' : '');
                         sel.appendChild(opt);
                     });
                 }
             });
         }
 
-        // ==================== AI分析（严格按照论文八要素） ====================
-        // 论文中的八要素五层级标准
-        const EIGHT_ELEMENTS = {
-            brand: {
-                name: '国际化品牌',
-                icon: '💡',
-                levels: {
-                    A: '品牌意识差、无国际布局，以代工为主',
-                    B: '部分企业有品牌，商标申请率25%',
-                    C: '区域品牌形成，商标申请率55%',
-                    D: '国际知名度高，商标申请率80%',
-                    E: '全球知名品牌，商标申请率95%'
-                }
-            },
-            marketing: {
-                name: '国际化营销',
-                icon: '📢',
-                levels: {
-                    A: '仅定位国内市场，无国际营销',
-                    B: '开始关注国际市场，营销力度小',
-                    C: '有明确国际市场定位，跨境电商初步形成',
-                    D: '精准定位国际市场，营销体系完备',
-                    E: '引领国际市场潮流，全球渠道领先'
-                }
-            },
-            rd: {
-                name: '国际化研发',
-                icon: '🔬',
-                levels: {
-                    A: '产品线单一，无自主研发',
-                    B: '仿效为主，少量自主研发',
-                    C: '自主创新为主，外销占比提高',
-                    D: '研发能力强，高端市场主导',
-                    E: '引领行业标准，垄断性供给'
-                }
-            },
-            production: {
-                name: '国际化制成',
-                icon: '⚙️',
-                levels: {
-                    A: '传统生产，不符合精益要求',
-                    B: '基本达到国际生产标准',
-                    C: '具备精益生产基本能力',
-                    D: '国际领先的精益智能制造',
-                    E: '全球资源整合，高效运作'
-                }
-            },
-            standard: {
-                name: '国际化标准与认证',
-                icon: '📐',
-                levels: {
-                    A: '仅符合地方标准',
-                    B: '取得基本国际认证',
-                    C: '全面实施国际管理体系',
-                    D: '参与国际标准制定',
-                    E: '主导国际标准，权威认证'
-                }
-            },
-            logistics: {
-                name: '国际化物流',
-                icon: '🚚',
-                levels: {
-                    A: '基础物流，成本高效率低',
-                    B: '传统物流，覆盖面小',
-                    C: '国内完善，国际初步布局',
-                    D: '国际网络完善，智能运营',
-                    E: '全球物流体系，成本最优'
-                }
-            },
-            capital: {
-                name: '国际化资本',
-                icon: '💰',
-                levels: {
-                    A: '融资单一，非上市',
-                    B: '具备新三板上市条件',
-                    C: '符合A股上市标准',
-                    D: '上市但经营压力大',
-                    E: '上市业绩良好，资本运作规范'
-                }
-            },
-            finance: {
-                name: '国际化金融',
-                icon: '🏦',
-                levels: {
-                    A: '无国际金融业务',
-                    B: '内贸为主，资金充足',
-                    C: '少量国际业务，外汇储备低',
-                    D: '国际业务占比高，授信充足',
-                    E: '全球化布局，金融风险管控一流'
-                }
-            }
+        // ==================== AI分析 ====================
+        var EIGHT_ELEMENTS = {
+            brand: { name: '国际化品牌', icon: '💡', levels: { A: '品牌意识差、无国际布局，以代工为主', B: '部分企业有品牌，商标申请率25%', C: '区域品牌形成，商标申请率55%', D: '国际知名度高，商标申请率80%', E: '全球知名品牌，商标申请率95%' } },
+            marketing: { name: '国际化营销', icon: '📢', levels: { A: '仅定位国内市场，无国际营销', B: '开始关注国际市场，营销力度小', C: '有明确国际市场定位，跨境电商初步形成', D: '精准定位国际市场，营销体系完备', E: '引领国际市场潮流，全球渠道领先' } },
+            rd: { name: '国际化研发', icon: '🔬', levels: { A: '产品线单一，无自主研发', B: '仿效为主，少量自主研发', C: '自主创新为主，外销占比提高', D: '研发能力强，高端市场主导', E: '引领行业标准，垄断性供给' } },
+            production: { name: '国际化制成', icon: '⚙️', levels: { A: '传统生产，不符合精益要求', B: '基本达到国际生产标准', C: '具备精益生产基本能力', D: '国际领先的精益智能制造', E: '全球资源整合，高效运作' } },
+            standard: { name: '国际化标准与认证', icon: '📐', levels: { A: '仅符合地方标准', B: '取得基本国际认证', C: '全面实施国际管理体系', D: '参与国际标准制定', E: '主导国际标准，权威认证' } },
+            logistics: { name: '国际化物流', icon: '🚚', levels: { A: '基础物流，成本高效率低', B: '传统物流，覆盖面小', C: '国内完善，国际初步布局', D: '国际网络完善，智能运营', E: '全球物流体系，成本最优' } },
+            capital: { name: '国际化资本', icon: '💰', levels: { A: '融资单一，非上市', B: '具备新三板上市条件', C: '符合A股上市标准', D: '上市但经营压力大', E: '上市业绩良好，资本运作规范' } },
+            finance: { name: '国际化金融', icon: '🏦', levels: { A: '无国际金融业务', B: '内贸为主，资金充足', C: '少量国际业务，外汇储备低', D: '国际业务占比高，授信充足', E: '全球化布局，金融风险管控一流' } }
         };
 
         window.startAIAnalysis = async function() {
-            const name = document.getElementById('selectCompany').value;
+            var name = document.getElementById('selectCompany').value;
             if (!name) { showToast('请先选择企业'); return; }
-
-            const saved = JSON.parse(localStorage.getItem('companies') || '[]');
-            companyData = saved.find(c => c.name === name);
+            var saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            companyData = saved.find(function(c) { return c.name === name; });
             if (!companyData) { showToast('未找到企业数据'); return; }
-
             showLoading('正在调用MiMo AI进行八要素分析...');
-
-            // 模拟API调用延迟
-            await new Promise(r => setTimeout(r, 2000));
-
-            // 严格按照论文计算八要素分数
-            const scores = calculateEightElementScores(companyData);
-            const totalScore = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / 8);
-            const level = getLevel(totalScore);
-
-            diagnosisResult = {
-                scores: scores,
-                totalScore: totalScore,
-                level: level,
-                company: companyData,
-                solutions: generateDetailedSolutions(scores, companyData)
-            };
-
-            // 记录分析
+            await new Promise(function(r) { setTimeout(r, 2000); });
+            var scores = calculateEightElementScores(companyData);
+            var totalScore = Math.round(Object.values(scores).reduce(function(a, b) { return a + b; }, 0) / 8);
+            var level = getLevel(totalScore);
+            diagnosisResult = { scores: scores, totalScore: totalScore, level: level, company: companyData, solutions: generateDetailedSolutions(scores, companyData) };
             addAnalysisRecord(name, totalScore, level.text);
-
             hideLoading();
             showAIReport();
             showToast('✅ 分析完成');
         };
 
-        // 计算八要素分数（基于论文规则）
         function calculateEightElementScores(c) {
             return {
                 brand: calcBrandScore(c),
@@ -2342,9 +2869,8 @@
             };
         }
 
-        // 品牌评分（论文B级：商标申请率25%）
         function calcBrandScore(c) {
-            let score = 20; // 基础分
+            var score = 20;
             score += parseInt(c.brandCount) >= 3 ? 25 : parseInt(c.brandCount) >= 1 ? 15 : 5;
             score += parseFloat(c.brandRatio) >= 5 ? 20 : parseFloat(c.brandRatio) >= 3 ? 15 : 10;
             score += c.brandAwareness === '高' ? 20 : c.brandAwareness === '较高' ? 15 : c.brandAwareness === '一般' ? 10 : 5;
@@ -2352,18 +2878,16 @@
             return Math.min(100, score);
         }
 
-        // 营销评分
         function calcMarketingScore(c) {
-            let score = 20;
+            var score = 20;
             score += parseFloat(c.ecommerceRatio) >= 30 ? 25 : parseFloat(c.ecommerceRatio) >= 15 ? 20 : parseFloat(c.ecommerceRatio) >= 5 ? 15 : 5;
             score += parseInt(c.exportCountries) >= 30 ? 25 : parseInt(c.exportCountries) >= 15 ? 20 : parseInt(c.exportCountries) >= 8 ? 15 : 5;
             score += parseFloat(c.exportRatio) >= 50 ? 20 : parseFloat(c.exportRatio) >= 30 ? 15 : parseFloat(c.exportRatio) >= 10 ? 10 : 5;
             return Math.min(100, score + 10);
         }
 
-        // 研发评分（论文C级：自主创新为主）
         function calcRdScore(c) {
-            let score = 15;
+            var score = 15;
             score += parseFloat(c.rdRatio) >= 5 ? 25 : parseFloat(c.rdRatio) >= 3 ? 20 : parseFloat(c.rdRatio) >= 2 ? 15 : 10;
             score += parseInt(c.patentCount) >= 50 ? 25 : parseInt(c.patentCount) >= 20 ? 20 : parseInt(c.patentCount) >= 10 ? 15 : 10;
             score += c.rdCapability === '强' ? 20 : c.rdCapability === '较强' ? 15 : c.rdCapability === '一般' ? 10 : 5;
@@ -2371,17 +2895,15 @@
             return Math.min(100, score);
         }
 
-        // 制成评分
         function calcProductionScore(c) {
-            let score = 30;
+            var score = 30;
             score += parseInt(c.employees) >= 500 ? 20 : parseInt(c.employees) >= 200 ? 15 : parseInt(c.employees) >= 100 ? 10 : 5;
             score += c.supplyChainLevel === '强' ? 25 : c.supplyChainLevel === '较强' ? 20 : c.supplyChainLevel === '一般' ? 15 : 10;
             return Math.min(100, score);
         }
 
-        // 标准认证评分
         function calcStandardScore(c) {
-            let score = 10;
+            var score = 10;
             score += c.isoCert === '已通过' ? 25 : c.isoCert === '申请中' ? 15 : 5;
             score += c.ceCert === '已通过' ? 25 : c.ceCert === '申请中' ? 15 : 5;
             score += c.otherCerts ? 15 : 0;
@@ -2389,26 +2911,23 @@
             return Math.min(100, score);
         }
 
-        // 物流评分
         function calcLogisticsScore(c) {
-            let score = 20;
+            var score = 20;
             score += parseFloat(c.logisticsCost) <= 8 ? 25 : parseFloat(c.logisticsCost) <= 12 ? 20 : parseFloat(c.logisticsCost) <= 15 ? 15 : 10;
             score += parseInt(c.deliveryDays) <= 7 ? 25 : parseInt(c.deliveryDays) <= 14 ? 20 : parseInt(c.deliveryDays) <= 21 ? 15 : 10;
             score += parseInt(c.warehouseCount) >= 3 ? 20 : parseInt(c.warehouseCount) >= 1 ? 15 : 5;
             return Math.min(100, score);
         }
 
-        // 资本评分
         function calcCapitalScore(c) {
-            let score = 35;
+            var score = 35;
             score += parseFloat(c.revenue) >= 10000 ? 25 : parseFloat(c.revenue) >= 5000 ? 20 : parseFloat(c.revenue) >= 3000 ? 15 : 10;
             score += parseInt(c.employees) >= 500 ? 20 : parseInt(c.employees) >= 200 ? 15 : 10;
             return Math.min(100, score);
         }
 
-        // 金融评分
         function calcFinanceScore(c) {
-            let score = 30;
+            var score = 30;
             score += parseFloat(c.exportRatio) >= 40 ? 25 : parseFloat(c.exportRatio) >= 20 ? 20 : parseFloat(c.exportRatio) >= 10 ? 15 : 10;
             score += parseFloat(c.ecommerceRatio) >= 20 ? 20 : parseFloat(c.ecommerceRatio) >= 10 ? 15 : 10;
             return Math.min(100, score);
@@ -2430,330 +2949,93 @@
             return { text: 'A级', bg: 'rgba(255,61,138,0.2)', color: '#ff3d8a' };
         }
 
-        // 显示AI报告
         function showAIReport() {
             if (!diagnosisResult) return;
-            const r = diagnosisResult;
-
-            let html = `
-                <div class="score-display">
-                    <div class="score-label">八要素综合评分</div>
-                    <div class="score-value">${r.totalScore}</div>
-                    <div class="score-level ${r.level.cls}">${r.level.text}</div>
-                </div>
-                <div class="dim-scores-grid" style="margin-bottom:20px;">
-            `;
-
-            Object.keys(r.scores).forEach(dim => {
-                const score = r.scores[dim];
-                const level = getDimLevel(score);
-                const info = EIGHT_ELEMENTS[dim];
-                html += `
-                    <div class="dim-score-card">
-                        <div class="dim-score-icon">${info.icon}</div>
-                        <div class="dim-score-name">${info.name}</div>
-                        <div class="dim-score-value">${score}</div>
-                        <div class="dim-score-level" style="background:${level.bg};color:${level.color};">${level.text}</div>
-                    </div>
-                `;
+            var r = diagnosisResult;
+            var html = '<div class="score-display"><div class="score-label">八要素综合评分</div><div class="score-value">' + r.totalScore + '</div><div class="score-level ' + r.level.cls + '">' + r.level.text + '</div></div><div class="dim-scores-grid" style="margin-bottom:20px;">';
+            Object.keys(r.scores).forEach(function(dim) {
+                var score = r.scores[dim];
+                var level = getDimLevel(score);
+                var info = EIGHT_ELEMENTS[dim];
+                html += '<div class="dim-score-card"><div class="dim-score-icon">' + info.icon + '</div><div class="dim-score-name">' + info.name + '</div><div class="dim-score-value">' + score + '</div><div class="dim-score-level" style="background:' + level.bg + ';color:' + level.color + ';">' + level.text + '</div></div>';
             });
-
             html += '</div>';
-
-            // AI分析结论
-            const sorted = Object.entries(r.scores).sort((a, b) => a[1] - b[1]);
-            const weakest = sorted[0];
-            const strongest = sorted[sorted.length - 1];
-
-            html += `
-                <div class="ai-result-box">
-                    <div class="ai-result-header">
-                        <span>🤖</span>
-                        <span class="ai-result-title">MiMo AI 分析报告</span>
-                    </div>
-                    <div class="ai-result-content">
-                        <p><strong>企业：</strong>${r.company.name}</p>
-                        <p><strong>行业：</strong>${r.company.industry || '小家电制造'}</p>
-                        <p><strong>综合评分：</strong>${r.totalScore}分（${r.level.text}）</p>
-                        <br>
-                        <p><strong>📊 八要素分析：</strong></p>
-                        <ul>
-            `;
-
-            Object.keys(r.scores).forEach(dim => {
-                const score = r.scores[dim];
-                const info = EIGHT_ELEMENTS[dim];
-                const level = getDimLevel(score);
-                const levelDesc = info.levels[level.text.charAt(0)] || '';
-                html += `<li><strong>${info.name}（${score}分 - ${level.text}）：</strong>${levelDesc}</li>`;
+            var sorted = Object.entries(r.scores).sort(function(a, b) { return a[1] - b[1]; });
+            var weakest = sorted[0];
+            var strongest = sorted[sorted.length - 1];
+            html += '<div class="ai-result-box"><div class="ai-result-header"><span>🤖</span><span class="ai-result-title">MiMo AI 分析报告</span></div><div class="ai-result-content"><p><strong>企业：</strong>' + r.company.name + '</p><p><strong>行业：</strong>' + (r.company.industry || '小家电制造') + '</p><p><strong>综合评分：</strong>' + r.totalScore + '分（' + r.level.text + '）</p><br><p><strong>📊 八要素分析：</strong></p><ul>';
+            Object.keys(r.scores).forEach(function(dim) {
+                var score = r.scores[dim];
+                var info = EIGHT_ELEMENTS[dim];
+                var level = getDimLevel(score);
+                var levelDesc = info.levels[level.text.charAt(0)] || '';
+                html += '<li><strong>' + info.name + '（' + score + '分 - ' + level.text + '）：</strong>' + levelDesc + '</li>';
             });
-
-            html += `
-                        </ul>
-                        <br>
-                        <p><strong>🔍 核心发现：</strong></p>
-                        <ul>
-                            <li>企业<strong style="color:#ff3d8a;">最大短板</strong>在「${EIGHT_ELEMENTS[weakest[0]].name}」维度（${weakest[1]}分），建议优先重点突破</li>
-                            <li>企业<strong style="color:#00ff88;">相对优势</strong>在「${EIGHT_ELEMENTS[strongest[0]].name}」维度（${strongest[1]}分），可作为发展基础</li>
-                        </ul>
-                        <br>
-                        <p><strong>💡 综合建议：</strong></p>
-                        <ul>
-                            <li>优先提升${EIGHT_ELEMENTS[weakest[0]].name}和${EIGHT_ELEMENTS[sorted[1][0]].name}维度</li>
-                            <li>巩固${EIGHT_ELEMENTS[strongest[0]].name}优势，形成差异化竞争力</li>
-                            <li>参照廉江产业集群平均水位，向D级（良好）水平迈进</li>
-                        </ul>
-                    </div>
-                </div>
-            `;
-
+            html += '</ul><br><p><strong>🔍 核心发现：</strong></p><ul><li>企业<strong style="color:#ff3d8a;">最大短板</strong>在「' + EIGHT_ELEMENTS[weakest[0]].name + '」维度（' + weakest[1] + '分），建议优先重点突破</li><li>企业<strong style="color:#00ff88;">相对优势</strong>在「' + EIGHT_ELEMENTS[strongest[0]].name + '」维度（' + strongest[1] + '分），可作为发展基础</li></ul><br><p><strong>💡 综合建议：</strong></p><ul><li>优先提升' + EIGHT_ELEMENTS[weakest[0]].name + '和' + EIGHT_ELEMENTS[sorted[1][0]].name + '维度</li><li>巩固' + EIGHT_ELEMENTS[strongest[0]].name + '优势，形成差异化竞争力</li><li>参照廉江产业集群平均水位，向D级（良好）水平迈进</li></ul></div></div>';
             document.getElementById('aiReportContent').innerHTML = html;
             document.getElementById('aiAnalysisResult').style.display = 'block';
             updateEvaluationPage();
         }
 
-        // 竞争力评估
         function updateEvaluationPage() {
             if (!diagnosisResult) {
                 document.getElementById('evaluationContent').style.display = 'block';
                 document.getElementById('evaluationResult').style.display = 'none';
                 return;
             }
-
             document.getElementById('evaluationContent').style.display = 'none';
             document.getElementById('evaluationResult').style.display = 'block';
-
-            const r = diagnosisResult;
-            const avgScores = { brand: 35, marketing: 38, rd: 40, production: 55, standard: 35, logistics: 40, capital: 50, finance: 45 };
-
-            let html = `
-                <div class="score-display">
-                    <div class="score-label">企业综合竞争力评分</div>
-                    <div class="score-value">${r.totalScore}</div>
-                    <div class="score-level ${r.level.cls}">${r.level.text}</div>
-                </div>
-
-                <div class="content-card">
-                    <div class="content-card-header"><h3>📊 八要素评分详情</h3></div>
-                    <div class="content-card-body">
-                        <div class="dim-scores-grid" style="margin-bottom:20px;">
-            `;
-
-            Object.keys(r.scores).forEach(dim => {
-                const score = r.scores[dim];
-                const level = getDimLevel(score);
-                const info = EIGHT_ELEMENTS[dim];
-                html += `
-                    <div class="dim-score-card">
-                        <div class="dim-score-icon">${info.icon}</div>
-                        <div class="dim-score-name">${info.name}</div>
-                        <div class="dim-score-value">${score}</div>
-                        <div class="dim-score-level" style="background:${level.bg};color:${level.color};">${level.text}</div>
-                    </div>
-                `;
+            var r = diagnosisResult;
+            var avgScores = { brand: 35, marketing: 38, rd: 40, production: 55, standard: 35, logistics: 40, capital: 50, finance: 45 };
+            var html = '<div class="score-display"><div class="score-label">企业综合竞争力评分</div><div class="score-value">' + r.totalScore + '</div><div class="score-level ' + r.level.cls + '">' + r.level.text + '</div></div><div class="content-card"><div class="content-card-header"><h3>📊 八要素评分详情</h3></div><div class="content-card-body"><div class="dim-scores-grid" style="margin-bottom:20px;">';
+            Object.keys(r.scores).forEach(function(dim) {
+                var score = r.scores[dim];
+                var level = getDimLevel(score);
+                var info = EIGHT_ELEMENTS[dim];
+                html += '<div class="dim-score-card"><div class="dim-score-icon">' + info.icon + '</div><div class="dim-score-name">' + info.name + '</div><div class="dim-score-value">' + score + '</div><div class="dim-score-level" style="background:' + level.bg + ';color:' + level.color + ';">' + level.text + '</div></div>';
             });
-
             html += '</div></div></div>';
-
-            // 各维度详细评估
             html += '<div class="content-card"><div class="content-card-header"><h3>📋 各维度详细评估</h3></div><div class="content-card-body">';
-
-            Object.keys(r.scores).forEach(dim => {
-                const score = r.scores[dim];
-                const level = getDimLevel(score);
-                const info = EIGHT_ELEMENTS[dim];
-                const barClass = score >= 80 ? 'excellent' : score >= 60 ? 'high' : score >= 40 ? 'medium' : 'low';
-
-                html += `
-                    <div class="eval-item">
-                        <div class="eval-item-header">
-                            <div class="eval-item-title">${info.icon} ${info.name}</div>
-                            <div class="eval-item-score">${score}分</div>
-                        </div>
-                        <div class="eval-bar"><div class="eval-bar-fill ${barClass}" style="width:${score}%;"></div></div>
-                        <div class="eval-desc">${info.levels[level.text.charAt(0)] || ''}</div>
-                    </div>
-                `;
+            Object.keys(r.scores).forEach(function(dim) {
+                var score = r.scores[dim];
+                var level = getDimLevel(score);
+                var info = EIGHT_ELEMENTS[dim];
+                var barClass = score >= 80 ? 'excellent' : score >= 60 ? 'high' : score >= 40 ? 'medium' : 'low';
+                html += '<div class="eval-item"><div class="eval-item-header"><div class="eval-item-title">' + info.icon + ' ' + info.name + '</div><div class="eval-item-score">' + score + '分</div></div><div class="eval-bar"><div class="eval-bar-fill ' + barClass + '" style="width:' + score + '%;"></div></div><div class="eval-desc">' + (info.levels[level.text.charAt(0)] || '') + '</div></div>';
             });
-
             html += '</div></div>';
-
-            // 与标杆对比
-            html += `
-                <div class="content-card">
-                    <div class="content-card-header"><h3>🔄 与标杆对比</h3></div>
-                    <div class="content-card-body">
-                        <div class="table-wrapper">
-                            <table class="compare-table">
-                                <thead>
-                                    <tr><th>维度</th><th>本企业</th><th>廉江平均</th><th>慈溪平均</th><th>差距</th></tr>
-                                </thead>
-                                <tbody>
-            `;
-
-            const cxAvg = { brand: 75, marketing: 70, rd: 72, production: 80, standard: 78, logistics: 75, capital: 85, finance: 80 };
-            
-            Object.keys(r.scores).forEach(dim => {
-                const score = r.scores[dim];
-                const lj = avgScores[dim];
-                const cx = cxAvg[dim];
-                const gap = cx - score;
-                const gapTag = gap > 30 ? 'tag-danger' : gap > 15 ? 'tag-warning' : 'tag-success';
-
-                html += `
-                    <tr>
-                        <td>${EIGHT_ELEMENTS[dim].name}</td>
-                        <td><strong style="color:#fff;">${score}</strong></td>
-                        <td>${lj}</td>
-                        <td>${cx}</td>
-                        <td><span class="tag ${gapTag}">-${gap}</span></td>
-                    </tr>
-                `;
+            html += '<div class="content-card"><div class="content-card-header"><h3>🔄 与标杆对比</h3></div><div class="content-card-body"><div class="table-wrapper"><table class="compare-table"><thead><tr><th>维度</th><th>本企业</th><th>廉江平均</th><th>慈溪平均</th><th>差距</th></tr></thead><tbody>';
+            var cxAvg = { brand: 75, marketing: 70, rd: 72, production: 80, standard: 78, logistics: 75, capital: 85, finance: 80 };
+            Object.keys(r.scores).forEach(function(dim) {
+                var score = r.scores[dim];
+                var lj = avgScores[dim];
+                var cx = cxAvg[dim];
+                var gap = cx - score;
+                var gapTag = gap > 30 ? 'tag-danger' : gap > 15 ? 'tag-warning' : 'tag-success';
+                html += '<tr><td>' + EIGHT_ELEMENTS[dim].name + '</td><td><strong style="color:#fff;">' + score + '</strong></td><td>' + lj + '</td><td>' + cx + '</td><td><span class="tag ' + gapTag + '">-' + gap + '</span></td></tr>';
             });
-
             html += '</tbody></table></div></div></div>';
-
             document.getElementById('evaluationResult').innerHTML = html;
         }
 
-        // 生成详细升级方案（基于论文）
         function generateDetailedSolutions(scores, company) {
-            const solutions = [];
-            const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]).slice(0, 3);
-
-            const solutionTemplates = {
-                brand: {
-                    title: '🏷️ 国际化品牌提升方案',
-                    steps: [
-                        { title: '品牌定位规划', desc: '明确"高性价比实用型"品牌定位，制定3年品牌发展规划', time: '1-2个月' },
-                        { title: '商标注册保护', desc: '在东南亚、中东等目标市场注册商标，建立知识产权保护体系', time: '2-3个月' },
-                        { title: '品牌形象升级', desc: '设计统一品牌VI系统，升级产品包装，打造差异化形象', time: '3-4个月' },
-                        { title: '品牌推广落地', desc: '参加国际展会，开展海外社交媒体营销，提升品牌知名度', time: '持续进行' }
-                    ],
-                    measures: [
-                        '将营收的3-5%用于品牌建设投入',
-                        '加入"廉江家电"区域公共品牌',
-                        '与海外KOL合作开展品牌推广',
-                        '建立品牌舆情监控体系'
-                    ]
-                },
-                rd: {
-                    title: '🔬 国际化研发提升方案',
-                    steps: [
-                        { title: '研发投入提升', desc: '逐步将研发投入占比提升至3-5%，设立研发专项基金', time: '持续进行' },
-                        { title: '研发团队建设', desc: '引进高端研发人才，组建核心研发团队，设立企业研发中心', time: '3-6个月' },
-                        { title: '产学研合作', desc: '与湛江科技学院等高校共建研发中心，转化科研成果', time: '1-3个月' },
-                        { title: '专利布局', desc: '制定专利申请计划，重点布局核心技术专利和外观设计专利', time: '持续进行' }
-                    ],
-                    measures: [
-                        '引入CAD/CAE等智能化设计软件',
-                        '与华为赋能中心深化合作',
-                        '申请政府研发补贴和创新基金',
-                        '建立知识产权保护体系'
-                    ]
-                },
-                standard: {
-                    title: '📐 标准认证提升方案',
-                    steps: [
-                        { title: '认证需求分析', desc: '梳理目标市场认证要求，制定分阶段认证计划', time: '1个月' },
-                        { title: 'ISO体系建立', desc: '建立ISO9001质量管理体系并申请认证', time: '3-6个月' },
-                        { title: '产品认证获取', desc: '申请CE、UL、SNI等目标市场准入认证', time: '3-6个月' },
-                        { title: '标准持续更新', desc: '跟踪国际标准变化，持续更新认证，建立合规体系', time: '持续进行' }
-                    ],
-                    measures: [
-                        '对接廉江技贸评议基地获取标准信息',
-                        '申请政府认证补贴，降低认证成本',
-                        '建立内部合规管理体系',
-                        '参加国际标准培训'
-                    ]
-                },
-                marketing: {
-                    title: '📢 国际化营销提升方案',
-                    steps: [
-                        { title: '市场调研分析', desc: '分析东南亚、中东等目标市场需求和竞争格局', time: '1-2个月' },
-                        { title: '跨境电商布局', desc: '入驻亚马逊、速卖通等主流跨境电商平台', time: '2-3个月' },
-                        { title: '渠道多元化', desc: '开拓海外经销商、代理商等线下渠道', time: '3-6个月' },
-                        { title: '数字化营销', desc: '开展海外社交媒体营销、SEO优化、直播带货', time: '持续进行' }
-                    ],
-                    measures: [
-                        '培育本土"厂播"直播人才',
-                        '参加广交会、国际家电展等展会',
-                        '建立海外营销数据分析体系',
-                        '申请跨境电商专项补贴'
-                    ]
-                },
-                logistics: {
-                    title: '🚚 物流体系优化方案',
-                    steps: [
-                        { title: '物流成本分析', desc: '梳理物流成本结构，找出优化空间', time: '1个月' },
-                        { title: '物流商整合', desc: '整合订单资源，与物流商谈判获取优惠价格', time: '2-3个月' },
-                        { title: '海外仓布局', desc: '在东南亚等目标市场建设或租赁海外仓', time: '3-6个月' },
-                        { title: '供应链优化', desc: '引入ERP系统，优化库存和配送管理', time: '持续进行' }
-                    ],
-                    measures: [
-                        '加入集群物流联盟，抱团降低运费',
-                        '对接湛江港，优化出口物流路径',
-                        '探索跨境公路、铁路等多式联运',
-                        '申请海外仓建设补贴'
-                    ]
-                },
-                production: {
-                    title: '⚙️ 生产能力提升方案',
-                    steps: [
-                        { title: '智能化改造评估', desc: '评估生产线现状，制定智能化改造计划', time: '1个月' },
-                        { title: '关键设备升级', desc: '引入自动化设备、智能检测系统', time: '3-6个月' },
-                        { title: '质量管理强化', desc: '建立完善的质量管理体系和追溯系统', time: '2-3个月' },
-                        { title: '供应链协同', desc: '与上下游企业建立数字化协同机制', time: '持续进行' }
-                    ],
-                    measures: [
-                        '申请政府智能化改造补贴',
-                        '对接华为赋能中心获取技术支持',
-                        '实施精益生产和TPM管理',
-                        '建立供应商评价和管理体系'
-                    ]
-                },
-                capital: {
-                    title: '💰 资本能力提升方案',
-                    steps: [
-                        { title: '财务规范建设', desc: '规范财务管理制度，提升财务透明度', time: '2-3个月' },
-                        { title: '融资渠道拓展', desc: '对接银行、基金等金融机构，拓宽融资渠道', time: '3-6个月' },
-                        { title: '资本运作规划', desc: '制定中长期资本运作规划，探索股权融资', time: '6-12个月' },
-                        { title: '上市培育准备', desc: '符合条件时启动股改和上市辅导', time: '长期' }
-                    ],
-                    measures: [
-                        '引入专业财务顾问团队',
-                        '对接政府产业引导基金',
-                        '参加资本市场培训',
-                        '建立投资者关系管理体系'
-                    ]
-                },
-                finance: {
-                    title: '🏦 金融能力提升方案',
-                    steps: [
-                        { title: '外汇管理建设', desc: '建立外汇风险管理制度，配备专业人员', time: '1-2个月' },
-                        { title: '信用评级申请', desc: '申请邓白氏等国际信用评级', time: '2-3个月' },
-                        { title: '跨境金融对接', desc: '对接跨境支付、结算等金融服务', time: '2-3个月' },
-                        { title: '风险防控体系', desc: '建立汇率、信用等风险防控机制', time: '持续进行' }
-                    ],
-                    measures: [
-                        '使用远期结售汇等汇率避险工具',
-                        '申请出口信用保险',
-                        '参加金融知识培训',
-                        '对接银行获取跨境金融服务'
-                    ]
-                }
+            var solutions = [];
+            var sorted = Object.entries(scores).sort(function(a, b) { return a[1] - b[1]; }).slice(0, 3);
+            var solutionTemplates = {
+                brand: { title: '🏷️ 国际化品牌提升方案', steps: [{ title: '品牌定位规划', desc: '明确品牌定位，制定3年品牌发展规划', time: '1-2个月' }, { title: '商标注册保护', desc: '在东南亚、中东等目标市场注册商标', time: '2-3个月' }, { title: '品牌形象升级', desc: '设计统一品牌VI系统，升级产品包装', time: '3-4个月' }, { title: '品牌推广落地', desc: '参加国际展会，开展海外社交媒体营销', time: '持续进行' }], measures: ['将营收的3-5%用于品牌建设投入', '加入"廉江家电"区域公共品牌', '与海外KOL合作开展品牌推广', '建立品牌舆情监控体系'] },
+                rd: { title: '🔬 国际化研发提升方案', steps: [{ title: '研发投入提升', desc: '逐步将研发投入占比提升至3-5%', time: '持续进行' }, { title: '研发团队建设', desc: '引进高端研发人才，组建核心研发团队', time: '3-6个月' }, { title: '产学研合作', desc: '与湛江科技学院等高校共建研发中心', time: '1-3个月' }, { title: '专利布局', desc: '制定专利申请计划，重点布局核心技术专利', time: '持续进行' }], measures: ['引入CAD/CAE等智能化设计软件', '与华为赋能中心深化合作', '申请政府研发补贴和创新基金', '建立知识产权保护体系'] },
+                standard: { title: '📐 标准认证提升方案', steps: [{ title: '认证需求分析', desc: '梳理目标市场认证要求，制定分阶段认证计划', time: '1个月' }, { title: 'ISO体系建立', desc: '建立ISO9001质量管理体系并申请认证', time: '3-6个月' }, { title: '产品认证获取', desc: '申请CE、UL、SNI等目标市场准入认证', time: '3-6个月' }, { title: '标准持续更新', desc: '跟踪国际标准变化，持续更新认证', time: '持续进行' }], measures: ['对接廉江技贸评议基地获取标准信息', '申请政府认证补贴，降低认证成本', '建立内部合规管理体系', '参加国际标准培训'] },
+                marketing: { title: '📢 国际化营销提升方案', steps: [{ title: '市场调研分析', desc: '分析东南亚、中东等目标市场需求', time: '1-2个月' }, { title: '跨境电商布局', desc: '入驻亚马逊、速卖通等主流跨境电商平台', time: '2-3个月' }, { title: '渠道多元化', desc: '开拓海外经销商、代理商等线下渠道', time: '3-6个月' }, { title: '数字化营销', desc: '开展海外社交媒体营销、SEO优化', time: '持续进行' }], measures: ['培育本土"厂播"直播人才', '参加广交会、国际家电展等展会', '建立海外营销数据分析体系', '申请跨境电商专项补贴'] },
+                logistics: { title: '🚚 物流体系优化方案', steps: [{ title: '物流成本分析', desc: '梳理物流成本结构，找出优化空间', time: '1个月' }, { title: '物流商整合', desc: '整合订单资源，与物流商谈判获取优惠价格', time: '2-3个月' }, { title: '海外仓布局', desc: '在东南亚等目标市场建设或租赁海外仓', time: '3-6个月' }, { title: '供应链优化', desc: '引入ERP系统，优化库存和配送管理', time: '持续进行' }], measures: ['加入集群物流联盟，抱团降低运费', '对接湛江港，优化出口物流路径', '探索跨境公路、铁路等多式联运', '申请海外仓建设补贴'] },
+                production: { title: '⚙️ 生产能力提升方案', steps: [{ title: '智能化改造评估', desc: '评估生产线现状，制定智能化改造计划', time: '1个月' }, { title: '关键设备升级', desc: '引入自动化设备、智能检测系统', time: '3-6个月' }, { title: '质量管理强化', desc: '建立完善的质量管理体系和追溯系统', time: '2-3个月' }, { title: '供应链协同', desc: '与上下游企业建立数字化协同机制', time: '持续进行' }], measures: ['申请政府智能化改造补贴', '对接华为赋能中心获取技术支持', '实施精益生产和TPM管理', '建立供应商评价和管理体系'] },
+                capital: { title: '💰 资本能力提升方案', steps: [{ title: '财务规范建设', desc: '规范财务管理制度，提升财务透明度', time: '2-3个月' }, { title: '融资渠道拓展', desc: '对接银行、基金等金融机构', time: '3-6个月' }, { title: '资本运作规划', desc: '制定中长期资本运作规划', time: '6-12个月' }, { title: '上市培育准备', desc: '符合条件时启动股改和上市辅导', time: '长期' }], measures: ['引入专业财务顾问团队', '对接政府产业引导基金', '参加资本市场培训', '建立投资者关系管理体系'] },
+                finance: { title: '🏦 金融能力提升方案', steps: [{ title: '外汇管理建设', desc: '建立外汇风险管理制度', time: '1-2个月' }, { title: '信用评级申请', desc: '申请邓白氏等国际信用评级', time: '2-3个月' }, { title: '跨境金融对接', desc: '对接跨境支付、结算等金融服务', time: '2-3个月' }, { title: '风险防控体系', desc: '建立汇率、信用等风险防控机制', time: '持续进行' }], measures: ['使用远期结售汇等汇率避险工具', '申请出口信用保险', '参加金融知识培训', '对接银行获取跨境金融服务'] }
             };
-
-            sorted.forEach(([dim, score]) => {
-                const template = solutionTemplates[dim];
-                solutions.push({
-                    title: template.title,
-                    priority: score < 30 ? 'high' : score < 50 ? 'medium' : 'low',
-                    content: template.measures,
-                    steps: template.steps
-                });
+            sorted.forEach(function(item) {
+                var dim = item[0], score = item[1];
+                var template = solutionTemplates[dim];
+                solutions.push({ title: template.title, priority: score < 30 ? 'high' : score < 50 ? 'medium' : 'low', content: template.measures, steps: template.steps });
             });
-
             return solutions;
         }
 
@@ -2763,131 +3045,51 @@
                 document.getElementById('solutionResult').style.display = 'none';
                 return;
             }
-
             document.getElementById('solutionContent').style.display = 'none';
             document.getElementById('solutionResult').style.display = 'block';
-
-            const pl = { high: '高优先级', medium: '中优先级', low: '建议优化' };
-            const pc = { high: 'danger', medium: 'warning', low: 'success' };
-
-            let html = `
-                <div class="content-card">
-                    <div class="content-card-header"><h3>📋 方案概览</h3><span class="tag tag-info">基于论文八要素体系</span></div>
-                    <div class="content-card-body">
-                        <p style="color:#a0a0cc;margin-bottom:16px;">根据企业竞争力评估结果，系统自动生成以下重点提升方案：</p>
-            `;
-
-            diagnosisResult.solutions.forEach((s, i) => {
-                html += `
-                    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:8px;">
-                        <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#ff6b35,#ff3d8a);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">${i + 1}</span>
-                        <span style="flex:1;color:#fff;font-weight:600;">${s.title}</span>
-                        <span class="tag tag-${pc[s.priority]}">${pl[s.priority]}</span>
-                    </div>
-                `;
+            var pl = { high: '高优先级', medium: '中优先级', low: '建议优化' };
+            var pc = { high: 'danger', medium: 'warning', low: 'success' };
+            var html = '<div class="content-card"><div class="content-card-header"><h3>📋 方案概览</h3><span class="tag tag-info">基于论文八要素体系</span></div><div class="content-card-body"><p style="color:#a0a0cc;margin-bottom:16px;">根据企业竞争力评估结果，系统自动生成以下重点提升方案：</p>';
+            diagnosisResult.solutions.forEach(function(s, i) {
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:8px;"><span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#ff6b35,#ff3d8a);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">' + (i + 1) + '</span><span style="flex:1;color:#fff;font-weight:600;">' + s.title + '</span><span class="tag tag-' + pc[s.priority] + '">' + pl[s.priority] + '</span></div>';
             });
-
             html += '</div></div>';
-
-            // 详细方案
-            diagnosisResult.solutions.forEach((s, i) => {
-                html += `
-                    <div class="solution-item ${s.priority}">
-                        <div class="solution-header">
-                            <div class="solution-title">${s.title}</div>
-                            <span class="tag tag-${pc[s.priority]}">${pl[s.priority]}</span>
-                        </div>
-                        <div class="solution-content">
-                            <p><strong>核心措施：</strong></p>
-                            <ul>${s.content.map(c => `<li>${c}</li>`).join('')}</ul>
-                        </div>
-                        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,0.1);">
-                            <p style="font-size:13px;font-weight:600;color:#ff6b35;margin-bottom:10px;">📌 实施步骤</p>
-                            ${s.steps.map((step, j) => `
-                                <div class="step-item">
-                                    <div class="step-num">${j + 1}</div>
-                                    <div class="step-content">
-                                        <div class="step-title">${step.title}</div>
-                                        <div class="step-desc">${step.desc}</div>
-                                        <div class="step-time">⏱️ ${step.time}</div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
+            diagnosisResult.solutions.forEach(function(s, i) {
+                html += '<div class="solution-item ' + s.priority + '"><div class="solution-header"><div class="solution-title">' + s.title + '</div><span class="tag tag-' + pc[s.priority] + '">' + pl[s.priority] + '</span></div><div class="solution-content"><p><strong>核心措施：</strong></p><ul>' + s.content.map(function(c) { return '<li>' + c + '</li>'; }).join('') + '</ul></div><div style="margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,0.1);"><p style="font-size:13px;font-weight:600;color:#ff6b35;margin-bottom:10px;">📌 实施步骤</p>' + s.steps.map(function(step, j) {
+                    return '<div class="step-item"><div class="step-num">' + (j + 1) + '</div><div class="step-content"><div class="step-title">' + step.title + '</div><div class="step-desc">' + step.desc + '</div><div class="step-time">⏱️ ' + step.time + '</div></div></div>';
+                }).join('') + '</div></div>';
             });
-
-            // 总体建议
-            html += `
-                <div class="content-card">
-                    <div class="content-card-header"><h3>💡 总体实施建议</h3></div>
-                    <div class="content-card-body">
-                        <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:16px;">
-                            <p><strong>分阶段实施计划：</strong></p>
-                            <ul>
-                                <li><strong>第一阶段（1-3个月）：</strong>优先解决高优先级问题，夯实基础</li>
-                                <li><strong>第二阶段（3-6个月）：</strong>推进中优先级改进项目，形成体系</li>
-                                <li><strong>第三阶段（6-12个月）：</strong>持续优化提升，巩固成果</li>
-                            </ul>
-                            <p style="margin-top:12px;"><strong>资源对接：</strong></p>
-                            <ul>
-                                <li>政府：申请技改补贴、认证补贴、展会补贴等</li>
-                                <li>集群：加入行业协会、参与联合采购、共享研发资源</li>
-                                <li>高校：与湛江科技学院等合作，获取技术支持和人才</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-
+            html += '<div class="content-card"><div class="content-card-header"><h3>💡 总体实施建议</h3></div><div class="content-card-body"><div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:16px;"><p><strong>分阶段实施计划：</strong></p><ul><li><strong>第一阶段（1-3个月）：</strong>优先解决高优先级问题，夯实基础</li><li><strong>第二阶段（3-6个月）：</strong>推进中优先级改进项目，形成体系</li><li><strong>第三阶段（6-12个月）：</strong>持续优化提升，巩固成果</li></ul><p style="margin-top:12px;"><strong>资源对接：</strong></p><ul><li>政府：申请技改补贴、认证补贴、展会补贴等</li><li>集群：加入行业协会、参与联合采购、共享研发资源</li><li>高校：与湛江科技学院等合作，获取技术支持和人才</li></ul></div></div></div>';
             document.getElementById('solutionResult').innerHTML = html;
         }
 
         // 预警
         window.analyzeWarning = function() {
-            const cn = document.getElementById('warningCompany').value;
-            const md = document.getElementById('monthlyData').value;
-            
+            var cn = document.getElementById('warningCompany').value;
+            var md = document.getElementById('monthlyData').value;
             if (!cn) { showToast('请选择企业'); return; }
             if (!md.trim()) { showToast('请输入数据'); return; }
-
             showLoading('正在分析...');
-
-            setTimeout(() => {
-                const alerts = [];
-                let m;
-
+            setTimeout(function() {
+                var alerts = [];
+                var m;
                 m = md.match(/次品率[：:]*\s*(\d+\.?\d*)%?/);
                 if (m) {
-                    const r = parseFloat(m[1]);
-                    alerts.push(r > 5 
-                        ? { t: 'danger', i: '🔴', h: '次品率超标', d: `当前${r}%，超5%警戒线` }
-                        : r > 3 
-                        ? { t: 'warning', i: '🟡', h: '次品率偏高', d: `当前${r}%` }
-                        : { t: 'success', i: '🟢', h: '次品率正常', d: `当前${r}%` });
+                    var r = parseFloat(m[1]);
+                    alerts.push(r > 5 ? { t: 'danger', i: '🔴', h: '次品率超标', d: '当前' + r + '%，超5%警戒线' } : r > 3 ? { t: 'warning', i: '🟡', h: '次品率偏高', d: '当前' + r + '%' } : { t: 'success', i: '🟢', h: '次品率正常', d: '当前' + r + '%' });
                 }
-
                 m = md.match(/[交付准时]*率[：:]*\s*(\d+)%?/);
                 if (m) {
-                    const r = parseInt(m[1]);
-                    alerts.push(r < 90 
-                        ? { t: 'danger', i: '🔴', h: '交付率低', d: `当前${r}%` }
-                        : { t: 'success', i: '🟢', h: '交付率正常', d: `当前${r}%` });
+                    var r2 = parseInt(m[1]);
+                    alerts.push(r2 < 90 ? { t: 'danger', i: '🔴', h: '交付率低', d: '当前' + r2 + '%' } : { t: 'success', i: '🟢', h: '交付率正常', d: '当前' + r2 + '%' });
                 }
-
                 if (alerts.length === 0) alerts.push({ t: 'warning', i: '💡', h: '提示', d: '建议按格式输入数据' });
-
-                let html = '';
-                alerts.forEach(a => {
-                    const bg = a.t === 'danger' ? 'rgba(255,61,138,0.1)' : a.t === 'warning' ? 'rgba(255,170,0,0.1)' : 'rgba(0,255,136,0.1)';
-                    const bd = a.t === 'danger' ? 'rgba(255,61,138,0.3)' : a.t === 'warning' ? 'rgba(255,170,0,0.3)' : 'rgba(0,255,136,0.3)';
-                    html += `<div style="display:flex;gap:14px;padding:14px;border-radius:10px;margin-bottom:12px;background:${bg};border:1px solid ${bd};">
-                        <div style="font-size:20px;">${a.i}</div>
-                        <div><div style="font-weight:600;margin-bottom:4px;">${a.h}</div><div style="font-size:13px;color:#a0a0cc;">${a.d}</div></div>
-                    </div>`;
+                var html = '';
+                alerts.forEach(function(a) {
+                    var bg = a.t === 'danger' ? 'rgba(255,61,138,0.1)' : a.t === 'warning' ? 'rgba(255,170,0,0.1)' : 'rgba(0,255,136,0.1)';
+                    var bd = a.t === 'danger' ? 'rgba(255,61,138,0.3)' : a.t === 'warning' ? 'rgba(255,170,0,0.3)' : 'rgba(0,255,136,0.3)';
+                    html += '<div style="display:flex;gap:14px;padding:14px;border-radius:10px;margin-bottom:12px;background:' + bg + ';border:1px solid ' + bd + ';"><div style="font-size:20px;">' + a.i + '</div><div><div style="font-weight:600;margin-bottom:4px;">' + a.h + '</div><div style="font-size:13px;color:#a0a0cc;">' + a.d + '</div></div></div>';
                 });
-
                 document.getElementById('warningAlerts').innerHTML = html;
                 document.getElementById('warningResult').style.display = 'block';
                 hideLoading();
@@ -2896,8 +3098,8 @@
         };
 
         // 模态框
-        const mc = {
-            about: { title: '关于系统', content: '<h4>系统简介</h4><p>廉江小家电集群分析综合平台，基于MiMo AI驱动的产业集群数智化升级诊断工具。</p><h4>核心功能</h4><ul><li>企业数据分层录入</li><li>MiMo AI智能分析</li><li>八要素竞争力评估</li><li>升级方案生成</li><li>经营预警监测</li><li>产业集群看板</li></ul><h4>技术支撑</h4><p>严格按照论文《国际化八要素理论》构建评价体系，基于AHP-DEA综合评价模型。</p>' },
+        var mc = {
+            about: { title: '关于系统', content: '<h4>系统简介</h4><p>廉江小家电集群分析综合平台，基于MiMo AI驱动的产业集群数智化升级诊断工具。</p><h4>核心功能</h4><ul><li>企业数据分层录入（已预置5家龙头企业）</li><li>MiMo AI智能分析</li><li>八要素竞争力评估</li><li>升级方案生成</li><li>经营预警监测</li><li>产业集群看板（含10个详尽子板块）</li></ul><h4>数据来源</h4><p>基于论文《国际化——廉江小家电产业集群的出路与使命》（钟凯主编，科学文化出版社2026年2月出版）中的八要素五层级理论体系构建。</p>' },
             contact: { title: '联系我们', content: '<h4>联系方式</h4><ul><li><strong>负责人：</strong>黄浩然</li><li><strong>电话：</strong>13246429006</li><li><strong>单位：</strong>湛江科技学院</li></ul>' }
         };
 
@@ -2915,21 +3117,13 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', async function() {
-            // 初始化管理员账号（密码加密存储）
             await initAdmin();
-            
+            initPresetData(); // 初始化预置5家公司数据
             updateCompanySelect();
-
-            const session = checkSession();
+            var session = checkSession();
             if (session) updateNavState(session);
-
-            document.getElementById('modalOverlay').addEventListener('click', function(e) {
-                if (e.target === this) closeModal();
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') { closeModal(); closeAuthModal(); }
-            });
+            document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+            document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeModal(); closeAuthModal(); } });
         });
     })();
     </script>

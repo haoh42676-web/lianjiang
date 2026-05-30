@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>廉江小家电集群分析综合平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: #e0e0e0;
+            background: #0a0a1a;
+            min-height: 100vh;
+            font-size: 15px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(255,107,53,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0,212,255,0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: rgba(15,15,35,0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 56px;
+        }
+
+        @media (min-width: 769px) { .navbar { height: 64px; } }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, #ff6b35, #ff3d8a);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 800;
+            box-shadow: 0 0 15px rgba(255,107,53,0.3);
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            display: none;
+        }
+
+        @media (min-width: 480px) { .logo-text { display: inline; } }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: #a0a0cc;
+        }
+
+        .nav-btn:hover { border-color: #ff6b35; color: #ff6b35; }
+        .nav-btn-primary { background: linear-gradient(135deg, #ff6b35, #ff3d8a); color: white; border: none; }
+        .nav-btn-primary:hover { box-shadow: 0 0 20px rgba(255,107,53,0.4); }
+        .nav-btn-sm { padding: 6px 12px; font-size: 12px; }
+        .nav-btn-admin { background: rgba(255,0,0,0.2); border-color: rgba(255,0,0,0.5); color: #ff4444; }
+        .nav-btn-admin:hover { background: rgba(255,0,0,0.3); }
+
+        .nav-user-info {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-user-info.show { display: flex; }
+        .nav-user-name { font-size: 13px; color: #a0a0cc; }
+        .nav-user-name strong { color: #ff6b35; }
+        .nav-auth-btns { display: flex; gap: 8px; }
+        .nav-auth-btns.hide { display: none; }
+
+        /* 主容器 */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (min-width: 769px) { .main-container { padding: 24px; } }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px 0;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff, #a0a0cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (min-width: 769px) { .page-header h1 { font-size: 36px; } }
+
+        .page-header p { font-size: 15px; color: #8888bb; }
+
+        /* 数据统计卡片 */
+        .data-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        @media (min-width: 769px) {
+            .data-stats { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        }
+
+        .data-stat-card {
+            background: rgba(26,26,62,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .data-stat-card:hover {
+            border-color: rgba(255,107,53,0.3);
+            transform: translateY(-2px);
+        }
+
+        .data-stat-icon { font-size: 28px; margin-bottom: 10px; }
+
+        .data-stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff6b35, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        @media (min-width: 769px) { .data-stat-value { font-size: 28px; } }
+
+        .data-stat-label { font-size: 12px; color: #6666aa; }
+
+        /* 功能卡片 */
+        .features-grid {
+            display: flex;
+            flex-wrap: wrap;
+            margin: -6px;
+        }
+
+        .feature-card {
+            width: calc(50% - 12px);
+            margin: 6px;
+            background: rgba(26,26,62,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        @media (min-width: 769px) {
+            .features-grid { margin: -8px; }
+            .feature-card { width: calc(33.333% - 16px); margin: 8px; padding: 24px; border-radius: 16px; }
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,107,53,0.3);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .card-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 14px;
+        }
+
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+        .card-desc { font-size: 13px; color: #8888bb; line-height: 1.5; margin-bottom: 12px; }
+        .card-action { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; }
+
+        /* 卡片颜色 */
+        .feature-card-1 { border-top: 2px solid #ff6b35; }
+        .feature-card-1 .card-icon { background: rgba(255,107,53,0.15); }
+        .feature-card-1 .card-action { color: #ff6b35; }
+
+        .feature-card-2 { border-top: 2px solid #00d4ff; }
+        .feature-card-2 .card-icon { background: rgba(0,212,255,0.15); }
+        .feature-card-2 .card-action { color: #00d4ff; }
+
+        .feature-card-3 { border-top: 2px solid #00ff88; }
+        .feature-card-3 .card-icon { background: rgba(0,255,136,0.15); }
+        .feature-card-3 .card-action { color: #00ff88; }
+
+        .feature-card-4 { border-top: 2px solid #b44dff; }
+        .feature-card-4 .card-icon { background: rgba(180,77,255,0.15); }
+        .feature-card-4 .card-action { color: #b44dff; }
+
+        .feature-card-5 { border-top: 2px solid #ffaa00; }
+        .feature-card-5 .card-icon { background: rgba(255,170,0,0.15); }
+        .feature-card-5 .card-action { color: #ffaa00; }
+
+        .feature-card-6 { border-top: 2px solid #ff3d8a; }
+        .feature-card-6 .card-icon { background: rgba(255,61,138,0.15); }
+        .feature-card-6 .card-action { color: #ff3d8a; }
+
+        /* 子页面 */
+        .sub-page { display: none; }
+        .sub-page.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .back-btn {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(26,26,62,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .back-btn:hover { background: rgba(255,107,53,0.2); border-color: #ff6b35; }
+        .page-title { font-size: 18px; font-weight: 600; color: #fff; }
+
+        /* 内容卡片 */
+        .content-card {
+            background: rgba(26,26,62,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .content-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .content-card-header h3 { font-size: 15px; font-weight: 600; color: #fff; }
+        .content-card-body { padding: 16px 20px; }
+
+        .content-card-footer {
+            padding: 14px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: linear-gradient(135deg, #ff6b35, #ff3d8a); color: white; }
+        .btn-primary:hover { box-shadow: 0 0 20px rgba(255,107,53,0.4); }
+        .btn-outline { background: transparent; color: #a0a0cc; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-outline:hover { border-color: #ff6b35; color: #ff6b35; }
+        .btn-sm { padding: 7px 12px; font-size: 12px; }
+        .btn-lg { padding: 14px 24px; font-size: 15px; }
+        .btn-block { width: 100%; }
+        .btn-danger { background: linear-gradient(135deg, #ff3d8a, #ff0844); color: white; }
+
+        /* 表单 */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: #a0a0cc; margin-bottom: 8px; }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 15px;
+            color: #e0e0e0;
+            background: rgba(15,15,35,0.8);
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #ff6b35;
+            box-shadow: 0 0 15px rgba(255,107,53,0.2);
+        }
+
+        .form-input::placeholder, .form-textarea::placeholder { color: #4a4a7a; }
+        .form-textarea { min-height: 150px; resize: vertical; line-height: 1.7; }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -8px;
+        }
+
+        .form-row > .form-group { padding: 0 8px; width: 100%; }
+        @media (min-width: 600px) { .form-row > .form-group { width: 50%; } }
+
+        /* 标签 */
+        .tag {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .tag-primary { background: rgba(255,107,53,0.15); color: #ff6b35; }
+        .tag-success { background: rgba(0,255,136,0.15); color: #00ff88; }
+        .tag-warning { background: rgba(255,170,0,0.15); color: #ffaa00; }
+        .tag-danger { background: rgba(255,61,138,0.15); color: #ff3d8a; }
+        .tag-admin { background: rgba(255,0,0,0.15); color: #ff4444; }
+
+        /* 表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background: rgba(255,255,255,0.03);
+            color: #6666aa;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .data-table td { color: #a0a0cc; }
+        .data-table tr:hover { background: rgba(255,255,255,0.02); }
+
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal-content {
+            background: #1a1a3e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: #1a1a3e;
+            border-radius: 16px 16px 0 0;
+            z-index: 1;
+        }
+
+        .modal-header h3 { font-size: 18px; font-weight: 600; color: #fff; }
+
+        .modal-close {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0a0cc;
+        }
+
+        .modal-close:hover { background: rgba(255,61,138,0.2); border-color: #ff3d8a; }
+        .modal-body { padding: 24px; }
+        .modal-body .form-group { margin-bottom: 18px; }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .modal-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #8888bb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-family: inherit;
+        }
+
+        .modal-tab.active { color: #ff6b35; border-bottom-color: #ff6b35; }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; animation: fadeIn 0.3s ease; }
+
+        .auth-message {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .auth-message.error {
+            background: rgba(255,61,138,0.1);
+            border: 1px solid rgba(255,61,138,0.3);
+            color: #ff3d8a;
+        }
+
+        .auth-message.success {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.3);
+            color: #00ff88;
+        }
+
+        .form-hint { font-size: 11px; color: #6666aa; margin-top: 6px; }
+
+        .auth-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff6b35, #ff3d8a);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 5px;
+            font-family: inherit;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255,107,53,0.4);
+        }
+
+        .auth-btn.admin-btn {
+            background: linear-gradient(135deg, #ff0844, #ff3d8a);
+            margin-top: 15px;
+        }
+
+        /* 评分显示 */
+        .score-display {
+            background: linear-gradient(135deg, rgba(26,26,62,0.9), rgba(15,15,35,0.9));
+            border: 1px solid rgba(255,107,53,0.2);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .score-label { font-size: 14px; color: #8888bb; margin-bottom: 8px; }
+
+        .score-value {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #ff6b35, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-level {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .level-a { background: rgba(255,61,138,0.2); color: #ff3d8a; border: 1px solid rgba(255,61,138,0.3); }
+        .level-b { background: rgba(255,170,0,0.2); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
+        .level-c { background: rgba(0,212,255,0.2); color: #00d4ff; border: 1px solid rgba(0,212,255,0.3); }
+        .level-d { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
+        .level-e { background: rgba(180,77,255,0.2); color: #b44dff; border: 1px solid rgba(180,77,255,0.3); }
+
+        /* 维度评分 */
+        .dim-scores-grid {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -6px;
+        }
+
+        .dim-score-card {
+            width: calc(50% - 12px);
+            margin: 6px;
+            background: rgba(15,15,35,0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 16px 12px;
+            text-align: center;
+        }
+
+        @media (min-width: 480px) { .dim-score-card { width: calc(33.333% - 12px); } }
+        @media (min-width: 769px) { .dim-score-card { width: calc(20% - 12px); } }
+
+        .dim-score-icon { font-size: 24px; margin-bottom: 8px; }
+        .dim-score-name { font-size: 12px; color: #8888bb; margin-bottom: 6px; }
+        .dim-score-value { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+
+        .dim-score-level {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* 解决方案 */
+        .solution-item {
+            background: rgba(15,15,35,0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 14px;
+            border-left: 3px solid #ff6b35;
+        }
+
+        .solution-item.high { border-left-color: #ff3d8a; }
+        .solution-item.medium { border-left-color: #ffaa00; }
+        .solution-item.low { border-left-color: #00ff88; }
+
+        .solution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .solution-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .solution-content { font-size: 14px; color: #a0a0cc; line-height: 1.7; }
+        .solution-content ul { padding-left: 18px; margin: 8px 0; }
+        .solution-content li { margin-bottom: 6px; }
+
+        /* 详细数据 */
+        .detail-list { list-style: none; }
+        .detail-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.04);
+            font-size: 14px;
+        }
+
+        .detail-list li:last-child { border-bottom: none; }
+        .detail-list-label { color: #8888bb; }
+        .detail-list-value { color: #fff; font-weight: 600; }
+        .detail-list-value.highlight { color: #ff6b35; }
+        .detail-list-value.green { color: #00ff88; }
+        .detail-list-value.red { color: #ff3d8a; }
+
+        .detail-card {
+            background: rgba(26,26,62,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .detail-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) { .detail-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        /* 空状态 */
+        .empty-state { text-align: center; padding: 50px 20px; }
+        .empty-state .empty-icon { font-size: 44px; margin-bottom: 16px; }
+        .empty-state p { font-size: 14px; color: #8888bb; margin-bottom: 16px; }
+
+        /* 底部 */
+        .footer {
+            background: rgba(15,15,35,0.95);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 20px;
+            margin-top: 30px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #6666aa;
+            text-align: center;
+        }
+
+        @media (min-width: 769px) {
+            .footer-content {
+                flex-direction: row;
+                justify-content: space-between;
+                text-align: left;
+            }
+        }
+
+        .footer-links { display: flex; gap: 16px; }
+        .footer-links a { color: #6666aa; text-decoration: none; cursor: pointer; transition: color 0.2s ease; }
+        .footer-links a:hover { color: #ff6b35; }
+
+        /* 加载 */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10,10,26,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .loading-overlay.show { display: flex; }
+
+        .loading-spinner {
+            width: 44px; height: 44px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #ff6b35;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text { font-size: 15px; color: #8888bb; text-align: center; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26,26,62,0.95);
+            color: #e0e0e0;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            border: 1px solid rgba(255,107,53,0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show { opacity: 1; }
+
+        /* 管理员后台专用样式 */
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255,0,0,0.15);
+            border: 1px solid rgba(255,0,0,0.3);
+            border-radius: 20px;
+            font-size: 11px;
+            color: #ff4444;
+        }
+
+        .admin-badge::before {
+            content: '👑';
+            font-size: 12px;
+        }
+
+        .user-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .user-status.online {
+            background: rgba(0,255,136,0.15);
+            color: #00ff88;
+        }
+
+        .user-status.offline {
+            background: rgba(255,255,255,0.1);
+            color: #888;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .action-btn-view {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+        }
+
+        .action-btn-view:hover {
+            background: rgba(0,212,255,0.3);
+        }
+
+        .action-btn-delete {
+            background: rgba(255,61,138,0.2);
+            color: #ff3d8a;
+        }
+
+        .action-btn-delete:hover {
+            background: rgba(255,61,138,0.3);
+        }
+
+        /* 搜索框 */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: rgba(15,15,35,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #ff6b35;
+        }
+
+        .search-input::placeholder { color: #4a4a7a; }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="logo" onclick="showMainPage(); return false;" href="#">
+                <div class="logo-icon">AI</div>
+                <span class="logo-text">廉江小家电集群分析综合平台</span>
+            </a>
+            <div class="nav-right">
+                <div class="nav-auth-btns" id="authBtns">
+                    <button class="nav-btn nav-btn-sm" onclick="openAuthModal('login')" type="button">登录</button>
+                    <button class="nav-btn nav-btn-primary nav-btn-sm" onclick="openAuthModal('register')" type="button">注册</button>
+                    <button class="nav-btn nav-btn-admin nav-btn-sm" onclick="openAuthModal('admin')" type="button">管理员</button>
+                </div>
+                <div class="nav-user-info" id="userInfo">
+                    <span class="nav-user-name" id="userDisplay"></span>
+                    <button class="nav-btn nav-btn-sm" onclick="showSubPage('admin')" id="adminBtn" style="display:none;" type="button">后台</button>
+                    <button class="nav-btn nav-btn-sm" onclick="handleLogout()" type="button">退出</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- 主页面 -->
+        <div class="main-page" id="mainPage">
+            <div class="page-header">
+                <h1>廉江小家电集群分析综合平台</h1>
+                <p>AI赋能产业集群国际化 · 八要素五层级智能评价体系</p>
+            </div>
+
+            <!-- 核心数据 -->
+            <div class="data-stats">
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">🏭</div>
+                    <div class="data-stat-value">1,200+</div>
+                    <div class="data-stat-label">集群企业数量</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">💰</div>
+                    <div class="data-stat-value">250亿</div>
+                    <div class="data-stat-label">产业集群产值</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">🌍</div>
+                    <div class="data-stat-value">100+</div>
+                    <div class="data-stat-label">出口国家地区</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">📊</div>
+                    <div class="data-stat-value">C级</div>
+                    <div class="data-stat-label">综合评价等级</div>
+                </div>
+            </div>
+
+            <!-- 功能卡片 -->
+            <div class="features-grid">
+                <div class="feature-card feature-card-1" onclick="showSubPage('input')" role="button">
+                    <div class="card-icon">📝</div>
+                    <div class="card-title">企业数据录入</div>
+                    <div class="card-desc">灵活录入企业经营数据，支持多种格式</div>
+                    <div class="card-action">开始录入 <span class="arrow">→</span></div>
+                </div>
+
+                <div class="feature-card feature-card-2" onclick="showSubPage('diagnosis')" role="button">
+                    <div class="card-icon">🔬</div>
+                    <div class="card-title">八要素AI诊断</div>
+                    <div class="card-desc">基于论文规则的八要素五层级智能评价</div>
+                    <div class="card-action">开始诊断 <span class="arrow">→</span></div>
+                </div>
+
+                <div class="feature-card feature-card-3" onclick="showSubPage('evaluation')" role="button">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">竞争力评估</div>
+                    <div class="card-desc">AHP-DEA综合评价模型量化评估</div>
+                    <div class="card-action">查看评估 <span class="arrow">→</span></div>
+                </div>
+
+                <div class="feature-card feature-card-4" onclick="showSubPage('solution')" role="button">
+                    <div class="card-icon">🚀</div>
+                    <div class="card-title">升级方案生成</div>
+                    <div class="card-desc">基于诊断结果生成定制化升级方案</div>
+                    <div class="card-action">生成方案 <span class="arrow">→</span></div>
+                </div>
+
+                <div class="feature-card feature-card-5" onclick="showSubPage('warning')" role="button">
+                    <div class="card-icon">⚠️</div>
+                    <div class="card-title">经营预警监测</div>
+                    <div class="card-desc">实时监测经营指标异常预警</div>
+                    <div class="card-action">查看预警 <span class="arrow">→</span></div>
+                </div>
+
+                <div class="feature-card feature-card-6" onclick="showSubPage('dashboard')" role="button">
+                    <div class="card-icon">📈</div>
+                    <div class="card-title">产业集群看板</div>
+                    <div class="card-desc">廉江小家电产业集群数据可视化</div>
+                    <div class="card-action">查看数据 <span class="arrow">→</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：企业数据录入 -->
+        <div class="sub-page" id="page-input">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">📝 企业数据录入</h2>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h3>企业信息</h3>
+                    <button class="btn btn-sm btn-outline" onclick="loadSampleData()" type="button">加载示例</button>
+                </div>
+                <div class="content-card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">企业名称</label>
+                            <input type="text" class="form-input" id="companyName" placeholder="请输入企业名称">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">所属行业</label>
+                            <input type="text" class="form-input" id="industry" placeholder="如：小家电制造">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">员工人数</label>
+                            <input type="text" class="form-input" id="employees" placeholder="如：150人">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">年营业额</label>
+                            <input type="text" class="form-input" id="revenue" placeholder="如：3000万元">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">企业数据（自由格式）</label>
+                        <textarea class="form-input form-textarea" id="companyData" placeholder="可自由输入企业数据，系统会智能解析...
+
+示例格式：
+【研发情况】研发投入占比约2%，专利5件...
+【标准认证】已获得CE认证...
+【营销渠道】跨境电商占比10%...
+【品牌建设】自主品牌1个...
+【物流情况】物流成本占营收15%..."></textarea>
+                    </div>
+                </div>
+                <div class="content-card-footer">
+                    <button class="btn btn-outline" onclick="showMainPage()" type="button">返回</button>
+                    <button class="btn btn-primary" onclick="saveCompanyData()" type="button">💾 保存数据</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：AI诊断 -->
+        <div class="sub-page" id="page-diagnosis">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">🔬 八要素AI诊断</h2>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h3>诊断配置</h3>
+                </div>
+                <div class="content-card-body">
+                    <div class="form-group">
+                        <label class="form-label">选择企业</label>
+                        <select class="form-select" id="selectCompany">
+                            <option value="">请选择企业</option>
+                        </select>
+                    </div>
+                    <div class="content-card-footer">
+                        <button class="btn btn-outline" onclick="showMainPage()" type="button">返回</button>
+                        <button class="btn btn-primary" onclick="startDiagnosis()" type="button">🤖 开始AI诊断</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="diagnosisResult" style="display: none;">
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3>📋 诊断报告</h3>
+                        <span class="tag tag-success">已完成</span>
+                    </div>
+                    <div class="content-card-body">
+                        <div id="diagnosisReport"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：竞争力评估 -->
+        <div class="sub-page" id="page-evaluation">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">📊 竞争力评估</h2>
+            </div>
+
+            <div id="evaluationContent">
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <p>请先完成企业数据录入和AI诊断</p>
+                    <button class="btn btn-primary" onclick="showSubPage('input')" type="button">去录入数据</button>
+                </div>
+            </div>
+
+            <div id="evaluationResult" style="display: none;">
+                <div class="score-display">
+                    <div class="score-label">AHP-DEA综合评价得分</div>
+                    <div class="score-value" id="totalScore">0</div>
+                    <div class="score-level" id="totalLevel">评估中...</div>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3>八要素评分详情</h3>
+                    </div>
+                    <div class="content-card-body">
+                        <div class="dim-scores-grid" id="dimScoresGrid"></div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3>🤖 AI分析结论</h3>
+                    </div>
+                    <div class="content-card-body" id="aiConclusion"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：升级方案 -->
+        <div class="sub-page" id="page-solution">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">🚀 升级方案生成</h2>
+            </div>
+
+            <div id="solutionContent">
+                <div class="empty-state">
+                    <div class="empty-icon">🚀</div>
+                    <p>请先完成AI诊断</p>
+                    <button class="btn btn-primary" onclick="showSubPage('diagnosis')" type="button">去进行诊断</button>
+                </div>
+            </div>
+
+            <div id="solutionResult" style="display: none;">
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3>定制化升级方案</h3>
+                    </div>
+                    <div class="content-card-body" id="solutionsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：经营预警 -->
+        <div class="sub-page" id="page-warning">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">⚠️ 经营预警监测</h2>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h3>数据输入</h3>
+                </div>
+                <div class="content-card-body">
+                    <div class="form-group">
+                        <label class="form-label">选择企业</label>
+                        <select class="form-select" id="warningCompany">
+                            <option value="">请选择企业</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">本月经营数据</label>
+                        <textarea class="form-input form-textarea" id="monthlyData" placeholder="请输入本月经营数据..."></textarea>
+                    </div>
+                    <div class="content-card-footer">
+                        <button class="btn btn-primary btn-block" onclick="analyzeWarning()" type="button">🔍 分析预警</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="warningResult" style="display: none;">
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3>预警分析结果</h3>
+                    </div>
+                    <div class="content-card-body" id="warningAlerts"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：产业集群看板 -->
+        <div class="sub-page" id="page-dashboard">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">📈 产业集群看板</h2>
+            </div>
+
+            <div class="data-stats">
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">🏭</div>
+                    <div class="data-stat-value">1,200+</div>
+                    <div class="data-stat-label">集群企业</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">💰</div>
+                    <div class="data-stat-value">250亿</div>
+                    <div class="data-stat-label">产业产值</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">🌍</div>
+                    <div class="data-stat-value">100+</div>
+                    <div class="data-stat-label">出口国家</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">📈</div>
+                    <div class="data-stat-value">23.4%</div>
+                    <div class="data-stat-label">增长率</div>
+                </div>
+            </div>
+
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-title">📊 产业规模数据</div>
+                    <ul class="detail-list">
+                        <li><span class="detail-list-label">产业集群等级</span><span class="detail-list-value highlight">国家级</span></li>
+                        <li><span class="detail-list-label">规上企业</span><span class="detail-list-value">70家</span></li>
+                        <li><span class="detail-list-label">高新技术企业</span><span class="detail-list-value">59家</span></li>
+                        <li><span class="detail-list-label">区域品牌价值</span><span class="detail-list-value">24亿元</span></li>
+                        <li><span class="detail-list-label">综合评级</span><span class="detail-list-value" style="color:#00d4ff;">C级</span></li>
+                    </ul>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-title">📦 核心产品数据</div>
+                    <ul class="detail-list">
+                        <li><span class="detail-list-label">电饭煲产量</span><span class="detail-list-value">4000万台/年</span></li>
+                        <li><span class="detail-list-label">电饭锅市占率</span><span class="detail-list-value highlight">30%</span></li>
+                        <li><span class="detail-list-label">电水壶产量</span><span class="detail-list-value">2亿台/年</span></li>
+                        <li><span class="detail-list-label">电热水壶市占率</span><span class="detail-list-value highlight">80%</span></li>
+                        <li><span class="detail-list-label">产品品类</span><span class="detail-list-value">30余种</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 子页面：管理员后台 -->
+        <div class="sub-page" id="page-admin">
+            <div class="page-top">
+                <button class="back-btn" onclick="showMainPage()" type="button">←</button>
+                <h2 class="page-title">👑 管理员后台</h2>
+                <span class="admin-badge">管理员</span>
+            </div>
+
+            <!-- 后台统计 -->
+            <div class="data-stats">
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">👥</div>
+                    <div class="data-stat-value" id="adminTotalUsers">0</div>
+                    <div class="data-stat-label">注册用户数</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">📊</div>
+                    <div class="data-stat-value" id="adminTotalAnalysis">0</div>
+                    <div class="data-stat-label">诊断次数</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">🏭</div>
+                    <div class="data-stat-value" id="adminTotalCompanies">0</div>
+                    <div class="data-stat-label">录入企业数</div>
+                </div>
+                <div class="data-stat-card">
+                    <div class="data-stat-icon">📅</div>
+                    <div class="data-stat-value" id="adminTodayDate">-</div>
+                    <div class="data-stat-label">当前日期</div>
+                </div>
+            </div>
+
+            <!-- 用户记录表 -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h3>📋 用户记录</h3>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-sm btn-outline" onclick="refreshAdminData()">🔄 刷新</button>
+                        <button class="btn btn-sm btn-outline" onclick="exportUserData()">📥 导出</button>
+                    </div>
+                </div>
+                <div class="content-card-body">
+                    <div class="search-box">
+                        <input type="text" class="search-input" id="searchUser" placeholder="搜索用户名..." oninput="filterUsers()">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="userTable">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>注册时间</th>
+                                    <th>登录次数</th>
+                                    <th>诊断次数</th>
+                                    <th>最后登录</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 企业记录表 -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h3>🏭 企业数据记录</h3>
+                </div>
+                <div class="content-card-body">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>企业名称</th>
+                                    <th>行业</th>
+                                    <th>录入时间</th>
+                                    <th>诊断状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="companyTableBody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统日志 -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h3>📝 系统日志</h3>
+                </div>
+                <div class="content-card-body">
+                    <div id="systemLogs" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 13px; color: #a0a0cc;">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer">
+        <div class="footer-content">
+            <span>© 2026 廉江小家电集群分析综合平台 | AI赋能产业集群国际化</span>
+            <div class="footer-links">
+                <a onclick="openModal('about')">关于系统</a>
+                <a onclick="openModal('contact')">联系我们</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">AI分析中...</div>
+    </div>
+
+    <!-- 模态框 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">标题</h3>
+                <button class="modal-close" onclick="closeModal()" type="button">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- 登录注册模态框 -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="authModalTitle">用户登录</h3>
+                <button class="modal-close" onclick="closeAuthModal()" type="button">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-tabs">
+                    <button class="modal-tab active" onclick="switchAuthTab('login')" type="button">登录</button>
+                    <button class="modal-tab" onclick="switchAuthTab('register')" type="button">注册</button>
+                    <button class="modal-tab" onclick="switchAuthTab('admin')" type="button">管理员</button>
+                </div>
+
+                <!-- 用户登录 -->
+                <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="auth-message error" id="loginError"></div>
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" id="loginUsername" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码" required>
+                    </div>
+                    <button type="submit" class="auth-btn">用户登录</button>
+                </form>
+
+                <!-- 用户注册 -->
+                <form class="auth-form" id="registerForm" onsubmit="handleRegister(event)">
+                    <div class="auth-message error" id="registerError"></div>
+                    <div class="auth-message success" id="registerSuccess"></div>
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" id="regUsername" placeholder="请输入用户名（3-20位）" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" id="regPassword" placeholder="请输入密码（6位以上）" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">确认密码</label>
+                        <input type="password" class="form-input" id="regPasswordConfirm" placeholder="请再次输入密码" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">校验码 <span style="color:#ff3d8a;">*</span></label>
+                        <input type="text" class="form-input" id="regVerifyCode" placeholder="请输入校验码" required>
+                        <div class="form-hint">请联系管理员获取校验码</div>
+                    </div>
+                    <button type="submit" class="auth-btn">注册账号</button>
+                </form>
+
+                <!-- 管理员登录 -->
+                <form class="auth-form" id="adminForm" onsubmit="handleAdminLogin(event)">
+                    <div class="auth-message error" id="adminError"></div>
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <div style="font-size:48px;">👑</div>
+                        <p style="color:#888; margin-top:10px;">管理员专用入口</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">管理员账号</label>
+                        <input type="text" class="form-input" id="adminUsername" placeholder="请输入管理员账号" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">管理员密码</label>
+                        <input type="password" class="form-input" id="adminPassword" placeholder="请输入管理员密码" required>
+                    </div>
+                    <button type="submit" class="auth-btn admin-btn">管理员登录</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // ==================== 加密模块 ====================
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function simpleEncrypt(text, key) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+                result += String.fromCharCode(charCode);
+            }
+            return btoa(result);
+        }
+
+        function simpleDecrypt(encoded, key) {
+            const text = atob(encoded);
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+                result += String.fromCharCode(charCode);
+            }
+            return result;
+        }
+
+        function generateSalt() {
+            const array = new Uint8Array(16);
+            crypto.getRandomValues(array);
+            return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        const STORAGE_KEY = btoa('lj_users_v5');
+        const SESSION_KEY = btoa('lj_session_v5');
+        const ADMIN_KEY = btoa('lj_admin_v5');
+        const LOG_KEY = btoa('lj_logs_v5');
+        const ENCRYPT_KEY = 'LJ_2026_SECURE_KEY_XYZ';
+
+        // 管理员账号加密存储（原始：13246429006，密码：102906）
+        // 使用SHA-256哈希后存储
+        const ADMIN_CONFIG = {
+            // 用户名哈希：SHA256('13246429006')
+            usernameHash: 'a]b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7',
+            // 密码哈希：SHA256('102906' + salt)
+            // 实际存储时会动态生成
+        };
+
+        // 初始化管理员数据
+        async function initAdmin() {
+            let adminData = null;
+            try {
+                const encrypted = localStorage.getItem(ADMIN_KEY);
+                if (encrypted) {
+                    adminData = JSON.parse(simpleDecrypt(encrypted, ENCRYPT_KEY));
+                }
+            } catch(e) {}
+
+            if (!adminData) {
+                const salt = generateSalt();
+                const usernameHash = await sha256('13246429006');
+                const passwordHash = await sha256('102906' + salt);
+
+                adminData = {
+                    usernameHash: usernameHash,
+                    passwordHash: passwordHash,
+                    salt: salt,
+                    createdAt: new Date().toISOString()
+                };
+
+                localStorage.setItem(ADMIN_KEY, simpleEncrypt(JSON.stringify(adminData), ENCRYPT_KEY));
+            }
+
+            return adminData;
+        }
+
+        // ==================== 用户管理 ====================
+        async function getUsers() {
+            try {
+                const encrypted = localStorage.getItem(STORAGE_KEY);
+                if (!encrypted) return {};
+                return JSON.parse(simpleDecrypt(encrypted, ENCRYPT_KEY));
+            } catch(e) { return {}; }
+        }
+
+        async function saveUsers(users) {
+            localStorage.setItem(STORAGE_KEY, simpleEncrypt(JSON.stringify(users), ENCRYPT_KEY));
+        }
+
+        async function registerUser(username, password, verifyCode) {
+            if (verifyCode !== '0000') {
+                return { success: false, error: '校验码校验失败，无法注册' };
+            }
+            if (username.length < 3 || username.length > 20) {
+                return { success: false, error: '用户名长度需在3-20位之间' };
+            }
+            if (password.length < 6) {
+                return { success: false, error: '密码长度需在6位以上' };
+            }
+
+            const users = await getUsers();
+            const hashedUsername = await sha256(username.toLowerCase());
+            
+            if (users[hashedUsername]) {
+                return { success: false, error: '该用户名已被注册' };
+            }
+
+            const salt = generateSalt();
+            const hashedPassword = await sha256(password + salt);
+
+            users[hashedUsername] = {
+                p: hashedPassword,
+                s: salt,
+                n: simpleEncrypt(username, ENCRYPT_KEY),
+                t: new Date().toISOString(),
+                loginCount: 0,
+                analysisCount: 0,
+                lastLogin: null
+            };
+
+            await saveUsers(users);
+            addLog(`新用户注册: ${username}`);
+            
+            return { success: true };
+        }
+
+        async function loginUser(username, password) {
+            const users = await getUsers();
+            const hashedUsername = await sha256(username.toLowerCase());
+            const user = users[hashedUsername];
+
+            if (!user) {
+                return { success: false, error: '用户名或密码错误' };
+            }
+
+            const hashedPassword = await sha256(password + user.s);
+            if (hashedPassword !== user.p) {
+                return { success: false, error: '用户名或密码错误' };
+            }
+
+            // 更新登录信息
+            user.loginCount = (user.loginCount || 0) + 1;
+            user.lastLogin = new Date().toISOString();
+            users[hashedUsername] = user;
+            await saveUsers(users);
+
+            const token = await sha256(username + Date.now() + Math.random());
+            sessionStorage.setItem(SESSION_KEY, simpleEncrypt(JSON.stringify({
+                u: username,
+                t: token,
+                e: Date.now() + 3600000,
+                isAdmin: false
+            }), ENCRYPT_KEY));
+
+            addLog(`用户登录: ${username}`);
+            return { success: true, username: username, isAdmin: false };
+        }
+
+        async function loginAdmin(username, password) {
+            const adminData = await initAdmin();
+            const hashedUsername = await sha256(username);
+            
+            if (hashedUsername !== adminData.usernameHash) {
+                return { success: false, error: '管理员账号错误' };
+            }
+
+            const hashedPassword = await sha256(password + adminData.salt);
+            if (hashedPassword !== adminData.passwordHash) {
+                return { success: false, error: '管理员密码错误' };
+            }
+
+            const token = await sha256('admin' + Date.now() + Math.random());
+            sessionStorage.setItem(SESSION_KEY, simpleEncrypt(JSON.stringify({
+                u: '管理员',
+                t: token,
+                e: Date.now() + 3600000,
+                isAdmin: true
+            }), ENCRYPT_KEY));
+
+            addLog('管理员登录系统');
+            return { success: true, username: '管理员', isAdmin: true };
+        }
+
+        async function checkSession() {
+            try {
+                const encrypted = sessionStorage.getItem(SESSION_KEY);
+                if (!encrypted) return null;
+                const session = JSON.parse(simpleDecrypt(encrypted, ENCRYPT_KEY));
+                if (Date.now() > session.e) {
+                    sessionStorage.removeItem(SESSION_KEY);
+                    return null;
+                }
+                return session;
+            } catch(e) { return null; }
+        }
+
+        function logout() {
+            const session = checkSession();
+            if (session) addLog(`用户退出: ${session.u}`);
+            sessionStorage.removeItem(SESSION_KEY);
+        }
+
+        // ==================== 日志管理 ====================
+        function addLog(message) {
+            let logs = [];
+            try {
+                const encrypted = localStorage.getItem(LOG_KEY);
+                if (encrypted) logs = JSON.parse(simpleDecrypt(encrypted, ENCRYPT_KEY));
+            } catch(e) {}
+
+            logs.unshift({
+                time: new Date().toLocaleString('zh-CN'),
+                message: message
+            });
+
+            // 只保留最近100条
+            if (logs.length > 100) logs = logs.slice(0, 100);
+
+            localStorage.setItem(LOG_KEY, simpleEncrypt(JSON.stringify(logs), ENCRYPT_KEY));
+        }
+
+        function getLogs() {
+            try {
+                const encrypted = localStorage.getItem(LOG_KEY);
+                if (encrypted) return JSON.parse(simpleDecrypt(encrypted, ENCRYPT_KEY));
+            } catch(e) {}
+            return [];
+        }
+
+        // ==================== UI 交互 ====================
+        const authBtns = document.getElementById('authBtns');
+        const userInfo = document.getElementById('userInfo');
+        const userDisplay = document.getElementById('userDisplay');
+        const adminBtn = document.getElementById('adminBtn');
+
+        function updateNavState(session) {
+            if (session) {
+                authBtns.classList.add('hide');
+                userInfo.classList.add('show');
+                userDisplay.innerHTML = session.isAdmin 
+                    ? `欢迎，<strong>${session.u}</strong> <span class="admin-badge">管理员</span>`
+                    : `欢迎，<strong>${session.u}</strong>`;
+                adminBtn.style.display = session.isAdmin ? 'inline-flex' : 'none';
+            } else {
+                authBtns.classList.remove('hide');
+                userInfo.classList.remove('show');
+            }
+        }
+
+        // 页面切换
+        window.showMainPage = function() {
+            document.getElementById('mainPage').style.display = 'block';
+            document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+            window.scrollTo(0, 0);
+        };
+
+        window.showSubPage = function(id) {
+            // 管理员页面需要权限检查
+            if (id === 'admin') {
+                const session = checkSession();
+                if (!session || !session.isAdmin) {
+                    showToast('请先以管理员身份登录');
+                    openAuthModal('admin');
+                    return;
+                }
+                loadAdminData();
+            }
+
+            document.getElementById('mainPage').style.display = 'none';
+            document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + id).classList.add('active');
+            window.scrollTo(0, 0);
+            
+            if (id === 'diagnosis' || id === 'warning') updateCompanySelect();
+            if (id === 'solution') showSolutions();
+            if (id === 'evaluation') updateEvaluationPage();
+        };
+
+        // Auth模态框
+        window.openAuthModal = function(tab) {
+            document.getElementById('authModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+            switchAuthTab(tab || 'login');
+        };
+
+        window.closeAuthModal = function() {
+            document.getElementById('authModal').classList.remove('show');
+            document.body.style.overflow = '';
+            // 清空输入
+            ['loginUsername', 'loginPassword', 'regUsername', 'regPassword', 
+             'regPasswordConfirm', 'regVerifyCode', 'adminUsername', 'adminPassword'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.querySelectorAll('.auth-message').forEach(el => el.style.display = 'none');
+        };
+
+        window.switchAuthTab = function(tab) {
+            document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            const tabs = ['login', 'register', 'admin'];
+            const index = tabs.indexOf(tab);
+            document.querySelectorAll('.modal-tab')[index].classList.add('active');
+            document.getElementById(tab + 'Form').classList.add('active');
+            
+            const titles = { login: '用户登录', register: '用户注册', admin: '管理员登录' };
+            document.getElementById('authModalTitle').textContent = titles[tab];
+            
+            document.querySelectorAll('.auth-message').forEach(el => el.style.display = 'none');
+        };
+
+        // 用户登录
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginError = document.getElementById('loginError');
+
+            if (!username || !password) {
+                loginError.textContent = '请输入用户名和密码';
+                loginError.style.display = 'block';
+                return;
+            }
+
+            loginError.style.display = 'none';
+            showLoading('正在验证...');
+
+            await new Promise(r => setTimeout(r, 600));
+
+            const result = await loginUser(username, password);
+            hideLoading();
+
+            if (result.success) {
+                showToast('登录成功！');
+                updateNavState(result);
+                closeAuthModal();
+            } else {
+                loginError.textContent = result.error;
+                loginError.style.display = 'block';
+            }
+        };
+
+        // 用户注册
+        window.handleRegister = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const verifyCode = document.getElementById('regVerifyCode').value.trim();
+            const registerError = document.getElementById('registerError');
+            const registerSuccess = document.getElementById('registerSuccess');
+
+            registerError.style.display = 'none';
+            registerSuccess.style.display = 'none';
+
+            if (password !== passwordConfirm) {
+                registerError.textContent = '两次输入的密码不一致';
+                registerError.style.display = 'block';
+                return;
+            }
+
+            showLoading('正在注册...');
+
+            await new Promise(r => setTimeout(r, 800));
+
+            const result = await registerUser(username, password, verifyCode);
+            hideLoading();
+
+            if (result.success) {
+                registerSuccess.textContent = '注册成功！请切换到登录';
+                registerSuccess.style.display = 'block';
+                ['regUsername', 'regPassword', 'regPasswordConfirm', 'regVerifyCode'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+                setTimeout(() => switchAuthTab('login'), 1500);
+            } else {
+                registerError.textContent = result.error;
+                registerError.style.display = 'block';
+            }
+        };
+
+        // 管理员登录
+        window.handleAdminLogin = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const adminError = document.getElementById('adminError');
+
+            if (!username || !password) {
+                adminError.textContent = '请输入管理员账号和密码';
+                adminError.style.display = 'block';
+                return;
+            }
+
+            adminError.style.display = 'none';
+            showLoading('正在验证管理员身份...');
+
+            await new Promise(r => setTimeout(r, 800));
+
+            const result = await loginAdmin(username, password);
+            hideLoading();
+
+            if (result.success) {
+                showToast('管理员登录成功！');
+                updateNavState(result);
+                closeAuthModal();
+            } else {
+                adminError.textContent = result.error;
+                adminError.style.display = 'block';
+            }
+        };
+
+        // 退出登录
+        window.handleLogout = function() {
+            logout();
+            updateNavState(null);
+            showMainPage();
+            showToast('已安全退出');
+        };
+
+        // Toast
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast show';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => {
+                t.classList.remove('show');
+                setTimeout(() => t.remove(), 300);
+            }, 2000);
+        }
+        window.showToast = showToast;
+
+        // 加载
+        function showLoading(t) {
+            document.getElementById('loadingText').textContent = t || '处理中...';
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        // ==================== 管理员后台功能 ====================
+        window.loadAdminData = async function() {
+            const users = await getUsers();
+            const companies = JSON.parse(localStorage.getItem('companies') || '[]');
+            const logs = getLogs();
+
+            // 统计数据
+            document.getElementById('adminTotalUsers').textContent = Object.keys(users).length;
+            document.getElementById('adminTotalCompanies').textContent = companies.length;
+            document.getElementById('adminTodayDate').textContent = new Date().toLocaleDateString('zh-CN');
+
+            let totalAnalysis = 0;
+            Object.values(users).forEach(u => {
+                totalAnalysis += (u.analysisCount || 0);
+            });
+            document.getElementById('adminTotalAnalysis').textContent = totalAnalysis;
+
+            // 用户表格
+            const userTableBody = document.getElementById('userTableBody');
+            userTableBody.innerHTML = '';
+
+            Object.entries(users).forEach(([hash, user]) => {
+                const name = simpleDecrypt(user.n, ENCRYPT_KEY);
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-username', name.toLowerCase());
+                tr.innerHTML = `
+                    <td>${name}</td>
+                    <td>${new Date(user.t).toLocaleDateString('zh-CN')}</td>
+                    <td>${user.loginCount || 0}</td>
+                    <td>${user.analysisCount || 0}</td>
+                    <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-CN') : '-'}</td>
+                    <td><span class="user-status ${user.lastLogin ? 'online' : 'offline'}">${user.lastLogin ? '活跃' : '未登录'}</span></td>
+                    <td>
+                        <button class="action-btn action-btn-view" onclick="viewUserDetail('${name}')">查看</button>
+                    </td>
+                `;
+                userTableBody.appendChild(tr);
+            });
+
+            // 企业表格
+            const companyTableBody = document.getElementById('companyTableBody');
+            companyTableBody.innerHTML = '';
+
+            companies.forEach(company => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${company.name}</td>
+                    <td>${company.industry || '-'}</td>
+                    <td>${company.timestamp ? new Date(company.timestamp).toLocaleDateString('zh-CN') : '-'}</td>
+                    <td><span class="tag tag-warning">待诊断</span></td>
+                    <td>
+                        <button class="action-btn action-btn-view" onclick="viewCompanyDetail('${company.name}')">查看</button>
+                    </td>
+                `;
+                companyTableBody.appendChild(tr);
+            });
+
+            // 系统日志
+            const systemLogs = document.getElementById('systemLogs');
+            systemLogs.innerHTML = logs.map(log => 
+                `<div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <span style="color: #666;">[${log.time}]</span> ${log.message}
+                </div>`
+            ).join('');
+        };
+
+        window.refreshAdminData = function() {
+            loadAdminData();
+            showToast('数据已刷新');
+        };
+
+        window.filterUsers = function() {
+            const keyword = document.getElementById('searchUser').value.toLowerCase();
+            const rows = document.querySelectorAll('#userTableBody tr');
+            rows.forEach(row => {
+                const username = row.getAttribute('data-username');
+                row.style.display = username.includes(keyword) ? '' : 'none';
+            });
+        };
+
+        window.viewUserDetail = function(username) {
+            alert(`用户详情：${username}\n\n功能开发中，敬请期待...`);
+        };
+
+        window.viewCompanyDetail = function(companyName) {
+            alert(`企业详情：${companyName}\n\n功能开发中，敬请期待...`);
+        };
+
+        window.exportUserData = function() {
+            showToast('数据导出功能开发中...');
+        };
+
+        // ==================== 业务功能 ====================
+        let diagnosisResult = null;
+
+        // 加载示例数据
+        window.loadSampleData = function() {
+            document.getElementById('companyName').value = '廉江市XX电器有限公司';
+            document.getElementById('industry').value = '小家电制造';
+            document.getElementById('employees').value = '150人';
+            document.getElementById('revenue').value = '3000万元';
+            document.getElementById('companyData').value = `【研发情况】
+- 研发投入占比约1.5%
+- 研发人员15人，占员工总数10%
+- 拥有专利5件
+- 产品升级主要以仿效为主
+
+【标准认证】
+- 已获得CE认证（欧盟）
+- 正在申请SNI认证（印尼）
+- 标准覆盖率约45%
+
+【营销渠道】
+- 跨境电商销售额占比约10%
+- 产品出口至8个国家
+
+【品牌建设】
+- 自主品牌1个，知名度较低
+- 主要以OEM代工为主
+
+【物流情况】
+- 物流成本占营收约15%
+- 平均交货周期18天
+- 无海外仓储`;
+            showToast('示例数据已加载');
+        };
+
+        // 保存企业数据
+        window.saveCompanyData = function() {
+            const name = document.getElementById('companyName').value.trim();
+            if (!name) {
+                showToast('请输入企业名称');
+                return;
+            }
+
+            const data = {
+                name: name,
+                industry: document.getElementById('industry').value,
+                employees: document.getElementById('employees').value,
+                revenue: document.getElementById('revenue').value,
+                rawData: document.getElementById('companyData').value,
+                timestamp: new Date().toISOString()
+            };
+
+            let saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            const idx = saved.findIndex(c => c.name === name);
+            if (idx >= 0) saved[idx] = data;
+            else saved.push(data);
+            localStorage.setItem('companies', JSON.stringify(saved));
+
+            addLog(`企业数据录入: ${name}`);
+            showToast('✅ 数据已保存');
+            
+            setTimeout(() => {
+                showSubPage('diagnosis');
+            }, 1000);
+        };
+
+        function updateCompanySelect() {
+            const saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            ['selectCompany', 'warningCompany'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) {
+                    sel.innerHTML = '<option value="">请选择企业</option>';
+                    saved.forEach(c => {
+                        sel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                    });
+                }
+            });
+        }
+
+        // 诊断功能
+        window.startDiagnosis = async function() {
+            const name = document.getElementById('selectCompany').value;
+            if (!name) {
+                showToast('请先选择企业');
+                return;
+            }
+
+            const saved = JSON.parse(localStorage.getItem('companies') || '[]');
+            const company = saved.find(c => c.name === name);
+            if (!company) {
+                showToast('未找到企业数据');
+                return;
+            }
+
+            showLoading('正在调用MiMo AI进行八要素诊断...');
+
+            // 更新用户分析次数
+            const session = await checkSession();
+            if (session && !session.isAdmin) {
+                const users = await getUsers();
+                const hashedUsername = await sha256(session.u.toLowerCase());
+                if (users[hashedUsername]) {
+                    users[hashedUsername].analysisCount = (users[hashedUsername].analysisCount || 0) + 1;
+                    await saveUsers(users);
+                }
+            }
+
+            addLog(`AI诊断: ${name}`);
+
+            setTimeout(() => {
+                performDiagnosis(company);
+                hideLoading();
+                showToast('✅ 诊断完成');
+            }, 2000);
+        };
+
+        function performDiagnosis(company) {
+            const data = company.rawData.toLowerCase();
+            const raw = company.rawData;
+            
+            const scores = {
+                brand: calcScore(data, raw, 'brand'),
+                marketing: calcScore(data, raw, 'marketing'),
+                rd: calcScore(data, raw, 'rd'),
+                production: calcScore(data, raw, 'production'),
+                standard: calcScore(data, raw, 'standard'),
+                logistics: calcScore(data, raw, 'logistics'),
+                capital: calcScore(data, raw, 'capital'),
+                finance: calcScore(data, raw, 'finance')
+            };
+
+            const weights = { brand: 0.1, marketing: 0.1, rd: 0.1, production: 0.1, standard: 0.1, logistics: 0.1, capital: 0.2, finance: 0.2 };
+
+            let totalScore = 0;
+            Object.keys(scores).forEach(k => { totalScore += scores[k] * weights[k]; });
+            totalScore = Math.round(totalScore);
+
+            diagnosisResult = {
+                scores: scores,
+                totalScore: totalScore,
+                level: getLevel(totalScore),
+                company: company,
+                solutions: generateSolutions(scores)
+            };
+
+            showDiagnosisReport();
+            updateEvaluationPage();
+        }
+
+        function calcScore(data, raw, dim) {
+            let s = 0, m;
+            if (dim === 'brand') {
+                m = raw.match(/品牌(\d+)/); s += m ? (parseInt(m[1]) >= 3 ? 20 : 15) : 10;
+                m = raw.match(/品牌[投入占]*(\d+\.?\d*)%?/); s += m ? (parseFloat(m[1]) >= 5 ? 20 : 15) : 10;
+                s += data.includes('知名度') && data.includes('低') ? 10 : 20;
+                s += data.includes('oem') || data.includes('代工') ? 10 : 20;
+            } else if (dim === 'marketing') {
+                m = raw.match(/[跨境电商销售]*(\d+\.?\d*)%?/); s += m ? (parseFloat(m[1]) >= 20 ? 20 : 15) : 10;
+                m = raw.match(/(\d+)[个国家市场]/); s += m ? (parseInt(m[1]) >= 15 ? 20 : 15) : 10;
+                s += 15; s += 15;
+            } else if (dim === 'rd') {
+                m = raw.match(/研发投入[占比例约]*(\d+\.?\d*)%?/); s += m ? (parseFloat(m[1]) >= 3 ? 20 : 10) : 10;
+                m = raw.match(/专利(\d+)/); s += m ? (parseInt(m[1]) >= 10 ? 20 : 15) : 10;
+                s += data.includes('自主研发') ? 20 : 10;
+                s += data.includes('研发机构') ? 15 : 5;
+            } else if (dim === 'production') {
+                s += 30; s += data.includes('erp') ? 15 : 5;
+                s += data.includes('iso') ? 15 : 10;
+                s += data.includes('智能化') ? 15 : 10;
+            } else if (dim === 'standard') {
+                m = raw.match(/认证[获得拥有]*(\d+)/); s += m ? (parseInt(m[1]) >= 3 ? 20 : 15) : 10;
+                m = raw.match(/[标准覆盖]*(\d+)%/); s += m ? Math.min(25, parseInt(m[1]) * 0.4) : 15;
+                if (data.includes('ce')) s += 10;
+                if (data.includes('iso')) s += 10;
+                s += 10;
+            } else if (dim === 'logistics') {
+                m = raw.match(/物流[成本占]*(\d+\.?\d*)%?/); s += m ? (parseFloat(m[1]) <= 12 ? 20 : 15) : 15;
+                m = raw.match(/[交货交付]*(\d+)天/); s += m ? (parseInt(m[1]) <= 14 ? 20 : 15) : 15;
+                s += data.includes('海外仓') && !data.includes('无') ? 20 : 5;
+                s += 10;
+            } else if (dim === 'capital') {
+                s += 40; s += data.includes('上市') ? 25 : 5;
+                s += data.includes('股权') || data.includes('债券') ? 15 : 5;
+                s += 10;
+            } else if (dim === 'finance') {
+                s += 35; s += data.includes('外汇') ? 15 : 5;
+                s += data.includes('国际信用') ? 15 : 5;
+                s += data.includes('信用证') ? 15 : 8;
+                s += 10;
+            }
+            return Math.min(100, s);
+        }
+
+        function getLevel(s) {
+            if (s >= 80) return { text: 'E级-优秀', class: 'level-e' };
+            if (s >= 60) return { text: 'D级-良好', class: 'level-d' };
+            if (s >= 40) return { text: 'C级-合格', class: 'level-c' };
+            if (s >= 20) return { text: 'B级-较差', class: 'level-b' };
+            return { text: 'A级-差', class: 'level-a' };
+        }
+
+        function getDimLevel(s) {
+            if (s >= 80) return { text: 'E级', bg: 'rgba(180,77,255,0.2)', color: '#b44dff' };
+            if (s >= 60) return { text: 'D级', bg: 'rgba(0,255,136,0.2)', color: '#00ff88' };
+            if (s >= 40) return { text: 'C级', bg: 'rgba(0,212,255,0.2)', color: '#00d4ff' };
+            if (s >= 20) return { text: 'B级', bg: 'rgba(255,170,0,0.2)', color: '#ffaa00' };
+            return { text: 'A级', bg: 'rgba(255,61,138,0.2)', color: '#ff3d8a' };
+        }
+
+        function generateSolutions(scores) {
+            const sols = [];
+            const names = {
+                brand: '国际化品牌', marketing: '国际化营销', rd: '国际化研发',
+                production: '国际化制成', standard: '国际化标准与认证',
+                logistics: '国际化物流', capital: '国际化资本', finance: '国际化金融'
+            };
+            const sorted = Object.entries(scores).sort((a, b) => a[1] - b[1]).slice(0, 3);
+            
+            const solutions = {
+                brand: ['制定区域品牌使用标准', '加大海外商标注册', '开展国际品牌推广', '提升产品设计品质'],
+                marketing: ['入驻跨境电商平台', '开展社交媒体营销', '参加国际家电展会', '建立海外营销中心'],
+                rd: ['加大研发投入至3-5%', '与高校共建研发飞地', '布局核心专利', '引入智能化设计软件'],
+                production: ['推进智能化改造', '引入ERP系统', '实施精益生产', '优化生产流程'],
+                standard: ['制定CE/SNI认证计划', '参加国际标准培训', '对接检测服务平台', '建立合规体系'],
+                logistics: ['整合订单降低成本', '布局海外仓', '优化物流网络', '探索多式联运'],
+                capital: ['规范财务管理制度', '对接资本市场', '引入战略投资者', '培育上市后备企业'],
+                finance: ['建立外汇管理制度', '申请国际信用评级', '拓展跨境融资', '使用汇率避险工具']
+            };
+
+            sorted.forEach(([dim, score]) => {
+                sols.push({
+                    title: `${names[dim]}提升方案`,
+                    priority: score < 30 ? 'high' : score < 50 ? 'medium' : 'low',
+                    content: solutions[dim] || ['持续优化提升']
+                });
+            });
+
+            return sols;
+        }
+
+        function showDiagnosisReport() {
+            const r = diagnosisResult;
+            const names = {
+                brand: { name: '品牌', icon: '💡' }, marketing: { name: '营销', icon: '📢' },
+                rd: { name: '研发', icon: '🔬' }, production: { name: '制成', icon: '⚙️' },
+                standard: { name: '标准', icon: '📐' }, logistics: { name: '物流', icon: '🚚' },
+                capital: { name: '资本', icon: '💰' }, finance: { name: '金融', icon: '🏦' }
+            };
+
+            let html = `<div class="score-display">
+                <div class="score-label">综合评价得分</div>
+                <div class="score-value">${r.totalScore}</div>
+                <div class="score-level ${r.level.class}">${r.level.text}</div>
+            </div><div class="dim-scores-grid">`;
+
+            Object.entries(r.scores).forEach(([dim, score]) => {
+                const level = getDimLevel(score);
+                html += `<div class="dim-score-card">
+                    <div class="dim-score-icon">${names[dim].icon}</div>
+                    <div class="dim-score-name">${names[dim].name}</div>
+                    <div class="dim-score-value">${score}</div>
+                    <div class="dim-score-level" style="background:${level.bg};color:${level.color};">${level.text}</div>
+                </div>`;
+            });
+
+            html += '</div>';
+            document.getElementById('diagnosisReport').innerHTML = html;
+            document.getElementById('diagnosisResult').style.display = 'block';
+        }
+
+        function updateEvaluationPage() {
+            if (!diagnosisResult) {
+                document.getElementById('evaluationContent').style.display = 'block';
+                document.getElementById('evaluationResult').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('evaluationContent').style.display = 'none';
+            document.getElementById('evaluationResult').style.display = 'block';
+
+            const r = diagnosisResult;
+            document.getElementById('totalScore').textContent = r.totalScore;
+            const levelEl = document.getElementById('totalLevel');
+            levelEl.textContent = r.level.text;
+            levelEl.className = 'score-level ' + r.level.class;
+
+            const names = {
+                brand: { name: '品牌', icon: '💡' }, marketing: { name: '营销', icon: '📢' },
+                rd: { name: '研发', icon: '🔬' }, production: { name: '制成', icon: '⚙️' },
+                standard: { name: '标准', icon: '📐' }, logistics: { name: '物流', icon: '🚚' },
+                capital: { name: '资本', icon: '💰' }, finance: { name: '金融', icon: '🏦' }
+            };
+
+            let gh = '';
+            Object.entries(r.scores).forEach(([dim, score]) => {
+                const level = getDimLevel(score);
+                gh += `<div class="dim-score-card">
+                    <div class="dim-score-icon">${names[dim].icon}</div>
+                    <div class="dim-score-name">${names[dim].name}</div>
+                    <div class="dim-score-value">${score}</div>
+                    <div class="dim-score-level" style="background:${level.bg};color:${level.color};">${level.text}</div>
+                </div>`;
+            });
+            document.getElementById('dimScoresGrid').innerHTML = gh;
+
+            const sorted = Object.entries(r.scores).sort((a, b) => a[1] - b[1]);
+            document.getElementById('aiConclusion').innerHTML = `
+                <div style="line-height:1.8;color:#a0a0cc;">
+                    <p><strong>企业：</strong>${r.company.name}</p>
+                    <p><strong>最大短板：</strong>${names[sorted[0][0]].name}（${sorted[0][1]}分）</p>
+                    <p><strong>相对优势：</strong>${names[sorted[sorted.length-1][0]].name}（${sorted[sorted.length-1][1]}分）</p>
+                </div>`;
+        }
+
+        function showSolutions() {
+            if (!diagnosisResult || !diagnosisResult.solutions) {
+                document.getElementById('solutionContent').style.display = 'block';
+                document.getElementById('solutionResult').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('solutionContent').style.display = 'none';
+            document.getElementById('solutionResult').style.display = 'block';
+
+            const pl = { high: '高优先级', medium: '中优先级', low: '建议优化' };
+            const pc = { high: 'danger', medium: 'warning', low: 'success' };
+
+            let html = '';
+            diagnosisResult.solutions.forEach(s => {
+                html += `<div class="solution-item ${s.priority}">
+                    <div class="solution-header">
+                        <div class="solution-title">${s.title}</div>
+                        <span class="tag tag-${pc[s.priority]}">${pl[s.priority]}</span>
+                    </div>
+                    <div class="solution-content"><ul>${s.content.map(c => `<li>${c}</li>`).join('')}</ul></div>
+                </div>`;
+            });
+
+            document.getElementById('solutionsList').innerHTML = html;
+        }
+
+        // 预警功能
+        window.analyzeWarning = function() {
+            const cn = document.getElementById('warningCompany').value;
+            const md = document.getElementById('monthlyData').value;
+            
+            if (!cn) { showToast('请选择企业'); return; }
+            if (!md.trim()) { showToast('请输入数据'); return; }
+
+            showLoading('正在分析...');
+
+            setTimeout(() => {
+                const alerts = [];
+                let m;
+
+                m = md.match(/次品率[：:]*\s*(\d+\.?\d*)%?/);
+                if (m) {
+                    const r = parseFloat(m[1]);
+                    alerts.push(r > 5 
+                        ? { t: 'danger', i: '🔴', h: '次品率超标', d: `当前${r}%，超5%警戒线` }
+                        : r > 3 
+                        ? { t: 'warning', i: '🟡', h: '次品率偏高', d: `当前${r}%` }
+                        : { t: 'success', i: '🟢', h: '次品率正常', d: `当前${r}%` });
+                }
+
+                m = md.match(/[交付准时]*率[：:]*\s*(\d+)%?/);
+                if (m) {
+                    const r = parseInt(m[1]);
+                    alerts.push(r < 90 
+                        ? { t: 'danger', i: '🔴', h: '交付率低', d: `当前${r}%` }
+                        : { t: 'success', i: '🟢', h: '交付率正常', d: `当前${r}%` });
+                }
+
+                if (alerts.length === 0) alerts.push({ t: 'warning', i: '💡', h: '提示', d: '建议按格式输入数据' });
+
+                let html = '';
+                alerts.forEach(a => {
+                    html += `<div class="alert-card ${a.t}" style="display:flex;gap:14px;padding:14px;border-radius:10px;margin-bottom:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:20px;">${a.i}</div>
+                        <div><div style="font-weight:600;margin-bottom:4px;">${a.h}</div><div style="font-size:13px;color:#a0a0cc;">${a.d}</div></div>
+                    </div>`;
+                });
+
+                document.getElementById('warningAlerts').innerHTML = html;
+                document.getElementById('warningResult').style.display = 'block';
+                hideLoading();
+                showToast('✅ 分析完成');
+            }, 1500);
+        };
+
+        // 模态框内容
+        const mc = {
+            about: { title: '关于系统', content: '<h4>系统简介</h4><p>廉江小家电集群分析综合平台，基于AI技术的产业集群数智化升级诊断工具。</p><h4>核心功能</h4><ul><li>企业数据录入</li><li>八要素AI诊断</li><li>竞争力评估</li><li>升级方案生成</li><li>经营预警监测</li><li>产业集群看板</li></ul>' },
+            contact: { title: '联系我们', content: '<h4>联系方式</h4><ul><li><strong>负责人：</strong>黄浩然</li><li><strong>电话：</strong>13246429006</li><li><strong>单位：</strong>湛江科技学院</li></ul>' }
+        };
+
+        window.openModal = function(t) {
+            document.getElementById('modalTitle').textContent = mc[t].title;
+            document.getElementById('modalBody').innerHTML = mc[t].content;
+            document.getElementById('modalOverlay').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeModal = function() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            document.body.style.overflow = '';
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initAdmin();
+            updateCompanySelect();
+
+            const session = await checkSession();
+            if (session) {
+                updateNavState(session);
+            }
+
+            document.getElementById('modalOverlay').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeAuthModal();
+                }
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

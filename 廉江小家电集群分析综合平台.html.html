@@ -6,8 +6,8 @@
 <title>廉江小家电集群分析综合平台</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;color:#e0e0e0;background:#0a0a1a;min-height:100vh;font-size:15px;line-height:1.6}
-body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at 20% 50%,rgba(255,107,53,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(0,212,255,.06) 0%,transparent 50%);pointer-events:none;z-index:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;color:#e8edf0;background:#111614;min-height:100vh;font-size:15px;line-height:1.6}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,rgba(31,45,39,.95),rgba(17,22,20,.92) 42%,rgba(42,28,25,.9)),radial-gradient(ellipse at 18% 18%,rgba(255,107,53,.12) 0%,transparent 34%),radial-gradient(ellipse at 84% 26%,rgba(0,212,255,.1) 0%,transparent 32%);pointer-events:none;z-index:0}
 .navbar{background:rgba(15,15,35,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100;height:56px}
 @media(min-width:769px){.navbar{height:64px}}
 .nav-container{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;justify-content:space-between;align-items:center;height:100%}
@@ -37,35 +37,55 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .nav-user-name strong{color:#ff6b35}
 .nav-auth-btns{display:flex;gap:8px}
 .nav-auth-btns.hide{display:none}
-.main-container{max-width:1200px;margin:0 auto;padding:16px;position:relative;z-index:1}
+.main-container{max-width:1240px;margin:0 auto;padding:16px;position:relative;z-index:1}
 @media(min-width:769px){.main-container{padding:24px}}
-.page-header{text-align:center;margin-bottom:24px;padding:20px 0}
-.page-header h1{font-size:28px;font-weight:800;margin-bottom:12px;background:linear-gradient(135deg,#fff,#a0a0cc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-@media(min-width:769px){.page-header h1{font-size:36px}}
-.page-header p{font-size:15px;color:#8888bb}
-.data-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px}
-@media(min-width:769px){.data-stats{grid-template-columns:repeat(4,1fr);gap:16px}}
-.data-stat-card{background:rgba(26,26,62,.8);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;text-align:center;transition:all .3s ease}
-.data-stat-card:hover{border-color:rgba(255,107,53,.3);transform:translateY(-2px)}
-.data-stat-icon{font-size:28px;margin-bottom:10px}
-.data-stat-value{font-size:24px;font-weight:800;background:linear-gradient(135deg,#ff6b35,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
-@media(min-width:769px){.data-stat-value{font-size:28px}}
-.data-stat-label{font-size:12px;color:#6666aa}
-.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:769px){.features-grid{grid-template-columns:repeat(3,1fr);gap:20px}}
-.feature-card{background:rgba(26,26,62,.8);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;cursor:pointer;transition:all .3s ease}
-@media(min-width:769px){.feature-card{padding:24px;border-radius:16px}}
-.feature-card:hover{transform:translateY(-4px);border-color:rgba(255,107,53,.3);box-shadow:0 8px 30px rgba(0,0,0,.3)}
-.card-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px}
-.card-title{font-size:16px;font-weight:600;margin-bottom:8px;color:#fff}
-.card-desc{font-size:13px;color:#8888bb;line-height:1.5;margin-bottom:12px}
-.card-action{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500}
-.feature-card-1{border-top:2px solid #ff6b35}.feature-card-1 .card-icon{background:rgba(255,107,53,.15)}.feature-card-1 .card-action{color:#ff6b35}
-.feature-card-2{border-top:2px solid #00d4ff}.feature-card-2 .card-icon{background:rgba(0,212,255,.15)}.feature-card-2 .card-action{color:#00d4ff}
-.feature-card-3{border-top:2px solid #00ff88}.feature-card-3 .card-icon{background:rgba(0,255,136,.15)}.feature-card-3 .card-action{color:#00ff88}
-.feature-card-4{border-top:2px solid #b44dff}.feature-card-4 .card-icon{background:rgba(180,77,255,.15)}.feature-card-4 .card-action{color:#b44dff}
-.feature-card-5{border-top:2px solid #ffaa00}.feature-card-5 .card-icon{background:rgba(255,170,0,.15)}.feature-card-5 .card-action{color:#ffaa00}
-.feature-card-6{border-top:2px solid #ff3d8a}.feature-card-6 .card-icon{background:rgba(255,61,138,.15)}.feature-card-6 .card-action{color:#ff3d8a}
+.home-hero{display:grid;grid-template-columns:1fr;gap:18px;align-items:stretch;margin-bottom:20px;padding:22px 0 8px}
+@media(min-width:900px){.home-hero{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:24px;padding:34px 0 14px}}
+.hero-copy{min-height:340px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;border-radius:8px;padding:28px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 70px rgba(0,0,0,.28)}
+.hero-copy::after{content:'';position:absolute;inset:auto -80px -110px auto;width:280px;height:280px;background:radial-gradient(circle,rgba(255,107,53,.22),transparent 66%);pointer-events:none}
+.hero-kicker{display:flex;align-items:center;gap:8px;margin-bottom:16px;color:#ffb38f;font-size:12px;font-weight:700;letter-spacing:0}
+.hero-kicker::before{content:'';width:8px;height:8px;border-radius:50%;background:#00d4ff;box-shadow:0 0 16px rgba(0,212,255,.8)}
+.hero-title{position:relative;z-index:1;max-width:760px;font-size:32px;line-height:1.14;font-weight:900;color:#fff;margin-bottom:16px}
+@media(min-width:769px){.hero-title{font-size:48px}}
+.hero-subtitle{position:relative;z-index:1;max-width:680px;color:#b9c7c3;font-size:15px;margin-bottom:22px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;position:relative;z-index:1}
+.hero-action{min-height:40px}
+.hero-panel{border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(14,20,18,.78);padding:18px;display:grid;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.24)}
+.cluster-map{min-height:218px;border-radius:8px;background:linear-gradient(160deg,rgba(0,212,255,.1),rgba(255,107,53,.08)),repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 48px),repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 48px);position:relative;overflow:hidden}
+.cluster-node{position:absolute;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);box-shadow:0 14px 28px rgba(0,0,0,.25);font-size:22px}
+.cluster-node.main{left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:78px;background:linear-gradient(135deg,#ff6b35,#00a6a6);font-size:28px}
+.cluster-node.n1{left:11%;top:18%}.cluster-node.n2{right:12%;top:20%}.cluster-node.n3{left:16%;bottom:15%}.cluster-node.n4{right:18%;bottom:12%}
+.cluster-line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform-origin:left center}
+.cluster-line.l1{width:154px;left:27%;top:37%;transform:rotate(24deg)}.cluster-line.l2{width:150px;left:50%;top:38%;transform:rotate(-22deg)}.cluster-line.l3{width:152px;left:28%;top:64%;transform:rotate(-24deg)}.cluster-line.l4{width:138px;left:53%;top:63%;transform:rotate(20deg)}
+.hero-panel-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hero-mini{border-radius:8px;background:rgba(255,255,255,.055);padding:12px;border:1px solid rgba(255,255,255,.06)}
+.hero-mini b{display:block;color:#fff;font-size:18px;line-height:1.1;margin-bottom:4px}.hero-mini span{display:block;color:#7f928d;font-size:11px}
+.data-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
+@media(min-width:769px){.data-stats{grid-template-columns:repeat(4,1fr);gap:14px}}
+.data-stat-card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:16px;transition:all .25s ease}
+.data-stat-card:hover{border-color:rgba(255,107,53,.36);transform:translateY(-2px);background:rgba(255,255,255,.075)}
+.data-stat-icon{font-size:22px;margin-bottom:8px}
+.data-stat-value{font-size:24px;font-weight:850;color:#fff;margin-bottom:2px}
+@media(min-width:769px){.data-stat-value{font-size:29px}}
+.data-stat-label{font-size:12px;color:#90a09b}
+.home-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 0 12px}
+.home-section-head h2{font-size:18px;color:#fff}.home-section-head span{font-size:12px;color:#90a09b}
+.features-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:700px){.features-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1060px){.features-grid{grid-template-columns:repeat(3,1fr)}}
+.feature-card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:16px;cursor:pointer;transition:all .25s ease;text-align:left;color:inherit;font-family:inherit;min-height:154px;display:flex;flex-direction:column}
+.feature-card:hover{transform:translateY(-3px);border-color:rgba(255,107,53,.34);box-shadow:0 14px 38px rgba(0,0,0,.26)}
+.feature-card:focus-visible{outline:2px solid #00d4ff;outline-offset:3px}
+.card-icon{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:8px;color:#fff}
+.card-desc{font-size:13px;color:#a7b4b0;line-height:1.5;margin-bottom:14px;flex:1}
+.card-action{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.feature-card-1 .card-icon{background:rgba(255,107,53,.16)}.feature-card-1 .card-action{color:#ff9b72}
+.feature-card-2 .card-icon{background:rgba(0,212,255,.14)}.feature-card-2 .card-action{color:#42ddff}
+.feature-card-3 .card-icon{background:rgba(0,255,136,.12)}.feature-card-3 .card-action{color:#48e49c}
+.feature-card-4 .card-icon{background:rgba(180,77,255,.14)}.feature-card-4 .card-action{color:#cf91ff}
+.feature-card-5 .card-icon{background:rgba(255,170,0,.15)}.feature-card-5 .card-action{color:#ffc252}
+.feature-card-6 .card-icon{background:rgba(255,61,138,.13)}.feature-card-6 .card-action{color:#ff82b8}
 .sub-page{display:none}.sub-page.active{display:block;animation:fadeIn .3s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .page-top{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
@@ -330,20 +350,43 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 
 <!-- 主页面 -->
 <div class="main-page" id="mainPage">
-<div class="page-header"><h1>廉江小家电集群分析综合平台</h1><p>AI赋能产业集群国际化 · 八要素五层级智能评价体系</p></div>
+<section class="home-hero">
+<div class="hero-copy">
+<div class="hero-kicker">廉江小家电 · 集群智能诊断</div>
+<h1 class="hero-title">廉江小家电集群分析综合平台</h1>
+<p class="hero-subtitle">聚合企业数据、AI诊断、竞争力评估、经营预警和产业看板，服务廉江小家电企业国际化升级。</p>
+<div class="hero-actions">
+<button class="btn btn-primary hero-action" onclick="showSubPage('dataInput')" type="button">录入企业数据</button>
+<button class="btn btn-outline hero-action" onclick="showSubPage('dashboard')" type="button">查看产业看板</button>
+</div>
+</div>
+<div class="hero-panel">
+<div class="cluster-map" aria-hidden="true">
+<div class="cluster-line l1"></div><div class="cluster-line l2"></div><div class="cluster-line l3"></div><div class="cluster-line l4"></div>
+<div class="cluster-node main">集</div>
+<div class="cluster-node n1">🏭</div><div class="cluster-node n2">📊</div><div class="cluster-node n3">🌍</div><div class="cluster-node n4">⚙️</div>
+</div>
+<div class="hero-panel-row">
+<div class="hero-mini"><b>8</b><span>评价要素</span></div>
+<div class="hero-mini"><b>5</b><span>成熟等级</span></div>
+<div class="hero-mini"><b>12</b><span>预警月份</span></div>
+</div>
+</div>
+</section>
 <div class="data-stats">
 <div class="data-stat-card"><div class="data-stat-icon">🏭</div><div class="data-stat-value">1,200+</div><div class="data-stat-label">集群企业数量</div></div>
 <div class="data-stat-card"><div class="data-stat-icon">💰</div><div class="data-stat-value">250亿</div><div class="data-stat-label">产业集群产值</div></div>
 <div class="data-stat-card"><div class="data-stat-icon">🌍</div><div class="data-stat-value">100+</div><div class="data-stat-label">出口国家地区</div></div>
 <div class="data-stat-card"><div class="data-stat-icon">📊</div><div class="data-stat-value">C级</div><div class="data-stat-label">综合评价等级</div></div>
 </div>
+<div class="home-section-head"><h2>工作台</h2><span>从数据录入到升级方案一屏进入</span></div>
 <div class="features-grid">
-<div class="feature-card feature-card-1" onclick="showSubPage('dataInput')"><div class="card-icon">📝</div><div class="card-title">企业数据录入</div><div class="card-desc">分层录入企业信息，5家龙头企业已预置</div><div class="card-action">开始录入 <span>→</span></div></div>
-<div class="feature-card feature-card-2" onclick="showSubPage('aiAnalysis')"><div class="card-icon">🤖</div><div class="card-title">多系统AI分析</div><div class="card-desc">MiMo / DeepSeek / ChatGPT 多AI对比</div><div class="card-action">开始分析 <span>→</span></div></div>
-<div class="feature-card feature-card-3" onclick="showSubPage('evaluation')"><div class="card-icon">📊</div><div class="card-title">竞争力评估</div><div class="card-desc">八要素五层级量化评估</div><div class="card-action">查看评估 <span>→</span></div></div>
-<div class="feature-card feature-card-4" onclick="showSubPage('solution')"><div class="card-icon">🚀</div><div class="card-title">升级方案生成</div><div class="card-desc">AI生成定制化升级方案</div><div class="card-action">生成方案 <span>→</span></div></div>
-<div class="feature-card feature-card-5" onclick="showSubPage('warning')"><div class="card-icon">⚠️</div><div class="card-title">经营预警监测</div><div class="card-desc">实时监测经营指标</div><div class="card-action">查看预警 <span>→</span></div></div>
-<div class="feature-card feature-card-6" onclick="showSubPage('dashboard')"><div class="card-icon">📈</div><div class="card-title">产业集群看板</div><div class="card-desc">廉江小家电数据可视化</div><div class="card-action">查看数据 <span>→</span></div></div>
+<button class="feature-card feature-card-1" onclick="showSubPage('dataInput')" type="button"><div class="card-icon">📝</div><div class="card-title">企业数据录入</div><div class="card-desc">预置龙头样本，支持企业自录入和后续分析沉淀。</div><div class="card-action">开始录入 <span>→</span></div></button>
+<button class="feature-card feature-card-2" onclick="showSubPage('aiAnalysis')" type="button"><div class="card-icon">🤖</div><div class="card-title">多系统AI分析</div><div class="card-desc">按八要素模型生成评分、短板和核心发现。</div><div class="card-action">开始分析 <span>→</span></div></button>
+<button class="feature-card feature-card-3" onclick="showSubPage('evaluation')" type="button"><div class="card-icon">📊</div><div class="card-title">竞争力评估</div><div class="card-desc">对比廉江均值与标杆集群，定位提升空间。</div><div class="card-action">查看评估 <span>→</span></div></button>
+<button class="feature-card feature-card-4" onclick="showSubPage('solution')" type="button"><div class="card-icon">🚀</div><div class="card-title">升级方案生成</div><div class="card-desc">围绕品牌、研发、标准、物流等短板输出路径。</div><div class="card-action">生成方案 <span>→</span></div></button>
+<button class="feature-card feature-card-5" onclick="showSubPage('warning')" type="button"><div class="card-icon">⚠️</div><div class="card-title">经营预警监测</div><div class="card-desc">按月跟踪交付、质量、成本、利润等指标。</div><div class="card-action">查看预警 <span>→</span></div></button>
+<button class="feature-card feature-card-6" onclick="showSubPage('dashboard')" type="button"><div class="card-icon">📈</div><div class="card-title">产业集群看板</div><div class="card-desc">集中查看企业分布、指标排行和SWOT概览。</div><div class="card-action">查看数据 <span>→</span></div></button>
 </div>
 </div>
 
@@ -682,9 +725,10 @@ function saveUserAnalysis(r){var k=getUserAnalysisKey();if(!k)return;var arr=JSO
 function getUserAnalysis(){var k=getUserAnalysisKey();return k?JSON.parse(localStorage.getItem(k)||'[]'):[]}
 
 // ====== UI ======
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function updateNavState(s){
     var ab=document.getElementById('authBtns'),ui=document.getElementById('userInfo'),ud=document.getElementById('userDisplay'),ap=document.getElementById('adminPanelBtn');
-    if(s){ab.classList.add('hide');ui.classList.add('show');ud.innerHTML='欢迎，<strong>'+s.u+'</strong>';ap.style.display=s.a?'inline-flex':'none'}
+    if(s){ab.classList.add('hide');ui.classList.add('show');ud.innerHTML='欢迎，<strong>'+esc(s.u)+'</strong>';ap.style.display=s.a?'inline-flex':'none'}
     else{ab.classList.remove('hide');ui.classList.remove('show')}
 }
 
@@ -695,9 +739,10 @@ window.showSubPage=function(id){
     var protectedPages=['aiAnalysis','evaluation','solution','warning','dashboard'];
     if(id==='admin'){if(!session||!session.a){showToast('请先以管理员身份登录');openAuthModal('admin');return}loadAdminData()}
     else if(protectedPages.indexOf(id)>=0&&!session){redirectAfterLogin=id;showToast('请先登录后使用此功能');openAuthModal('login');return}
+    var page=document.getElementById('page-'+id);if(!page){showToast('页面不存在');return}
     document.getElementById('mainPage').style.display='none';
     document.querySelectorAll('.sub-page').forEach(function(p){p.classList.remove('active')});
-    document.getElementById('page-'+id).classList.add('active');window.scrollTo(0,0);
+    page.classList.add('active');window.scrollTo(0,0);
     if(id==='aiAnalysis'||id==='warning')updateCompanySelect();
     if(id==='solution')showSolutions();
     if(id==='evaluation')updateEvaluationPage();
@@ -730,9 +775,11 @@ window.openAuthModal=function(tab){document.getElementById('authModal').classLis
 window.closeAuthModal=function(){document.getElementById('authModal').classList.remove('show');document.body.style.overflow='';['loginUsername','loginPassword','regUsername','regPassword','regPasswordConfirm','regVerifyCode','adminUsername','adminPassword'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''});document.querySelectorAll('.auth-msg').forEach(function(el){el.style.display='none'})};
 
 window.switchAuthTab=function(tab){
+    var tabs=['login','register','admin'];
+    if(tabs.indexOf(tab)<0)tab='login';
     document.querySelectorAll('.modal-tab').forEach(function(t){t.classList.remove('active')});
     document.querySelectorAll('.auth-form').forEach(function(f){f.classList.remove('active')});
-    var tabs=['login','register','admin'];document.querySelectorAll('.modal-tab')[tabs.indexOf(tab)].classList.add('active');
+    document.querySelectorAll('.modal-tab')[tabs.indexOf(tab)].classList.add('active');
     document.getElementById(tab+'Form').classList.add('active');
     document.getElementById('authModalTitle').textContent={login:'用户登录',register:'用户注册',admin:'管理员登录'}[tab];
     document.querySelectorAll('.auth-msg').forEach(function(el){el.style.display='none'});
@@ -784,16 +831,16 @@ async function loadAdminData(){
         var uComp=JSON.parse(localStorage.getItem('lj_c_'+dn)||'[]');
         var uAnal=JSON.parse(localStorage.getItem('lj_a_'+dn)||'[]');
         totalC+=uComp.length;totalA+=uAnal.length;
-        var tr=document.createElement('tr');tr.innerHTML='<td style="color:#fff">'+dn+'</td><td>'+new Date(user.t).toLocaleDateString('zh-CN')+'</td><td>'+(user.lc||0)+'</td><td>'+(user.ll?new Date(user.ll).toLocaleString('zh-CN'):'-')+'</td><td>'+uComp.length+'</td><td>'+uAnal.length+'</td>';ub.appendChild(tr);
-        uComp.forEach(function(c){var tr2=document.createElement('tr');tr2.innerHTML='<td style="color:#fff">'+c.name+'</td><td>'+dn+'</td><td>'+(c.industry||'-')+'</td><td>'+(c.employees||'-')+'</td><td>'+(c.revenue||'-')+'</td><td><span class="tag tag-info">用户录入</span></td>';cb.appendChild(tr2)});
-        uAnal.forEach(function(a){var tr3=document.createElement('tr');tr3.innerHTML='<td style="color:#fff">'+a.c+'</td><td>'+dn+'</td><td style="color:#ff6b35;font-weight:700">'+a.s+'</td><td><span class="tag '+(a.s>=60?'tag-success':a.s>=40?'tag-warning':'tag-danger')+'">'+a.l+'</span></td><td>'+a.t+'</td>';ab.appendChild(tr3)});
+        var tr=document.createElement('tr');tr.innerHTML='<td style="color:#fff">'+esc(dn)+'</td><td>'+esc(new Date(user.t).toLocaleDateString('zh-CN'))+'</td><td>'+esc(user.lc||0)+'</td><td>'+esc(user.ll?new Date(user.ll).toLocaleString('zh-CN'):'-')+'</td><td>'+uComp.length+'</td><td>'+uAnal.length+'</td>';ub.appendChild(tr);
+        uComp.forEach(function(c){var tr2=document.createElement('tr');tr2.innerHTML='<td style="color:#fff">'+esc(c.name)+'</td><td>'+esc(dn)+'</td><td>'+esc(c.industry||'-')+'</td><td>'+esc(c.employees||'-')+'</td><td>'+esc(c.revenue||'-')+'</td><td><span class="tag tag-info">用户录入</span></td>';cb.appendChild(tr2)});
+        uAnal.forEach(function(a){var tr3=document.createElement('tr');tr3.innerHTML='<td style="color:#fff">'+esc(a.c)+'</td><td>'+esc(dn)+'</td><td style="color:#ff6b35;font-weight:700">'+esc(a.s)+'</td><td><span class="tag '+(a.s>=60?'tag-success':a.s>=40?'tag-warning':'tag-danger')+'">'+esc(a.l)+'</span></td><td>'+esc(a.t)+'</td>';ab.appendChild(tr3)});
     });
     PRESET.forEach(function(c){var tr=document.createElement('tr');tr.innerHTML='<td style="color:#fff">'+c.name+'</td><td>系统预置</td><td>'+c.industry+'</td><td>'+c.employees+'</td><td>'+c.revenue+'</td><td><span class="tag tag-success">预置</span></td>';cb.appendChild(tr)});
     document.getElementById('adminTotalUsers').textContent=Object.keys(users).length;
     document.getElementById('adminTotalCompanies').textContent=totalC+PRESET.length;
     document.getElementById('adminTotalAnalysis').textContent=totalA;
     document.getElementById('adminToday').textContent=new Date().toLocaleDateString('zh-CN');
-    var lb=document.getElementById('loginLogBody');lb.innerHTML='';getLoginLogs().forEach(function(l){var tr=document.createElement('tr');tr.innerHTML='<td style="color:#fff">'+l.u+'</td><td>'+l.t+'</td><td><span class="tag tag-success">'+l.s+'</span></td>';lb.appendChild(tr)});
+    var lb=document.getElementById('loginLogBody');lb.innerHTML='';getLoginLogs().forEach(function(l){var tr=document.createElement('tr');tr.innerHTML='<td style="color:#fff">'+esc(l.u)+'</td><td>'+esc(l.t)+'</td><td><span class="tag tag-success">'+esc(l.s)+'</span></td>';lb.appendChild(tr)});
 }
 window.refreshAdmin=function(){loadAdminData();showToast('数据已刷新')};
 window.filterUsers=function(kw){document.querySelectorAll('#userTableBody tr').forEach(function(row){row.style.display=row.textContent.toLowerCase().includes(kw.toLowerCase())?'':'none'})};
@@ -910,7 +957,7 @@ function showAIReport(){
     Object.keys(r.scores).forEach(function(d){var sc=r.scores[d],lv=getDimLevel(sc),nf=EIGHT_ELEMENTS[d];h+='<div class="dim-score-card"><div class="dim-score-icon">'+nf.icon+'</div><div class="dim-score-name">'+nf.name+'</div><div class="dim-score-value">'+sc+'</div><div class="dim-score-level" style="background:'+lv.bg+';color:'+lv.color+'">'+lv.text+'</div></div>'});
     h+='</div>';
     var sorted=Object.entries(r.scores).sort(function(a,b){return a[1]-b[1]}),weakest=sorted[0],strongest=sorted[sorted.length-1];
-    h+='<div class="ai-result-box"><div class="ai-result-header"><span>🤖</span><span class="ai-result-title">MiMo AI 分析报告</span></div><div class="ai-result-content"><p><strong>企业：</strong>'+r.company.name+'</p><p><strong>综合评分：</strong>'+r.totalScore+'分（'+r.level.text+'）</p><br><p><strong>📊 八要素分析：</strong></p><ul>';
+    h+='<div class="ai-result-box"><div class="ai-result-header"><span>🤖</span><span class="ai-result-title">MiMo AI 分析报告</span></div><div class="ai-result-content"><p><strong>企业：</strong>'+esc(r.company.name)+'</p><p><strong>综合评分：</strong>'+r.totalScore+'分（'+r.level.text+'）</p><br><p><strong>📊 八要素分析：</strong></p><ul>';
     Object.keys(r.scores).forEach(function(d){var sc=r.scores[d],nf=EIGHT_ELEMENTS[d],lv=getDimLevel(sc);h+='<li><strong>'+nf.name+'（'+sc+'分 - '+lv.text+'）：</strong>'+(nf.levels[lv.text.charAt(0)]||'')+'</li>'});
     h+='</ul><br><p><strong>🔍 核心发现：</strong></p><ul><li>最大短板：<strong style="color:#ff3d8a">'+EIGHT_ELEMENTS[weakest[0]].name+'</strong>（'+weakest[1]+'分）</li><li>相对优势：<strong style="color:#00ff88">'+EIGHT_ELEMENTS[strongest[0]].name+'</strong>（'+strongest[1]+'分）</li></ul></div></div>';
     document.getElementById('aiReportContent').innerHTML=h;document.getElementById('aiAnalysisResult').style.display='block';updateEvaluationPage();
@@ -1046,7 +1093,7 @@ function genWarningReport(data,company){
     // 总体评估
     h+='<div class="warning-overall"><div class="warning-score-ring" style="border:3px solid '+lvColors[totalLv]+';background:'+lvBgs[totalLv]+'">'+totalSc+'</div>';
     h+='<div style="font-size:16px;font-weight:600;color:'+lvColors[totalLv]+';margin-bottom:4px">'+totalLv+'级 - '+lvTexts[totalLv]+'</div>';
-    h+='<div style="font-size:12px;color:#8888bb">基于论文八要素体系综合评估 · 数据月份：'+(data.month||'手动输入')+'</div></div>';
+    h+='<div style="font-size:12px;color:#8888bb">基于论文八要素体系综合评估 · 数据月份：'+esc(data.month||'手动输入')+'</div></div>';
     
     // 六个维度分析卡片
     var dims=[
@@ -1095,7 +1142,7 @@ function genWarningReport(data,company){
         h+='<div style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.1);border-radius:8px;padding:10px;margin-bottom:12px"><div style="font-size:11px;color:#00d4ff;font-weight:600;margin-bottom:4px">📖 论文理论依据</div><div style="font-size:12px;color:#a0a0cc;line-height:1.6">'+dim.theory+'</div></div>';
         h+='<div class="warning-metrics">';
         dim.metrics.forEach(function(m){var sc={excellent:'#00ff88',warning:'#ffaa00',danger:'#ff3d8a',info:'#00d4ff'};
-        h+='<div class="warning-metric"><div class="warning-metric-value" style="color:'+sc[m.st]+'">'+m.v+'</div><div class="warning-metric-label">'+m.lb+'</div><div class="warning-metric-status" style="color:'+sc[m.st]+'">'+m.th+'</div></div>'});
+        h+='<div class="warning-metric"><div class="warning-metric-value" style="color:'+sc[m.st]+'">'+esc(m.v)+'</div><div class="warning-metric-label">'+esc(m.lb)+'</div><div class="warning-metric-status" style="color:'+sc[m.st]+'">'+esc(m.th)+'</div></div>'});
         h+='</div>';
         dim.al.forEach(function(a){var ac={danger:'#ff3d8a',warning:'#ffaa00',success:'#00ff88',info:'#00d4ff'},ab={danger:'rgba(255,61,138,.08)',warning:'rgba(255,170,0,.08)',success:'rgba(0,255,136,.08)',info:'rgba(0,212,255,.08)'},ai={danger:'🔴',warning:'🟡',success:'🟢',info:'🔵'};
         h+='<div style="display:flex;gap:8px;padding:8px;border-radius:6px;margin-bottom:6px;background:'+ab[a.l]+'"><span>'+ai[a.l]+'</span><span style="font-size:12px;color:'+ac[a.l]+'">'+a.t+'</span></div>'});

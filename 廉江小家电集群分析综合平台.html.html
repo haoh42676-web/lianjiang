@@ -4,27 +4,54 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>廉江小家电集群分析综合平台</title>
+<!-- Copyright starry: Lianjiang platform source annotations -->
+<!-- Copyright starry: legacy browser compatibility instruction completed -->
+<script>
+(function(){
+    var ok=false;
+    try{
+        ok=!!(document.addEventListener&&document.querySelectorAll&&window.localStorage&&window.JSON&&window.crypto&&window.crypto.subtle&&window.TextEncoder&&Array.prototype.forEach);
+    }catch(e){ok=false}
+    if(ok){document.documentElement.className=(document.documentElement.className?document.documentElement.className+' ':'')+'modern'}
+})();
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+#appShell{display:none}
+html.modern #appShell{display:block}
+#legacyFallback{display:block;background:#101816;color:#e8edf0;min-height:100vh;font-family:Arial,'Microsoft YaHei',sans-serif;padding:24px;line-height:1.7}
+html.modern #legacyFallback{display:none}
+.legacy-wrap{max-width:960px;margin:0 auto;border:1px solid #31534c;background:#17211f;padding:24px}
+.legacy-title{font-size:28px;color:#fff;margin-bottom:12px}
+.legacy-sub{font-size:15px;color:#c3d0cc;margin-bottom:18px}
+.legacy-table{width:100%;border-collapse:collapse;margin:16px 0;background:#111614}
+.legacy-table th,.legacy-table td{border:1px solid #31534c;padding:10px;text-align:left}
+.legacy-table th{background:#20312d;color:#fff}
+.legacy-note{font-size:13px;color:#ffcf9f;margin-top:16px}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;color:#e8edf0;background:#111614;min-height:100vh;font-size:15px;line-height:1.6}
 body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,rgba(31,45,39,.95),rgba(17,22,20,.92) 42%,rgba(42,28,25,.9)),radial-gradient(ellipse at 18% 18%,rgba(255,107,53,.12) 0%,transparent 34%),radial-gradient(ellipse at 84% 26%,rgba(0,212,255,.1) 0%,transparent 32%);pointer-events:none;z-index:0}
 .navbar{background:rgba(15,15,35,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100;height:56px}
 @media(min-width:769px){.navbar{height:64px}}
 .nav-container{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;justify-content:space-between;align-items:center;height:100%}
+/* Copyright starry: logo and main dashboard visual upgrade completed */
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
-.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#ff6b35,#ff3d8a,#b44dff,#00d4ff);background-size:400% 400%;animation:logoGrad 6s ease infinite;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 20px rgba(255,107,53,.3)}
+.logo-icon{width:44px;height:44px;background:linear-gradient(145deg,rgba(255,107,53,.22),rgba(0,212,255,.18)),#111b19;border:1px solid rgba(255,255,255,.16);border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 1px rgba(255,107,53,.12),0 12px 30px rgba(0,0,0,.35),0 0 22px rgba(0,212,255,.16);overflow:hidden}
 @keyframes logoGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.logo-icon::before{content:'廉';font-size:22px;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.4);position:relative;z-index:1}
-.logo-icon::after{content:'';position:absolute;inset:-3px;border-radius:13px;background:linear-gradient(135deg,#ff6b35,#ff3d8a,#b44dff,#00d4ff);background-size:400% 400%;animation:logoGrad 6s ease infinite;z-index:-1;opacity:.5;filter:blur(10px)}
+.logo-icon::before{content:'';position:absolute;left:9px;bottom:9px;width:5px;height:14px;border-radius:2px 2px 0 0;background:#ff6b35;box-shadow:7px -5px 0 #00d4ff,14px -1px 0 #ffd166;z-index:2}
+.logo-icon::after{content:'';position:absolute;left:7px;top:8px;width:28px;height:24px;border:1px solid rgba(255,255,255,.38);border-left:none;border-bottom:none;border-radius:0 12px 0 0;transform:rotate(-16deg);z-index:1}
 .logo-brand{display:flex;flex-direction:column;gap:1px}
 .logo-text{font-size:15px;font-weight:700;color:#fff;display:none}
 .logo-sub{font-size:10px;color:#ff6b35;font-weight:500;display:none;letter-spacing:1px}
 @media(min-width:480px){.logo-text,.logo-sub{display:block}}
-.logo-cooker{position:absolute;bottom:3px;right:3px;width:14px;height:8px;border-radius:0 0 7px 7px;background:rgba(255,255,255,.85)}
-.logo-cooker::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:10px;height:5px;background:rgba(255,255,255,.85);border-radius:5px 5px 0 0}
-.logo-cooker::after{content:'';position:absolute;top:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:#ff6b35;border-radius:50%;animation:blink 1.5s ease-in-out infinite}
+.logo-cooker{position:absolute;bottom:7px;right:7px;width:15px;height:10px;border-radius:2px 2px 7px 7px;background:rgba(255,255,255,.92);z-index:3}
+.logo-cooker::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:11px;height:5px;background:rgba(255,255,255,.92);border-radius:6px 6px 0 0}
+.logo-cooker::after{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:#00a6a6;border-radius:50%;animation:blink 1.5s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .nav-right{display:flex;align-items:center;gap:8px}
+/* Copyright starry: multilingual selector style completed */
+.lang-select{height:32px;padding:0 28px 0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(15,15,35,.86);color:#e8edf0;font-size:12px;font-weight:600;outline:none;cursor:pointer}
+.lang-select:focus{border-color:#00d4ff;box-shadow:0 0 0 3px rgba(0,212,255,.12)}
+.lang-select option{background:#111614;color:#e8edf0}
 .nav-btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .3s ease;border:1px solid rgba(255,255,255,.1);background:transparent;color:#a0a0cc}
 .nav-btn:hover{border-color:#ff6b35;color:#ff6b35}
 .nav-btn-primary{background:linear-gradient(135deg,#ff6b35,#ff3d8a);color:#fff;border:none}
@@ -37,43 +64,53 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .nav-user-name strong{color:#ff6b35}
 .nav-auth-btns{display:flex;gap:8px}
 .nav-auth-btns.hide{display:none}
-.main-container{max-width:1240px;margin:0 auto;padding:16px;position:relative;z-index:1}
-@media(min-width:769px){.main-container{padding:24px}}
-.home-hero{display:grid;grid-template-columns:1fr;gap:18px;align-items:stretch;margin-bottom:20px;padding:22px 0 8px}
-@media(min-width:900px){.home-hero{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:24px;padding:34px 0 14px}}
-.hero-copy{min-height:340px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;border-radius:8px;padding:28px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 70px rgba(0,0,0,.28)}
-.hero-copy::after{content:'';position:absolute;inset:auto -80px -110px auto;width:280px;height:280px;background:radial-gradient(circle,rgba(255,107,53,.22),transparent 66%);pointer-events:none}
-.hero-kicker{display:flex;align-items:center;gap:8px;margin-bottom:16px;color:#ffb38f;font-size:12px;font-weight:700;letter-spacing:0}
+.main-container{max-width:1240px;margin:0 auto;padding:14px 16px;position:relative;z-index:1}
+@media(min-width:769px){.main-container{padding:18px 24px}}
+.home-hero{display:grid;grid-template-columns:1fr;gap:14px;align-items:stretch;margin-bottom:12px;padding:10px 0 4px}
+@media(min-width:900px){.home-hero{grid-template-columns:minmax(0,1.18fr) minmax(320px,.82fr);gap:20px;padding:14px 0 6px}}
+.hero-copy{min-height:280px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;border-radius:8px;padding:24px 28px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 70px rgba(0,0,0,.28)}
+.hero-copy::after{content:'';position:absolute;inset:auto -70px -120px auto;width:240px;height:240px;background:radial-gradient(circle,rgba(255,107,53,.22),transparent 66%);pointer-events:none}
+.hero-kicker{display:flex;align-items:center;gap:8px;margin-bottom:12px;color:#ffb38f;font-size:12px;font-weight:700;letter-spacing:0}
 .hero-kicker::before{content:'';width:8px;height:8px;border-radius:50%;background:#00d4ff;box-shadow:0 0 16px rgba(0,212,255,.8)}
-.hero-title{position:relative;z-index:1;max-width:760px;font-size:32px;line-height:1.14;font-weight:900;color:#fff;margin-bottom:16px}
-@media(min-width:769px){.hero-title{font-size:48px}}
-.hero-subtitle{position:relative;z-index:1;max-width:680px;color:#b9c7c3;font-size:15px;margin-bottom:22px}
+.hero-title{position:relative;z-index:1;max-width:760px;font-size:30px;line-height:1.1;font-weight:900;color:#fff;margin-bottom:12px}
+@media(min-width:769px){.hero-title{font-size:42px}}
+.hero-subtitle{position:relative;z-index:1;max-width:680px;color:#b9c7c3;font-size:15px;margin-bottom:18px}
 .hero-actions{display:flex;flex-wrap:wrap;gap:10px;position:relative;z-index:1}
 .hero-action{min-height:40px}
-.hero-panel{border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(14,20,18,.78);padding:18px;display:grid;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.24)}
-.cluster-map{min-height:218px;border-radius:8px;background:linear-gradient(160deg,rgba(0,212,255,.1),rgba(255,107,53,.08)),repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 48px),repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 48px);position:relative;overflow:hidden}
-.cluster-node{position:absolute;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);box-shadow:0 14px 28px rgba(0,0,0,.25);font-size:22px}
-.cluster-node.main{left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:78px;background:linear-gradient(135deg,#ff6b35,#00a6a6);font-size:28px}
+.hero-panel{border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(14,20,18,.78);padding:14px;display:grid;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.24)}
+.cluster-map{min-height:180px;border-radius:8px;background:linear-gradient(160deg,rgba(0,212,255,.1),rgba(255,107,53,.08)),repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 48px),repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 48px);position:relative;overflow:hidden}
+.cluster-map::after{content:'';position:absolute;left:-40%;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,212,255,.15),transparent);animation:scanLine 5s ease-in-out infinite}
+@keyframes scanLine{0%{transform:translateX(0)}55%,100%{transform:translateX(360%)}}
+.cluster-node{position:absolute;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);box-shadow:0 14px 28px rgba(0,0,0,.25);font-size:21px}
+.cluster-node.main{left:50%;top:50%;transform:translate(-50%,-50%);width:68px;height:68px;background:linear-gradient(135deg,#ff6b35,#00a6a6);font-size:26px}
 .cluster-node.n1{left:11%;top:18%}.cluster-node.n2{right:12%;top:20%}.cluster-node.n3{left:16%;bottom:15%}.cluster-node.n4{right:18%;bottom:12%}
 .cluster-line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform-origin:left center}
 .cluster-line.l1{width:154px;left:27%;top:37%;transform:rotate(24deg)}.cluster-line.l2{width:150px;left:50%;top:38%;transform:rotate(-22deg)}.cluster-line.l3{width:152px;left:28%;top:64%;transform:rotate(-24deg)}.cluster-line.l4{width:138px;left:53%;top:63%;transform:rotate(20deg)}
 .hero-panel-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.hero-mini{border-radius:8px;background:rgba(255,255,255,.055);padding:12px;border:1px solid rgba(255,255,255,.06)}
+.hero-mini{border-radius:8px;background:rgba(255,255,255,.055);padding:10px 12px;border:1px solid rgba(255,255,255,.06)}
 .hero-mini b{display:block;color:#fff;font-size:18px;line-height:1.1;margin-bottom:4px}.hero-mini span{display:block;color:#7f928d;font-size:11px}
-.data-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
-@media(min-width:769px){.data-stats{grid-template-columns:repeat(4,1fr);gap:14px}}
+.data-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media(min-width:769px){.data-stats{grid-template-columns:repeat(4,1fr);gap:12px}}
 .data-stat-card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:16px;transition:all .25s ease}
 .data-stat-card:hover{border-color:rgba(255,107,53,.36);transform:translateY(-2px);background:rgba(255,255,255,.075)}
 .data-stat-icon{font-size:22px;margin-bottom:8px}
 .data-stat-value{font-size:24px;font-weight:850;color:#fff;margin-bottom:2px}
 @media(min-width:769px){.data-stat-value{font-size:29px}}
 .data-stat-label{font-size:12px;color:#90a09b}
-.home-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 0 12px}
+.main-page>.data-stats .data-stat-card{position:relative;overflow:hidden;min-height:108px;padding:14px 18px;background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),linear-gradient(120deg,rgba(0,212,255,.09),rgba(255,107,53,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 16px 36px rgba(0,0,0,.18)}
+.main-page>.data-stats .data-stat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);transform:translateX(-120%);animation:kpiSweep 5.8s ease-in-out infinite;pointer-events:none}
+.main-page>.data-stats .data-stat-card::after{content:'';position:absolute;left:18px;right:18px;bottom:12px;height:3px;border-radius:999px;background:linear-gradient(90deg,#00d4ff,#ff6b35);box-shadow:0 0 18px rgba(0,212,255,.36)}
+.main-page>.data-stats .data-stat-card:nth-child(1)::after{right:24%}.main-page>.data-stats .data-stat-card:nth-child(2)::after{right:18%}.main-page>.data-stats .data-stat-card:nth-child(3)::after{right:28%}.main-page>.data-stats .data-stat-card:nth-child(4)::after{right:42%}
+.main-page>.data-stats .data-stat-icon{position:absolute;right:16px;top:14px;font-size:23px;filter:drop-shadow(0 0 12px rgba(0,212,255,.4))}
+.main-page>.data-stats .data-stat-value{font-size:30px;line-height:1.05;margin:22px 0 8px;text-shadow:0 0 18px rgba(255,255,255,.18)}
+.main-page>.data-stats .data-stat-label{font-size:12px;color:#a9bab5}
+@keyframes kpiSweep{0%{transform:translateX(-120%)}42%,100%{transform:translateX(120%)}}
+.home-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0 10px}
 .home-section-head h2{font-size:18px;color:#fff}.home-section-head span{font-size:12px;color:#90a09b}
 .features-grid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:700px){.features-grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1060px){.features-grid{grid-template-columns:repeat(3,1fr)}}
-.feature-card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:16px;cursor:pointer;transition:all .25s ease;text-align:left;color:inherit;font-family:inherit;min-height:154px;display:flex;flex-direction:column}
+.feature-card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:16px;cursor:pointer;transition:all .25s ease;text-align:left;color:inherit;font-family:inherit;min-height:146px;display:flex;flex-direction:column}
 .feature-card:hover{transform:translateY(-3px);border-color:rgba(255,107,53,.34);box-shadow:0 14px 38px rgba(0,0,0,.26)}
 .feature-card:focus-visible{outline:2px solid #00d4ff;outline-offset:3px}
 .card-icon{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
@@ -145,10 +182,12 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .empty-state .empty-icon{font-size:40px;margin-bottom:14px}
 .empty-state p{font-size:14px;color:#8888bb;margin-bottom:14px}
 .footer{background:rgba(15,15,35,.95);border-top:1px solid rgba(255,255,255,.06);padding:14px 20px;margin-top:24px}
-.footer-content{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:11px;color:#6666aa;text-align:center}
+/* Copyright starry: footer copyright visibility update completed */
+.footer-content{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:12px;color:#b8c7c3;text-align:center}
+.footer-brand{color:#dce8e4;font-weight:700;text-shadow:0 0 12px rgba(0,212,255,.22)}
 @media(min-width:769px){.footer-content{flex-direction:row;justify-content:space-between;text-align:left}}
 .footer-links{display:flex;gap:14px}
-.footer-links a{color:#6666aa;text-decoration:none;cursor:pointer}
+.footer-links a{color:#aebfba;text-decoration:none;cursor:pointer}
 .footer-links a:hover{color:#ff6b35}
 .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,26,.95);display:none;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:14px}
 .loading-overlay.show{display:flex}
@@ -328,12 +367,35 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 </head>
 <body>
 
+<div id="legacyFallback">
+<div class="legacy-wrap">
+<h1 class="legacy-title">产业集群分析平台-湛江科技学院</h1>
+<p class="legacy-sub">当前浏览器版本较旧，已切换到兼容版页面。建议使用新版 Chrome、Edge、Firefox 或 Safari 访问完整 AI 分析、登录、预警和数据看板功能。</p>
+<table class="legacy-table">
+<tr><th>指标</th><th>数据</th><th>说明</th></tr>
+<tr><td>集群企业数量</td><td>1,200+</td><td>廉江小家电产业集群企业规模概览</td></tr>
+<tr><td>产业集群产值</td><td>250亿</td><td>小家电产业综合产值</td></tr>
+<tr><td>出口国家地区</td><td>100+</td><td>国际市场覆盖范围</td></tr>
+<tr><td>综合评价等级</td><td>C级</td><td>八要素五层级评价结果</td></tr>
+</table>
+<p class="legacy-note">兼容说明：IE 及其他旧浏览器会显示本页面；完整交互功能需要现代浏览器支持。</p>
+</div>
+</div>
+
+<div id="appShell">
 <nav class="navbar"><div class="nav-container">
 <a class="logo" onclick="showMainPage();return false;" href="#">
 <div class="logo-icon"><div class="logo-cooker"></div></div>
 <div class="logo-brand"><span class="logo-text">廉江小家电集群分析</span><span class="logo-sub">AI·CLUSTER PLATFORM</span></div>
 </a>
 <div class="nav-right">
+<!-- Copyright starry: language switch instruction completed -->
+<select class="lang-select" id="languageSelect" onchange="setLanguage(this.value)" aria-label="语言选择">
+<option value="zh-CN">简体中文</option>
+<option value="zh-TW">繁體中文</option>
+<option value="en">English</option>
+<option value="ja">日本語</option>
+</select>
 <div class="nav-auth-btns" id="authBtns">
 <button class="nav-btn nav-btn-sm" onclick="openAuthModal('login')" type="button">登录</button>
 <button class="nav-btn nav-btn-primary nav-btn-sm" onclick="openAuthModal('register')" type="button">注册</button>
@@ -616,7 +678,8 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 </div>
 </div>
 
-<div class="footer"><div class="footer-content"><span>© 2026 廉江小家电集群分析综合平台</span><div class="footer-links"><a onclick="openModal('about')">关于系统</a><a onclick="openModal('contact')">联系我们</a></div></div></div>
+<!-- Copyright starry: footer text instruction completed -->
+<div class="footer"><div class="footer-content"><span class="footer-brand" id="footerText">© 2026 产业集群分析平台-湛江科技学院</span><div class="footer-links"><a onclick="openModal('about')">关于系统</a><a onclick="openModal('contact')">联系我们</a></div></div></div>
 
 <div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingText">处理中...</div></div>
 <div class="modal-overlay" id="modalOverlay"><div class="modal-content"><div class="modal-header"><h3 id="modalTitle">标题</h3><button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-body" id="modalBody"></div></div></div>
@@ -626,6 +689,7 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 <form class="auth-form" id="registerForm" onsubmit="handleRegister(event)"><div class="auth-msg error" id="registerError"></div><div class="auth-msg success" id="registerSuccess"></div><div class="form-group"><label class="form-label">用户名</label><input type="text" class="form-input" id="regUsername" placeholder="3-20位" required></div><div class="form-group"><label class="form-label">密码</label><input type="password" class="form-input" id="regPassword" placeholder="6位以上" required></div><div class="form-group"><label class="form-label">确认密码</label><input type="password" class="form-input" id="regPasswordConfirm" placeholder="再次输入" required></div><div class="form-group"><label class="form-label">校验码 <span style="color:#ff3d8a">*</span></label><input type="text" class="form-input" id="regVerifyCode" placeholder="请输入校验码" required><div class="form-hint">请联系管理员获取校验码</div></div><button type="submit" class="auth-btn">注册</button></form>
 <form class="auth-form" id="adminForm" onsubmit="handleAdminLogin(event)"><div class="auth-msg error" id="adminError"></div><div style="text-align:center;margin-bottom:20px"><div style="font-size:48px">👑</div><p style="color:#888;margin-top:10px">管理员专用入口</p></div><div class="form-group"><label class="form-label">管理员账号</label><input type="text" class="form-input" id="adminUsername" placeholder="管理员账号" required></div><div class="form-group"><label class="form-label">管理员密码</label><input type="password" class="form-input" id="adminPassword" placeholder="管理员密码" required></div><button type="submit" class="auth-btn" style="background:linear-gradient(135deg,#ff0844,#ff3d8a)">管理员登录</button></form>
 </div></div></div>
+</div>
 
 <script>
 (function(){
@@ -673,40 +737,119 @@ return d})();
 // ====== 用户系统 ======
 var SESSION_KEY='lj_session',LOG_KEY='lj_logs';
 var redirectAfterLogin=null;
+// Copyright starry: login and verification anti-bruteforce instruction completed
+var SECURITY_WINDOW=10*60*1000,SECURITY_LOCK=10*60*1000,SECURITY_MAX_FAILS=5;
+
+function getSecuritySubject(){return String(window.LJ_CLIENT_IP||'local-browser')}
+function secKey(type){return 'lj_sec_'+type+'_'+getSecuritySubject()}
+function readSecurity(type){try{return JSON.parse(localStorage.getItem(secKey(type))||'{}')}catch(e){return{}}}
+function writeSecurity(type,d){localStorage.setItem(secKey(type),JSON.stringify(d))}
+function clearSecurity(type){localStorage.removeItem(secKey(type))}
+function leftTime(ms){var m=Math.ceil(ms/60000);return m+'分钟'}
+function checkSecurityLock(type,label){
+    var d=readSecurity(type),now=Date.now();
+    if(d.lockedUntil&&d.lockedUntil>now)return{locked:true,error:label+'错误次数过多，请等待'+leftTime(d.lockedUntil-now)+'后再试'};
+    if(d.lockedUntil&&d.lockedUntil<=now)clearSecurity(type);
+    return{locked:false}
+}
+function recordSecurityFailure(type,label){
+    var now=Date.now(),d=readSecurity(type);
+    if(!d.firstAt||now-d.firstAt>SECURITY_WINDOW)d={firstAt:now,fails:0,lockedUntil:0};
+    d.fails=(d.fails||0)+1;
+    if(d.fails>=SECURITY_MAX_FAILS){d.lockedUntil=now+SECURITY_LOCK;writeSecurity(type,d);return{locked:true,error:label+'错误已达5次，请等待10分钟后再试'}}
+    writeSecurity(type,d);return{locked:false,error:label+'错误，还可尝试'+(SECURITY_MAX_FAILS-d.fails)+'次'}
+}
+
+// Copyright starry: multilingual switching instruction completed
+var currentLang=localStorage.getItem('lj_lang')||'zh-CN';
+var I18N={
+'zh-CN':{
+title:'廉江小家电集群分析综合平台',logo:'廉江小家电集群分析',logoSub:'AI·CLUSTER PLATFORM',login:'登录',register:'注册',admin:'管理员',backend:'后台',logout:'退出',welcome:'欢迎，',
+heroKicker:'廉江小家电 · 集群智能诊断',heroTitle:'廉江小家电集群分析综合平台',heroSub:'聚合企业数据、AI诊断、竞争力评估、经营预警和产业看板，服务廉江小家电企业国际化升级。',heroInput:'录入企业数据',heroDashboard:'查看产业看板',
+mini1:'评价要素',mini2:'成熟等级',mini3:'预警月份',stat1:'集群企业数量',stat2:'产业集群产值',stat3:'出口国家地区',stat4:'综合评价等级',workbench:'工作台',workbenchSub:'从数据录入到升级方案一屏进入',
+card1:'企业数据录入',card1Desc:'预置龙头样本，支持企业自录入和后续分析沉淀。',card1Action:'开始录入 →',card2:'多系统AI分析',card2Desc:'按八要素模型生成评分、短板和核心发现。',card2Action:'开始分析 →',card3:'竞争力评估',card3Desc:'对比廉江均值与标杆集群，定位提升空间。',card3Action:'查看评估 →',card4:'升级方案生成',card4Desc:'围绕品牌、研发、标准、物流等短板输出路径。',card4Action:'生成方案 →',card5:'经营预警监测',card5Desc:'按月跟踪交付、质量、成本、利润等指标。',card5Action:'查看预警 →',card6:'产业集群看板',card6Desc:'集中查看企业分布、指标排行和SWOT概览。',card6Action:'查看数据 →',
+footer:'© 2026 产业集群分析平台-湛江科技学院',about:'关于系统',contact:'联系我们',authLogin:'用户登录',authRegister:'用户注册',authAdmin:'管理员登录',user:'用户名',password:'密码',confirmPassword:'确认密码',verifyCode:'校验码',adminAccount:'管理员账号',adminPassword:'管理员密码',adminOnly:'管理员专用入口',loginBtn:'登录',registerBtn:'注册',adminLoginBtn:'管理员登录',userPh:'请输入用户名',passwordPh:'请输入密码',userRegPh:'3-20位',passwordRegPh:'6位以上',confirmPh:'再次输入',verifyPh:'请输入校验码',verifyHint:'请联系管理员获取校验码'},
+'zh-TW':{
+title:'廉江小家電集群分析綜合平台',logo:'廉江小家電集群分析',logoSub:'AI·CLUSTER PLATFORM',login:'登入',register:'註冊',admin:'管理員',backend:'後台',logout:'登出',welcome:'歡迎，',
+heroKicker:'廉江小家電 · 集群智能診斷',heroTitle:'廉江小家電集群分析綜合平台',heroSub:'聚合企業資料、AI診斷、競爭力評估、經營預警和產業看板，服務廉江小家電企業國際化升級。',heroInput:'錄入企業資料',heroDashboard:'查看產業看板',
+mini1:'評價要素',mini2:'成熟等級',mini3:'預警月份',stat1:'集群企業數量',stat2:'產業集群產值',stat3:'出口國家地區',stat4:'綜合評價等級',workbench:'工作台',workbenchSub:'從資料錄入到升級方案一屏進入',
+card1:'企業資料錄入',card1Desc:'預置龍頭樣本，支援企業自錄入和後續分析沉澱。',card1Action:'開始錄入 →',card2:'多系統AI分析',card2Desc:'按八要素模型生成評分、短板和核心發現。',card2Action:'開始分析 →',card3:'競爭力評估',card3Desc:'對比廉江均值與標杆集群，定位提升空間。',card3Action:'查看評估 →',card4:'升級方案生成',card4Desc:'圍繞品牌、研發、標準、物流等短板輸出路徑。',card4Action:'生成方案 →',card5:'經營預警監測',card5Desc:'按月追蹤交付、品質、成本、利潤等指標。',card5Action:'查看預警 →',card6:'產業集群看板',card6Desc:'集中查看企業分佈、指標排行和SWOT概覽。',card6Action:'查看資料 →',
+footer:'© 2026 產業集群分析平台-湛江科技學院',about:'關於系統',contact:'聯絡我們',authLogin:'使用者登入',authRegister:'使用者註冊',authAdmin:'管理員登入',user:'使用者名稱',password:'密碼',confirmPassword:'確認密碼',verifyCode:'校驗碼',adminAccount:'管理員帳號',adminPassword:'管理員密碼',adminOnly:'管理員專用入口',loginBtn:'登入',registerBtn:'註冊',adminLoginBtn:'管理員登入',userPh:'請輸入使用者名稱',passwordPh:'請輸入密碼',userRegPh:'3-20位',passwordRegPh:'6位以上',confirmPh:'再次輸入',verifyPh:'請輸入校驗碼',verifyHint:'請聯絡管理員取得校驗碼'},
+en:{
+title:'Lianjiang Small Appliance Cluster Analytics Platform',logo:'Lianjiang Appliance Cluster',logoSub:'AI CLUSTER PLATFORM',login:'Log in',register:'Register',admin:'Admin',backend:'Console',logout:'Log out',welcome:'Welcome, ',
+heroKicker:'Lianjiang Appliances · Cluster Diagnosis',heroTitle:'Lianjiang Small Appliance Cluster Analytics Platform',heroSub:'Unify enterprise data, AI diagnosis, competitiveness evaluation, risk alerts, and industry dashboards for global upgrading.',heroInput:'Enter Company Data',heroDashboard:'View Dashboard',
+mini1:'Factors',mini2:'Maturity Levels',mini3:'Alert Months',stat1:'Cluster Companies',stat2:'Cluster Output Value',stat3:'Export Markets',stat4:'Overall Rating',workbench:'Workbench',workbenchSub:'Go from data entry to upgrade plans in one screen',
+card1:'Company Data Entry',card1Desc:'Built-in leading samples and self-service data entry for later analysis.',card1Action:'Start Entry →',card2:'Multi-AI Analysis',card2Desc:'Generate scores, weaknesses, and findings with the eight-factor model.',card2Action:'Analyze →',card3:'Competitiveness Evaluation',card3Desc:'Compare with Lianjiang averages and benchmark clusters.',card3Action:'View Evaluation →',card4:'Upgrade Plan Generator',card4Desc:'Create paths around brand, R&D, standards, logistics, and more.',card4Action:'Generate Plan →',card5:'Operation Risk Alerts',card5Desc:'Track delivery, quality, cost, profit, and other metrics by month.',card5Action:'View Alerts →',card6:'Industry Dashboard',card6Desc:'View company distribution, rankings, and SWOT overview in one place.',card6Action:'View Data →',
+footer:'© 2026 Industrial Cluster Analytics Platform - Zhanjiang University of Science and Technology',about:'About',contact:'Contact',authLogin:'User Login',authRegister:'User Registration',authAdmin:'Admin Login',user:'Username',password:'Password',confirmPassword:'Confirm Password',verifyCode:'Verification Code',adminAccount:'Admin Account',adminPassword:'Admin Password',adminOnly:'Admin Only',loginBtn:'Log in',registerBtn:'Register',adminLoginBtn:'Admin Login',userPh:'Enter username',passwordPh:'Enter password',userRegPh:'3-20 characters',passwordRegPh:'At least 6 characters',confirmPh:'Enter again',verifyPh:'Enter verification code',verifyHint:'Contact the administrator for the verification code'},
+ja:{
+title:'廉江小型家電クラスター分析プラットフォーム',logo:'廉江小型家電クラスター',logoSub:'AI CLUSTER PLATFORM',login:'ログイン',register:'登録',admin:'管理者',backend:'管理画面',logout:'ログアウト',welcome:'ようこそ、',
+heroKicker:'廉江小型家電 · クラスター診断',heroTitle:'廉江小型家電クラスター分析プラットフォーム',heroSub:'企業データ、AI診断、競争力評価、経営アラート、産業ダッシュボードを統合し、国際化を支援します。',heroInput:'企業データ入力',heroDashboard:'ダッシュボード',
+mini1:'評価要素',mini2:'成熟度',mini3:'警戒月数',stat1:'クラスター企業数',stat2:'産業クラスター産值',stat3:'輸出国・地域',stat4:'総合評価等級',workbench:'ワークベンチ',workbenchSub:'データ入力から改善案まで一画面で操作',
+card1:'企業データ入力',card1Desc:'主要企業サンプルと自社データ入力に対応。',card1Action:'入力開始 →',card2:'マルチAI分析',card2Desc:'八要素モデルでスコア、弱点、主要所見を生成。',card2Action:'分析開始 →',card3:'競争力評価',card3Desc:'廉江平均とベンチマーククラスターを比較。',card3Action:'評価を見る →',card4:'改善案生成',card4Desc:'ブランド、研究開発、標準、物流などの改善経路を提示。',card4Action:'案を生成 →',card5:'経営アラート監視',card5Desc:'納期、品質、コスト、利益などを月次で追跡。',card5Action:'アラートを見る →',card6:'産業ダッシュボード',card6Desc:'企業分布、指標ランキング、SWOTをまとめて確認。',card6Action:'データを見る →',
+footer:'© 2026 産業クラスター分析プラットフォーム-湛江科技学院',about:'システム概要',contact:'お問い合わせ',authLogin:'ユーザーログイン',authRegister:'ユーザー登録',authAdmin:'管理者ログイン',user:'ユーザー名',password:'パスワード',confirmPassword:'パスワード確認',verifyCode:'認証コード',adminAccount:'管理者アカウント',adminPassword:'管理者パスワード',adminOnly:'管理者専用入口',loginBtn:'ログイン',registerBtn:'登録',adminLoginBtn:'管理者ログイン',userPh:'ユーザー名を入力',passwordPh:'パスワードを入力',userRegPh:'3〜20文字',passwordRegPh:'6文字以上',confirmPh:'もう一度入力',verifyPh:'認証コードを入力',verifyHint:'認証コードは管理者にお問い合わせください'}
+};
+function tx(k){return(I18N[currentLang]&&I18N[currentLang][k])||I18N['zh-CN'][k]||k}
+function setTxt(sel,val){var el=document.querySelector(sel);if(el)el.textContent=val}
+function setPh(sel,val){var el=document.querySelector(sel);if(el)el.placeholder=val}
+function applyLanguage(){
+    document.documentElement.lang=currentLang;document.title=tx('title');
+    var ls=document.getElementById('languageSelect');if(ls)ls.value=currentLang;
+    setTxt('.logo-text',tx('logo'));setTxt('.logo-sub',tx('logoSub'));
+    setTxt('#authBtns button:nth-child(1)',tx('login'));setTxt('#authBtns button:nth-child(2)',tx('register'));setTxt('#authBtns button:nth-child(3)',tx('admin'));setTxt('#adminPanelBtn',tx('backend'));setTxt('.nav-user-info button:last-child',tx('logout'));
+    setTxt('.hero-kicker',tx('heroKicker'));setTxt('.hero-title',tx('heroTitle'));setTxt('.hero-subtitle',tx('heroSub'));setTxt('.hero-actions button:nth-child(1)',tx('heroInput'));setTxt('.hero-actions button:nth-child(2)',tx('heroDashboard'));
+    setTxt('.hero-mini:nth-child(1) span',tx('mini1'));setTxt('.hero-mini:nth-child(2) span',tx('mini2'));setTxt('.hero-mini:nth-child(3) span',tx('mini3'));
+    setTxt('#mainPage>.data-stats .data-stat-card:nth-child(1) .data-stat-label',tx('stat1'));setTxt('#mainPage>.data-stats .data-stat-card:nth-child(2) .data-stat-label',tx('stat2'));setTxt('#mainPage>.data-stats .data-stat-card:nth-child(3) .data-stat-label',tx('stat3'));setTxt('#mainPage>.data-stats .data-stat-card:nth-child(4) .data-stat-label',tx('stat4'));
+    setTxt('.home-section-head h2',tx('workbench'));setTxt('.home-section-head span',tx('workbenchSub'));
+    for(var i=1;i<=6;i++){setTxt('.feature-card-'+i+' .card-title',tx('card'+i));setTxt('.feature-card-'+i+' .card-desc',tx('card'+i+'Desc'));setTxt('.feature-card-'+i+' .card-action',tx('card'+i+'Action'))}
+    setTxt('#footerText',tx('footer'));setTxt('.footer-links a:nth-child(1)',tx('about'));setTxt('.footer-links a:nth-child(2)',tx('contact'));
+    document.querySelectorAll('.modal-tab')[0]&&(document.querySelectorAll('.modal-tab')[0].textContent=tx('login'));document.querySelectorAll('.modal-tab')[1]&&(document.querySelectorAll('.modal-tab')[1].textContent=tx('register'));document.querySelectorAll('.modal-tab')[2]&&(document.querySelectorAll('.modal-tab')[2].textContent=tx('admin'));
+    setTxt('#loginForm .form-group:nth-of-type(1) .form-label',tx('user'));setTxt('#loginForm .form-group:nth-of-type(2) .form-label',tx('password'));setTxt('#loginForm .auth-btn',tx('loginBtn'));
+    setTxt('#registerForm .form-group:nth-of-type(1) .form-label',tx('user'));setTxt('#registerForm .form-group:nth-of-type(2) .form-label',tx('password'));setTxt('#registerForm .form-group:nth-of-type(3) .form-label',tx('confirmPassword'));setTxt('#registerForm .form-group:nth-of-type(4) .form-label',tx('verifyCode')+' *');setTxt('#registerForm .form-hint',tx('verifyHint'));setTxt('#registerForm .auth-btn',tx('registerBtn'));
+    setTxt('#adminForm p',tx('adminOnly'));setTxt('#adminForm .form-group:nth-of-type(1) .form-label',tx('adminAccount'));setTxt('#adminForm .form-group:nth-of-type(2) .form-label',tx('adminPassword'));setTxt('#adminForm .auth-btn',tx('adminLoginBtn'));
+    setPh('#loginUsername',tx('userPh'));setPh('#loginPassword',tx('passwordPh'));setPh('#regUsername',tx('userRegPh'));setPh('#regPassword',tx('passwordRegPh'));setPh('#regPasswordConfirm',tx('confirmPh'));setPh('#regVerifyCode',tx('verifyPh'));setPh('#adminUsername',tx('adminAccount'));setPh('#adminPassword',tx('adminPassword'));
+    var active=document.querySelector('.auth-form.active');if(active){var id=active.id.replace('Form','');document.getElementById('authModalTitle').textContent={login:tx('authLogin'),register:tx('authRegister'),admin:tx('authAdmin')}[id]}
+    var s=checkSession();if(s)updateNavState(s);
+}
+window.setLanguage=function(lang){currentLang=I18N[lang]?lang:'zh-CN';localStorage.setItem('lj_lang',currentLang);applyLanguage()};
 
 async function getUsers(){try{return JSON.parse(localStorage.getItem('lj_users')||'{}')}catch(e){return{}}}
 async function saveUsers(u){localStorage.setItem('lj_users',JSON.stringify(u))}
 
 async function registerUser(username,password,vc){
-    if(vc!=='0000')return{success:false,error:'校验码错误'};
+    var verifyLock=checkSecurityLock('verify','校验码');if(verifyLock.locked)return{success:false,error:verifyLock.error};
+    if(vc!=='0000'){var vf=recordSecurityFailure('verify','校验码');return{success:false,error:vf.error}};
     if(username.length<3||username.length>20)return{success:false,error:'用户名3-20位'};
     if(password.length<6)return{success:false,error:'密码6位以上'};
     var users=await getUsers(),uh=await sha256(username.toLowerCase());
     if(users[uh])return{success:false,error:'用户名已注册'};
     var salt=genSalt(),ph=await sha256(password+salt);
     users[uh]={p:ph,s:salt,t:new Date().toISOString(),lc:0,ll:null,dn:username};
-    await saveUsers(users);return{success:true};
+    await saveUsers(users);clearSecurity('verify');return{success:true};
 }
 
 async function loginUser(username,password){
+    var loginLock=checkSecurityLock('login','登录');if(loginLock.locked)return{success:false,error:loginLock.error};
     var users=await getUsers(),uh=await sha256(username.toLowerCase()),user=users[uh];
-    if(!user)return{success:false,error:'用户名或密码错误'};
+    if(!user){var nf=recordSecurityFailure('login','登录');return{success:false,error:nf.error}};
     var ph=await sha256(password+user.s);
-    if(ph!==user.p)return{success:false,error:'用户名或密码错误'};
+    if(ph!==user.p){var pf=recordSecurityFailure('login','登录');return{success:false,error:pf.error}};
     user.lc=(user.lc||0)+1;user.ll=new Date().toISOString();users[uh]=user;
     await saveUsers(users);addLoginLog(username);
+    clearSecurity('login');
     sessionStorage.setItem(SESSION_KEY,JSON.stringify({u:username,a:false,e:Date.now()+3600000}));
     return{success:true,username:username,isAdmin:false};
 }
 
 async function loginAdmin(username,password){
+    var loginLock=checkSecurityLock('login','登录');if(loginLock.locked)return{success:false,error:loginLock.error};
     var admin=JSON.parse(localStorage.getItem('lj_admin'));
     if(!admin)return{success:false,error:'管理员未初始化'};
     var uh=await sha256(username);
-    if(uh!==admin.u)return{success:false,error:'账号错误'};
+    if(uh!==admin.u){var af=recordSecurityFailure('login','登录');return{success:false,error:af.error}};
     var ph=await sha256(password+admin.s);
-    if(ph!==admin.p)return{success:false,error:'密码错误'};
+    if(ph!==admin.p){var apf=recordSecurityFailure('login','登录');return{success:false,error:apf.error}};
     addLoginLog('管理员');
+    clearSecurity('login');
     sessionStorage.setItem(SESSION_KEY,JSON.stringify({u:'管理员',a:true,e:Date.now()+3600000}));
     return{success:true,username:'管理员',isAdmin:true};
 }
@@ -728,7 +871,7 @@ function getUserAnalysis(){var k=getUserAnalysisKey();return k?JSON.parse(localS
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function updateNavState(s){
     var ab=document.getElementById('authBtns'),ui=document.getElementById('userInfo'),ud=document.getElementById('userDisplay'),ap=document.getElementById('adminPanelBtn');
-    if(s){ab.classList.add('hide');ui.classList.add('show');ud.innerHTML='欢迎，<strong>'+esc(s.u)+'</strong>';ap.style.display=s.a?'inline-flex':'none'}
+    if(s){ab.classList.add('hide');ui.classList.add('show');ud.innerHTML=esc(tx('welcome'))+'<strong>'+esc(s.u)+'</strong>';ap.style.display=s.a?'inline-flex':'none'}
     else{ab.classList.remove('hide');ui.classList.remove('show')}
 }
 
@@ -781,7 +924,7 @@ window.switchAuthTab=function(tab){
     document.querySelectorAll('.auth-form').forEach(function(f){f.classList.remove('active')});
     document.querySelectorAll('.modal-tab')[tabs.indexOf(tab)].classList.add('active');
     document.getElementById(tab+'Form').classList.add('active');
-    document.getElementById('authModalTitle').textContent={login:'用户登录',register:'用户注册',admin:'管理员登录'}[tab];
+    document.getElementById('authModalTitle').textContent={login:tx('authLogin'),register:tx('authRegister'),admin:tx('authAdmin')}[tab];
     document.querySelectorAll('.auth-msg').forEach(function(el){el.style.display='none'});
 };
 
@@ -1187,6 +1330,7 @@ window.closeModal=function(){document.getElementById('modalOverlay').classList.r
 // 初始化
 document.addEventListener('DOMContentLoaded',async function(){
     await initAdmin();updateCompanySelect();
+    applyLanguage();
     var session=checkSession();if(session)updateNavState(session);
     document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal()});
     document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAuthModal()}});

@@ -726,8 +726,20 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select" id="selectCompany"><option value="">请选择企业</option></select></div>
 <div class="content-card-footer"><button class="btn btn-ai" onclick="startAIAnalysis()">🤖 调用MiMo AI分析</button></div>
 </div>
-<div class="ai-panel" id="aiPanel-deepseek"><div class="coming-soon"><div class="cs-icon">🚧</div><h3>DeepSeek AI分析</h3><p>功能开发中，敬请期待...</p></div></div>
-<div class="ai-panel" id="aiPanel-chatgpt"><div class="coming-soon"><div class="cs-icon">🚧</div><h3>ChatGPT AI分析</h3><p>功能开发中，敬请期待...</p></div></div>
+<div class="ai-panel" id="aiPanel-deepseek">
+<div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="deepseek"><option value="">请选择企业</option></select></div>
+<div class="preset-info-box" style="margin-bottom:14px"><h4>DeepSeek API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 DeepSeek 的 Base URL、模型名和 API Key。</p></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-deepseek" placeholder="https://api.deepseek.com" value="https://api.deepseek.com"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-deepseek" placeholder="如：deepseek-chat" value="deepseek-chat"></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-deepseek" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-deepseek" placeholder="输入 DeepSeek API Key"></div></div>
+<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-deepseek" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('deepseek')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('deepseek')">调用 DeepSeek 深度分析</button></div>
+</div>
+<div class="ai-panel" id="aiPanel-chatgpt">
+<div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="chatgpt"><option value="">请选择企业</option></select></div>
+<div class="preset-info-box" style="margin-bottom:14px"><h4>OpenAI API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 OpenAI 的 Base URL、模型名和 API Key。</p></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-chatgpt" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-chatgpt" placeholder="如：gpt-4o-mini" value="gpt-4o-mini"></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-chatgpt" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-chatgpt" placeholder="输入 OpenAI API Key"></div></div>
+<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-chatgpt" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('chatgpt')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('chatgpt')">调用 OpenAI 深度分析</button></div>
+</div>
 </div></div>
 <div id="aiAnalysisResult" style="display:none"><div class="content-card"><div class="content-card-header"><h3>📊 AI分析报告</h3><span class="tag tag-success">MiMo生成</span></div><div class="content-card-body"><div id="aiReportContent"></div></div></div></div>
 </div>

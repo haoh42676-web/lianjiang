@@ -2413,5 +2413,231 @@ if(document.readyState!=='loading'){
 }
 })();
 </script>
+<script>
+(function(){
+function isGitHubPagesRuntime(){
+    return /\.github\.io$/i.test(window.location.hostname||'')
+}
+function shouldPreferDirectApi(){
+    var protocol=(window.location.protocol||'').toLowerCase();
+    return isGitHubPagesRuntime() || protocol==='https:'
+}
+function setBrowserModeHint(){
+    ['mimo','deepseek','chatgpt'].forEach(function(provider){
+        var statusEl=document.getElementById('apiStatus-'+provider);
+        if(!statusEl)return;
+        if(shouldPreferDirectApi()){
+            statusEl.textContent='浏览器直连模式：填写 Base URL、Model、API Key 后可直接分析；本地代理仅为可选兼容。';
+        }
+    });
+}
+function buildClientAnalysisPrompt(payload,provider){
+    var providerLabel=(window.getProviderMeta?window.getProviderMeta(provider):{label:provider}).label||provider;
+    return [
+        '你是产业集群研究与企业诊断顾问，请基于“五维融合/八要素/论文研究”框架输出结构化 JSON。',
+        '不要输出 Markdown，不要输出解释性前缀，不要省略字段。',
+        '请重点输出详细方案、评分解释、行动项、KPI、风险，而不只是给分。',
+        '输出 JSON 字段要求：',
+        '{',
+        '  "model": "string",',
+        '  "overallScore": 0,',
+        '  "overallLevel": "string",',
+        '  "executiveSummary": "string",',
+        '  "methodology": "string",',
+        '  "researchBasis": "string",',
+        '  "coreFindings": ["string"],',
+        '  "scores": {"brand":0,"marketing":0,"rd":0,"production":0,"standard":0,"logistics":0,"capital":0,"finance":0},',
+        '  "dimensionAnalysis": [',
+        '    {"key":"brand","name":"string","score":0,"level":"string","gap":0,"diagnosis":"string","swotFocus":"string","actions":["string"],"kpis":["string"],"risks":["string"]}',
+        '  ],',
+        '  "phases": [',
+        '    {"name":"string","goals":["string"]}',
+        '  ],',
+        '  "solutions": [',
+        '    {"title":"string","priority":"high|medium|low","content":["string"],"steps":["string"]}',
+        '  ]',
+        '}',
+        '要求：',
+        '1. 八个维度都必须给出，key 只能是 brand/marketing/rd/production/standard/logistics/capital/finance。',
+        '2. dimensionAnalysis 必须恰好 8 项，每项都要有评分解释、SWOT 切入、动作、KPI、风险。',
+        '3. phases 建议 4 项，solutions 至少 4 项。',
+        '4. 分值范围 0-100，要与输入数据和本地评分保持逻辑一致。',
+        '5. 当前调用提供方：'+providerLabel+'。',
+        '企业诊断输入如下：',
+        JSON.stringify(payload)
+    ].join('\n')
+}
+function extractJsonObjectClient(text){
+    if(text==null)throw new Error('模型未返回内容');
+    if(typeof text!=='string')text=JSON.stringify(text);
+    text=text.trim();
+    if(!text)throw new Error('模型返回内容为空');
+    try{return JSON.parse(text)}catch(e){}
+    var start=text.indexOf('{');
+    var end=text.lastIndexOf('}');
+    if(start>=0&&end>start){
+        try{return JSON.parse(text.slice(start,end+1))}catch(e2){}
+    }
+    throw new Error('模型返回的不是有效 JSON')
+}
+async function callProviderDirect(provider,cfg,company){
+    var baseUrl=String(cfg.base_url||'').trim().replace(/\/+$/,'');
+    var endpoint=((cfg.endpoint||'/chat/completions').trim()||'/chat/completions');
+    endpoint=endpoint.charAt(0)==='/'?endpoint:'/'+endpoint;
+    var url=baseUrl+endpoint;
+    var payload=window.getLocalAnalysisInput(company);
+    var prompt=buildClientAnalysisPrompt(payload,provider);
+    var res=await fetch(url,{
+        method:'POST',
+        headers:{
+            'Content-Type':'application/json',
+            'Authorization':'Bearer '+String(cfg.api_key||'').trim()
+        },
+        body:JSON.stringify({
+            model:String(cfg.model||'').trim(),
+            temperature:0.3,
+            response_format:{type:'json_object'},
+            messages:[
+                {role:'system',content:'你是严谨的产业集群诊断 AI，只输出 JSON。'},
+                {role:'user',content:prompt}
+            ]
+        })
+    });
+    var rawText=await res.text();
+    var parsed={};
+    try{parsed=rawText?JSON.parse(rawText):{}}catch(e){parsed={raw:rawText}}
+    if(!res.ok){
+        var msg=(parsed&&((parsed.error&&parsed.error.message)||parsed.message||parsed.error)) || rawText || ('HTTP '+res.status);
+        throw new Error(String(msg))
+    }
+    var content='';
+    if(parsed&&parsed.choices&&parsed.choices[0]&&parsed.choices[0].message){
+        content=parsed.choices[0].message.content;
+    }else{
+        content=rawText;
+    }
+    if(Array.isArray(content)){
+        content=content.map(function(part){
+            if(typeof part==='string')return part;
+            return part&&part.text?part.text:JSON.stringify(part);
+        }).join('\n');
+    }
+    var report=extractJsonObjectClient(content);
+    if(!report.model)report.model=String(cfg.model||'').trim();
+    return report
+}
+var originalSaveAIConfig=window.saveAIConfig;
+window.saveAIConfig=function(provider){
+    if(originalSaveAIConfig)originalSaveAIConfig(provider);
+    if(window.setApiInlineAlert){
+        window.setApiInlineAlert(provider,'配置已保存。其他用户在 GitHub Pages 打开此页后，也可以填写自己的 Key 直接分析。',true);
+    }
+    setBrowserModeHint();
+};
+window.checkAIServer=async function(){
+    try{
+        var res=await fetch('http://127.0.0.1:8765/api/status',{method:'GET'});
+        var data=await res.json();
+        if(!res.ok||!data.ok)throw new Error(data.error||'代理不可用');
+        window.aiServerStatusCache=data;
+        ['mimo','deepseek','chatgpt'].forEach(function(provider){
+            var statusEl=document.getElementById('apiStatus-'+provider);
+            if(statusEl)statusEl.textContent='本地代理在线，同时支持浏览器直连。服务器时间：'+(data.serverTime||'');
+            if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'本地代理连接正常；也可继续直接从页面调用 API。',true);
+        });
+        if(window.showToast)window.showToast('AI 代理服务连接正常');
+    }catch(err){
+        ['mimo','deepseek','chatgpt'].forEach(function(provider){
+            var statusEl=document.getElementById('apiStatus-'+provider);
+            if(statusEl)statusEl.textContent='浏览器直连模式可用：无需本地代理，填写 Base URL、Model、API Key 即可。';
+            if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'当前未连接本地代理，但这不影响 GitHub Pages 页面直接调用模型 API。',true);
+        });
+        if(window.showToast)window.showToast('已切换为浏览器直连模式');
+    }
+};
+window.startAIAnalysis=async function(provider){
+    provider=provider||(window.getActiveAIProvider?window.getActiveAIProvider():'mimo');
+    var panel=document.getElementById('aiPanel-'+provider);
+    var select=panel?panel.querySelector('.ai-company-select'):document.getElementById('selectCompany');
+    var fallback=document.getElementById('selectCompany');
+    var name=(select&&select.value)||(fallback&&fallback.value)||'';
+    if(!name){if(window.showToast)window.showToast('请先选择企业');return}
+    if(window.setAiCompanySelection)window.setAiCompanySelection(name);
+    var all=window.getAllCompaniesForUser?window.getAllCompaniesForUser():[];
+    window.companyData=all.find(function(c){return c.name===name});
+    if(!window.companyData){if(window.showToast)window.showToast('未找到企业数据');return}
+    var cfg={
+        base_url:(document.getElementById('apiBaseUrl-'+provider)||{}).value||'',
+        model:(document.getElementById('apiModel-'+provider)||{}).value||'',
+        api_key:(document.getElementById('apiKey-'+provider)||{}).value||'',
+        endpoint:(document.getElementById('apiEndpoint-'+provider)||{}).value||'/chat/completions'
+    };
+    if(window.saveProviderConfig)window.saveProviderConfig(provider,cfg);
+    if(!cfg.base_url||!cfg.model||!cfg.api_key){
+        if(window.showToast)window.showToast('请先填写 '+window.getProviderMeta(provider).label+' 的 Base URL、Model、API Key');
+        var statusEl=document.getElementById('apiStatus-'+provider);
+        if(statusEl)statusEl.textContent='缺少配置：请填写 Base URL、Model、API Key 后再开始分析。';
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'按钮已经触发，但当前缺少必要配置：Base URL、Model、API Key 必须全部填写。');
+        return
+    }
+    if(window.setApiInlineAlert)window.setApiInlineAlert(provider,shouldPreferDirectApi()?'按钮已触发，正在从浏览器直接调用 '+window.getProviderMeta(provider).label+' ...':'按钮已触发，正在优先尝试本地代理；失败后会自动切换到浏览器直连。',true);
+    if(window.showLoading)window.showLoading('正在调用 '+window.getProviderMeta(provider).label+' API 生成完整诊断方案...');
+    try{
+        var report;
+        if(shouldPreferDirectApi()){
+            report=await callProviderDirect(provider,cfg,window.companyData);
+        }else{
+            try{
+                var proxyRes=await fetch('http://127.0.0.1:8765/api/ai/analyze',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        provider:window.getProviderKey(provider),
+                        providerConfig:cfg,
+                        analysis_input:window.getLocalAnalysisInput(window.companyData)
+                    })
+                });
+                var proxyData=await proxyRes.json();
+                if(!proxyRes.ok||!proxyData.ok)throw new Error(proxyData.error||'API 请求失败');
+                report=proxyData.report;
+            }catch(proxyErr){
+                if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'本地代理不可用，正在自动切换到浏览器直连模式...',true);
+                report=await callProviderDirect(provider,cfg,window.companyData);
+            }
+        }
+        window.diagnosisResult=window.normalizeAiReport(provider,report,window.companyData);
+        if(window.saveUserAnalysis)window.saveUserAnalysis({c:name,s:window.diagnosisResult.totalScore,l:window.diagnosisResult.level.text,t:new Date().toLocaleString('zh-CN')});
+        window.showAIReport=function(){
+            if(!window.diagnosisResult)return;
+            document.getElementById('aiReportContent').innerHTML=window.buildApiReportHtml(window.diagnosisResult);
+            document.getElementById('aiAnalysisResult').style.display='block';
+            if(window.updateEvaluationPage)window.updateEvaluationPage();
+            setTimeout(function(){window.openAiDimensionDetail(window.RESEARCH_FUSION_MODEL.order[0])},60);
+            setTimeout(function(){
+                if((window.diagnosisResult.apiReport||{}).phases&&window.diagnosisResult.apiReport.phases.length){
+                    window.openAiPhaseDetail(0);
+                }
+            },90);
+        };
+        window.showAIReport();
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,window.getProviderMeta(provider).label+' 已成功返回分析结果，报告已生成。',true);
+        if(window.showToast)window.showToast(window.getProviderMeta(provider).label+' API 分析完成');
+    }catch(err){
+        if(window.showToast)window.showToast('分析失败：'+err.message);
+        var statusEl=document.getElementById('apiStatus-'+provider);
+        if(statusEl)statusEl.textContent='分析失败：'+err.message;
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'分析失败：'+err.message+'。请检查 Base URL、Endpoint、Model、API Key 是否正确；若服务商限制浏览器跨域，请改用其支持浏览器调用的端点或兼容地址。');
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+};
+document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(setBrowserModeHint,80);
+});
+if(document.readyState!=='loading'){
+    setTimeout(setBrowserModeHint,0);
+}
+})();
+</script>
 </body>
 </html>

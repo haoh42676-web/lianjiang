@@ -351,6 +351,8 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .doc-parse-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:10px}
 .doc-parse-item{padding:10px;border-radius:8px;background:rgba(255,255,255,.03);font-size:12px;color:#a0c0c7}
 .doc-parse-item strong{display:block;color:#fff;margin-bottom:4px}
+.api-inline-alert{margin-top:12px;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,61,138,.28);background:rgba(255,61,138,.08);color:#ffd4e1;font-size:12px;line-height:1.8}
+.api-inline-alert.success{border-color:rgba(0,255,136,.24);background:rgba(0,255,136,.08);color:#cffff0}
 .dim-score-icon{font-size:22px;margin-bottom:6px}
 .dim-score-name{font-size:11px;color:#8888bb;margin-bottom:4px}
 .dim-score-value{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
@@ -1897,6 +1899,24 @@ var aiServerStatusCache=null;
 function aiStorageKey(p){return 'lj_ai_config_'+p}
 function getProviderKey(provider){return provider==='chatgpt'?'openai':provider}
 function getProviderMeta(provider){return AI_PROVIDER_META[provider]||AI_PROVIDER_META.mimo}
+function setApiInlineAlert(provider, message, ok){
+    var id='apiInlineAlert-'+provider;
+    var host=document.getElementById('apiStatus-'+provider);
+    if(!host)return;
+    var existing=document.getElementById(id);
+    if(!message){
+        if(existing)existing.remove();
+        return;
+    }
+    if(!existing){
+        existing=document.createElement('div');
+        existing.id=id;
+        existing.className='api-inline-alert';
+        host.parentNode.appendChild(existing);
+    }
+    existing.className='api-inline-alert'+(ok?' success':'');
+    existing.textContent=message;
+}
 function getCurrentCompanySelection(){
     var panel=document.getElementById('aiPanel-'+getActiveAIProvider());
     var panelSelect=panel?panel.querySelector('.ai-company-select'):null;
@@ -2245,6 +2265,7 @@ window.saveAIConfig=function(provider){
     saveProviderConfig(provider,cfg);
     var box=document.getElementById('apiStatus-'+provider);
     if(box)box.textContent='配置已保存到本地浏览器，可直接发起 '+getProviderMeta(provider).label+' 调用。';
+    setApiInlineAlert(provider,'配置已保存。下一步请确认本地代理已启动，再点击“检测代理”或直接开始分析。',true);
     showToast('已保存 '+getProviderMeta(provider).label+' API 配置');
 };
 window.checkAIServer=async function(){
@@ -2258,12 +2279,14 @@ window.checkAIServer=async function(){
             if(statusEl){
                 statusEl.textContent=(server&&server.configured?'代理已运行，服务端已存在默认配置。':'代理已运行，可使用当前页面保存的配置发起请求。')+' 服务器时间：'+(data.serverTime||'');
             }
+            setApiInlineAlert(provider,'代理服务连接正常。现在可以开始分析了。',true);
         });
         showToast('AI 代理服务连接正常');
     }catch(err){
         ['mimo','deepseek','chatgpt'].forEach(function(provider){
             var statusEl=document.getElementById('apiStatus-'+provider);
             if(statusEl)statusEl.textContent='代理不可用：'+err.message+'。请先启动 ai_api_server.py。';
+            setApiInlineAlert(provider,'当前无法连接本地代理 ai_api_server.py，所以按钮点击后无法真正调用模型。请先启动代理服务。');
         });
         showToast('未连接到本地 AI 代理');
     }
@@ -2307,8 +2330,10 @@ window.startAIAnalysis=async function(provider){
         showToast('请先填写 '+getProviderMeta(provider).label+' 的 Base URL、模型名和 API Key');
         var statusEl=document.getElementById('apiStatus-'+provider);
         if(statusEl)statusEl.textContent='缺少配置：请填写 Base URL、模型名和 API Key 后再开始分析。';
+        setApiInlineAlert(provider,'按钮已经触发，但当前缺少必要配置：Base URL、模型名、API Key 必须全部填写。');
         return
     }
+    setApiInlineAlert(provider,'按钮已触发，正在请求本地代理并调用 '+getProviderMeta(provider).label+' ...',true);
     showLoading('正在调用 '+getProviderMeta(provider).label+' API 生成完整诊断方案...');
     try{
         var res=await fetch(AI_PROXY_URL,{
@@ -2333,11 +2358,13 @@ window.startAIAnalysis=async function(provider){
             setTimeout(function(){if((diagnosisResult.apiReport||{}).phases&&diagnosisResult.apiReport.phases.length){openAiPhaseDetail(0)}},90);
         };
         showAIReport();
+        setApiInlineAlert(provider,getProviderMeta(provider).label+' 已成功返回分析结果，报告已生成。',true);
         showToast(getProviderMeta(provider).label+' API 分析完成');
     }catch(err){
         showToast('分析失败：'+err.message);
         var statusEl=document.getElementById('apiStatus-'+provider);
         if(statusEl)statusEl.textContent='分析失败：'+err.message;
+        setApiInlineAlert(provider,'按钮已触发，但分析失败：'+err.message+'。如果是本地网页，请先确认 ai_api_server.py 正在运行；如果代理已运行，请检查 API 参数。');
     }finally{
         hideLoading();
     }

@@ -650,10 +650,10 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 <div class="content-card-header"><h3>🏢 基本信息</h3><span class="tag tag-info">必填项 *</span></div>
 <div class="content-card-body">
 <div class="doc-upload-box">
-<div class="doc-upload-head"><div><div class="doc-upload-title">????????</div><div class="doc-upload-sub">?? Word?PDF?TXT?Markdown?JSON????????????????????</div></div><span class="tag tag-info">????</span></div>
+<div class="doc-upload-head"><div><div class="doc-upload-title">资料文档导入</div><div class="doc-upload-sub">支持 Word、PDF、TXT、Markdown、JSON 等资料上传，自动识别企业基础信息并回填表单。</div></div><span class="tag tag-info">智能识别</span></div>
 <input type="file" id="intakeDocFile" class="form-input" accept=".docx,.pdf,.txt,.md,.json,.doc">
-<div class="doc-upload-actions"><button class="btn btn-primary" type="button" onclick="parseIntakeDocument()">?????</button><button class="btn btn-outline" type="button" onclick="clearParsedDocument()">??????</button></div>
-<div id="intakeDocStatus" style="margin-top:10px;font-size:12px;color:#8eb4bb">????????</div>
+<div class="doc-upload-actions"><button class="btn btn-primary" type="button" onclick="parseIntakeDocument()">开始识别</button><button class="btn btn-outline" type="button" onclick="clearParsedDocument()">清空结果</button></div>
+<div id="intakeDocStatus" style="margin-top:10px;font-size:12px;color:#8eb4bb">暂未上传资料。</div>
 <div id="intakeDocPreview" class="doc-parse-preview" style="display:none"></div>
 </div>
 
@@ -2415,6 +2415,63 @@ if(document.readyState!=='loading'){
 </script>
 <script>
 (function(){
+function normalizeCompanyName(name){
+    return String(name||'').replace(/\s+/g,'').replace(/\[(预置|自录)\]/g,'').trim()
+}
+function findCompanyBySelection(name){
+    var all=window.getAllCompaniesForUser?window.getAllCompaniesForUser():[];
+    var raw=String(name||'').trim();
+    var normalized=normalizeCompanyName(raw);
+    var found=all.find(function(c){
+        return String(c.name||'').trim()===raw || normalizeCompanyName(c.name)===normalized
+    });
+    if(found)return found;
+    var inputName=((document.getElementById('companyName')||{}).value||'').trim();
+    var inputNormalized=normalizeCompanyName(inputName);
+    if(inputNormalized&&inputNormalized===normalized){
+        return {
+            name:raw||inputName,
+            companyName:inputName,
+            industry:(document.getElementById('industry')||{}).value||'',
+            legalPerson:(document.getElementById('legalPerson')||{}).value||'',
+            registeredCapital:(document.getElementById('registeredCapital')||{}).value||'',
+            establishDate:(document.getElementById('establishDate')||{}).value||'',
+            mainProducts:(document.getElementById('mainProducts')||{}).value||'',
+            phone:(document.getElementById('phone')||{}).value||'',
+            email:(document.getElementById('email')||{}).value||'',
+            address:(document.getElementById('address')||{}).value||'',
+            employees:(document.getElementById('employees')||{}).value||'',
+            revenue:(document.getElementById('revenue')||{}).value||'',
+            exportRatio:(document.getElementById('exportRatio')||{}).value||'',
+            businessScope:(document.getElementById('businessScope')||{}).value||'',
+            rdRatio:(document.getElementById('rdRatio')||{}).value||'',
+            rdStaff:(document.getElementById('rdStaff')||{}).value||'',
+            patentCount:(document.getElementById('patentCount')||{}).value||'',
+            rdInstitution:(document.getElementById('rdInstitution')||{}).value||'',
+            rdCapability:(document.getElementById('rdCapability')||{}).value||'',
+            isoCert:(document.getElementById('isoCert')||{}).value||'',
+            ceCert:(document.getElementById('ceCert')||{}).value||'',
+            otherCerts:(document.getElementById('otherCerts')||{}).value||'',
+            standardCoverage:(document.getElementById('standardCoverage')||{}).value||'',
+            brandCount:(document.getElementById('brandCount')||{}).value||'',
+            brandRatio:(document.getElementById('brandRatio')||{}).value||'',
+            oemRatio:(document.getElementById('oemRatio')||{}).value||'',
+            ecommerceRatio:(document.getElementById('ecommerceRatio')||{}).value||'',
+            exportCountries:(document.getElementById('exportCountries')||{}).value||'',
+            brandAwareness:(document.getElementById('brandAwareness')||{}).value||'',
+            logisticsCost:(document.getElementById('logisticsCost')||{}).value||'',
+            deliveryDays:(document.getElementById('deliveryDays')||{}).value||'',
+            warehouseCount:(document.getElementById('warehouseCount')||{}).value||'',
+            supplyChainLevel:(document.getElementById('supplyChainLevel')||{}).value||'',
+            mainIssues:(document.getElementById('mainIssues')||{}).value||'',
+            upgradeGoals:(document.getElementById('upgradeGoals')||{}).value||'',
+            timestamp:new Date().toISOString(),
+            transient:true
+        }
+    }
+    return null
+}
+window.findCompanyBySelection=findCompanyBySelection;
 function isGitHubPagesRuntime(){
     return /\.github\.io$/i.test(window.location.hostname||'')
 }
@@ -2563,8 +2620,7 @@ window.startAIAnalysis=async function(provider){
     var name=(select&&select.value)||(fallback&&fallback.value)||'';
     if(!name){if(window.showToast)window.showToast('请先选择企业');return}
     if(window.setAiCompanySelection)window.setAiCompanySelection(name);
-    var all=window.getAllCompaniesForUser?window.getAllCompaniesForUser():[];
-    window.companyData=all.find(function(c){return c.name===name});
+    window.companyData=window.findCompanyBySelection?window.findCompanyBySelection(name):null;
     if(!window.companyData){if(window.showToast)window.showToast('未找到企业数据');return}
     var cfg={
         base_url:(document.getElementById('apiBaseUrl-'+provider)||{}).value||'',

@@ -1080,6 +1080,14 @@ function getUserCompanies(){var k=getUserCompaniesKey();return k?JSON.parse(loca
 function getAllCompaniesForUser(){var all=PRESET.slice();var uc=getUserCompanies();uc.forEach(function(c){if(!all.find(function(a){return a.name===c.name}))all.push(c)});return all}
 function saveUserAnalysis(r){var k=getUserAnalysisKey();if(!k)return;var arr=JSON.parse(localStorage.getItem(k)||'[]');arr.unshift(r);if(arr.length>200)arr.length=200;localStorage.setItem(k,JSON.stringify(arr))}
 function getUserAnalysis(){var k=getUserAnalysisKey();return k?JSON.parse(localStorage.getItem(k)||'[]'):[]}
+window.PRESET=PRESET;
+window.PRESET_WARNINGS=PRESET_WARNINGS;
+window.checkSession=checkSession;
+window.getUserCompanies=getUserCompanies;
+window.getAllCompaniesForUser=getAllCompaniesForUser;
+window.saveUserCompany=saveUserCompany;
+window.saveUserAnalysis=saveUserAnalysis;
+window.getUserAnalysis=getUserAnalysis;
 
 // ====== UI ======
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
@@ -1240,6 +1248,7 @@ function updateCompanySelect(){
         all.forEach(function(c){var opt=document.createElement('option');opt.value=c.name;opt.textContent=c.name+(c.preset?' [预置]':' [自录]');sel.appendChild(opt)});
     });
 }
+window.updateCompanySelect=updateCompanySelect;
 
 // ====== 预警月选择 ======
 window.onWarningCompanyChange=function(){

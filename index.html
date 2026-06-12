@@ -3067,12 +3067,24 @@ window.setAiCompanySelection=function(name){
     document.querySelectorAll('.ai-company-select').forEach(function(sel){sel.value=name||''});
 };
 window.syncAiCompanyOptions=function(){
-    var companies=typeof window.getAllCompaniesForUser==='function'?window.getAllCompaniesForUser():[];
+    var companies=[];
+    if(typeof window.getAllCompaniesForUser==='function'){
+        companies=window.getAllCompaniesForUser()||[];
+    }else if(typeof PRESET!=='undefined' && Array.isArray(PRESET)){
+        companies=PRESET.slice();
+    }
     var selects=Array.prototype.slice.call(document.querySelectorAll('.ai-company-select'));
     if(!selects.length)return;
     var primary=document.getElementById('selectCompany')||selects[0];
     var current=(primary&&primary.value)||'';
-    var optionsHtml=buildCompaniesOptionsHtml(companies);
+    var optionsHtml='';
+    if(companies.length){
+        optionsHtml=buildCompaniesOptionsHtml(companies);
+    }else if(primary && primary.innerHTML){
+        optionsHtml=primary.innerHTML;
+    }else{
+        optionsHtml='<option value="">请选择企业</option>';
+    }
     selects.forEach(function(sel){
         var selected=sel.value||current;
         sel.innerHTML=optionsHtml;

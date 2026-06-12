@@ -2415,6 +2415,11 @@ if(document.readyState!=='loading'){
 </script>
 <script>
 (function(){
+function escCompat(v){
+    return String(v==null?'':v).replace(/[&<>\"']/g,function(ch){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]
+    })
+}
 function normalizeCompanyName(name){
     return String(name||'').replace(/\s+/g,'').replace(/\[(预置|自录)\]/g,'').trim()
 }
@@ -2693,6 +2698,172 @@ document.addEventListener('DOMContentLoaded',function(){
 if(document.readyState!=='loading'){
     setTimeout(setBrowserModeHint,0);
 }
+window.esc=window.esc||escCompat;
+window.RESEARCH_FUSION_MODEL=window.RESEARCH_FUSION_MODEL||{
+    order:['brand','marketing','rd','production','standard','logistics','capital','finance']
+};
+window.getProviderKey=window.getProviderKey||function(provider){return provider==='chatgpt'?'openai':provider};
+window.getProviderMeta=window.getProviderMeta||function(provider){
+    var metaMap={
+        mimo:{label:'MiMo',defaultBaseUrl:'',defaultModel:'',endpoint:'/chat/completions',button:'调用 MiMo AI 深度分析',theme:'mimo'},
+        deepseek:{label:'DeepSeek',defaultBaseUrl:'https://api.deepseek.com',defaultModel:'deepseek-chat',endpoint:'/chat/completions',button:'调用 DeepSeek 深度分析',theme:'deepseek'},
+        chatgpt:{label:'OpenAI',defaultBaseUrl:'https://api.openai.com/v1',defaultModel:'gpt-4o-mini',endpoint:'/chat/completions',button:'调用 OpenAI 深度分析',theme:'chatgpt'}
+    };
+    return metaMap[provider]||metaMap.mimo
+};
+window.getProviderConfig=window.getProviderConfig||function(provider){
+    var meta=window.getProviderMeta(provider),saved={};
+    try{saved=JSON.parse(localStorage.getItem('lj_ai_config_'+provider)||'{}')}catch(e){}
+    return {
+        base_url:saved.base_url||meta.defaultBaseUrl||'',
+        model:saved.model||meta.defaultModel||'',
+        api_key:saved.api_key||'',
+        endpoint:saved.endpoint||meta.endpoint||'/chat/completions'
+    }
+};
+window.saveProviderConfig=window.saveProviderConfig||function(provider,cfg){
+    localStorage.setItem('lj_ai_config_'+provider,JSON.stringify({
+        base_url:(cfg.base_url||'').trim(),
+        model:(cfg.model||'').trim(),
+        api_key:(cfg.api_key||'').trim(),
+        endpoint:(cfg.endpoint||'/chat/completions').trim()
+    }))
+};
+window.getActiveAIProvider=window.getActiveAIProvider||function(){return 'mimo'};
+window.setApiInlineAlert=window.setApiInlineAlert||function(provider, message, ok){
+    var id='apiInlineAlert-'+provider;
+    var host=document.getElementById('apiStatus-'+provider);
+    if(!host)return;
+    var existing=document.getElementById(id);
+    if(!message){ if(existing)existing.remove(); return; }
+    if(!existing){
+        existing=document.createElement('div');
+        existing.id=id;
+        existing.className='api-inline-alert';
+        host.parentNode.appendChild(existing);
+    }
+    existing.className='api-inline-alert'+(ok?' success':'');
+    existing.textContent=message;
+};
+window.syncAiCompanyOptions=window.syncAiCompanyOptions||function(){
+    var html=document.getElementById('selectCompany');
+    document.querySelectorAll('.ai-company-select').forEach(function(sel){
+        var current=sel.value || (html?html.value:'');
+        sel.innerHTML=html?html.innerHTML:'<option value=\"\">请选择企业</option>';
+        if(current)sel.value=current;
+    });
+};
+window.setAiCompanySelection=window.setAiCompanySelection||function(name){
+    if(document.getElementById('selectCompany'))document.getElementById('selectCompany').value=name||'';
+    document.querySelectorAll('.ai-company-select').forEach(function(sel){sel.value=name||''});
+};
+window.getLocalAnalysisInput=window.getLocalAnalysisInput||function(company){
+    var scores=(typeof window.calcScores==='function'?window.calcScores(company):{brand:0,marketing:0,rd:0,production:0,standard:0,logistics:0,capital:0,finance:0});
+    var totalScore=(typeof window.calcTotalScore==='function'?window.calcTotalScore(scores):Math.round(Object.values(scores).reduce(function(a,b){return a+b},0)/8));
+    var level=(typeof window.getLevel==='function'?window.getLevel(totalScore):{text:'C级',cls:'level-c'});
+    var meta=(typeof window.buildResearchMeta==='function'?window.buildResearchMeta(scores):{method:'五维融合八要素模型',source:'平台内置研究口径'});
+    return {
+        company:company,
+        localScoring:{scores:scores,totalScore:totalScore,level:level.text},
+        researchModel:{
+            method:meta.method,
+            source:meta.source,
+            order:(window.RESEARCH_FUSION_MODEL&&window.RESEARCH_FUSION_MODEL.order)||['brand','marketing','rd','production','standard','logistics','capital','finance'],
+            weights:(window.RESEARCH_FUSION_MODEL&&window.RESEARCH_FUSION_MODEL.weights)||{},
+            lianjiang:(window.RESEARCH_FUSION_MODEL&&window.RESEARCH_FUSION_MODEL.lianjiang)||{},
+            cixi:(window.RESEARCH_FUSION_MODEL&&window.RESEARCH_FUSION_MODEL.cixi)||{},
+            swot:(window.RESEARCH_FUSION_MODEL&&window.RESEARCH_FUSION_MODEL.swot)||{}
+        }
+    }
+};
+window.normalizeAiReport=window.normalizeAiReport||function(provider,report,company){
+    var scores={};
+    ((window.RESEARCH_FUSION_MODEL&&window.RESEARCH_FUSION_MODEL.order)||['brand','marketing','rd','production','standard','logistics','capital','finance']).forEach(function(k){
+        scores[k]=Math.max(0,Math.min(100,parseInt((report.scores&&report.scores[k])!=null?report.scores[k]:0,10)||0))
+    });
+    var totalScore=Math.max(0,Math.min(100,parseInt(report.overallScore,10)||Math.round(Object.values(scores).reduce(function(acc,v){return acc+v},0)/8)));
+    var level=(typeof window.getLevel==='function'?window.getLevel(totalScore):{text:report.overallLevel||'C级',cls:'level-c'});
+    var solutions=(report.solutions||[]).map(function(s){
+        return {
+            title:s.title||'未命名方案',
+            priority:s.priority==='high'||s.priority==='low'?s.priority:'medium',
+            content:Array.isArray(s.content)?s.content:[],
+            steps:Array.isArray(s.steps)?s.steps:[]
+        }
+    });
+    return {
+        provider:provider,
+        providerLabel:window.getProviderMeta(provider).label,
+        model:report.model||window.getProviderConfig(provider).model||'',
+        scores:scores,
+        totalScore:totalScore,
+        level:level,
+        company:company,
+        solutions:solutions,
+        research:(typeof window.buildResearchMeta==='function'?window.buildResearchMeta(scores):{method:'五维融合八要素模型',source:'平台内置研究口径'}),
+        apiReport:report
+    }
+};
+window.buildApiReportHtml=window.buildApiReportHtml||function(r){
+    var report=r.apiReport||{},providerLabel=r.providerLabel||window.getProviderMeta(r.provider||'mimo').label;
+    var h='<div class="score-display"><div class="score-label">多模型 API 综合分析评分</div><div class="score-value">'+r.totalScore+'</div><div class="score-level '+r.level.cls+'">'+r.level.text+'</div></div>';
+    h+='<div class="ai-result-box"><div class="ai-result-header"><span>🤖</span><span class="ai-result-title">'+escCompat(providerLabel)+' API 深度诊断报告</span></div><div class="ai-result-content">';
+    h+='<p><strong>企业：</strong>'+escCompat(r.company.name)+'</p><p><strong>模型：</strong>'+escCompat(report.model||r.model||'未返回模型名')+'</p><p><strong>综合结论：</strong>'+escCompat(report.executiveSummary||'模型已返回结构化分析结果。')+'</p>';
+    h+='<p><strong>方法口径：</strong>'+escCompat(report.methodology||((r.research||{}).method||''))+'</p><p><strong>研究依据：</strong>'+escCompat(report.researchBasis||((r.research||{}).source||''))+'</p>';
+    if(Array.isArray(report.coreFindings)&&report.coreFindings.length){
+        h+='<br><p><strong>核心发现：</strong></p><ul>'+report.coreFindings.map(function(x){return'<li>'+escCompat(x)+'</li>'}).join('')+'</ul>';
+    }
+    h+='</div></div>';
+    if(typeof window.buildClickableDimCards==='function')h+=window.buildClickableDimCards(r,report);
+    if(typeof window.buildDimensionDetailSections==='function')h+=window.buildDimensionDetailSections(r,report);
+    if(Array.isArray(report.phases)&&report.phases.length){
+        h+='<div class="content-card"><div class="content-card-header"><h3>实施路线</h3><span class="tag tag-success">0-12个月</span></div><div class="content-card-body">';
+        report.phases.forEach(function(ph,i){
+            h+='<button type="button" class="step-item clickable-step" data-phase-card="'+i+'" onclick="openAiPhaseDetail('+i+')"><div class="step-num">'+(i+1)+'</div><div class="step-content"><div class="step-title">'+escCompat(ph.name||'阶段')+'</div><div class="step-desc"><ul>'+(Array.isArray(ph.goals)?ph.goals.map(function(x){return'<li>'+escCompat(x)+'</li>'}).join(''):'')+'</ul><div class="solution-jump-note">点击查看该阶段详细方案与算法解释</div></div></div></button>';
+        });
+        h+='</div></div>';
+    }
+    if(typeof window.buildPhaseDetailSections==='function')h+=window.buildPhaseDetailSections(report);
+    if(typeof window.buildSolutionDetailSections==='function')h+=window.buildSolutionDetailSections(report);
+    return h
+};
+window.renderApiConfigPanel=function(provider){
+    var meta=window.getProviderMeta(provider),cfg=window.getProviderConfig(provider),status=window.aiServerStatusCache&&window.aiServerStatusCache.providers?window.aiServerStatusCache.providers[window.getProviderKey(provider)]:null;
+    var serverBadge=window.aiServerStatusCache?'<span class="tag '+(status&&status.configured?'tag-success':'tag-warning')+'">'+(status&&status.configured?'服务端已配置':'服务端未预置')+'</span>':'<span class="tag tag-info">等待检测</span>';
+    return ''+
+    '<div class="preset-info-box" style="margin-bottom:14px">'+
+        '<h4>'+escCompat(meta.label)+' API 配置</h4>'+
+        '<p>'+(shouldPreferDirectApi()?'GitHub Pages / HTTPS 页面支持浏览器直连模型 API。填写 Base URL、Model、API Key 后即可直接分析；本地代理仅作为可选兼容方案。':'当前页面支持两种模式：可直接填写 Base URL、Model、API Key 发起浏览器直连，也可启动本地 ai_api_server.py 作为代理转发。')+'</p>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">'+
+        '<div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-'+provider+'" placeholder="https://..." value="'+escCompat(cfg.base_url)+'"></div>'+
+        '<div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-'+provider+'" placeholder="如：gpt-4o-mini" value="'+escCompat(cfg.model)+'"></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">'+
+        '<div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-'+provider+'" placeholder="/chat/completions" value="'+escCompat(cfg.endpoint||'/chat/completions')+'"></div>'+
+        '<div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-'+provider+'" placeholder="输入 '+escCompat(meta.label)+' API Key" value="'+escCompat(cfg.api_key)+'"></div>'+
+    '</div>'+
+    '<div class="content-card-footer" style="padding:0;margin-top:8px">'+
+        '<div id="apiStatus-'+provider+'" style="margin-right:auto;color:#a0a0cc;font-size:12px">'+(shouldPreferDirectApi()?'浏览器直连模式：填写 Base URL、Model、API Key 后可直接分析。':'本地代理地址：'+escCompat(window.AI_PROXY_URL||'http://127.0.0.1:8765/api/ai/analyze'))+' '+serverBadge+'</div>'+
+        '<button class="btn btn-outline" type="button" onclick="saveAIConfig(\''+provider+'\')">保存配置</button>'+
+        '<button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button>'+
+        '<button class="btn btn-ai" type="button" onclick="startAIAnalysis(\''+provider+'\')">'+escCompat(meta.button)+'</button>'+
+    '</div>'
+};
+window.upgradeAiPanels=function(){
+    ['mimo','deepseek','chatgpt'].forEach(function(provider){
+        var panel=document.getElementById('aiPanel-'+provider);
+        if(!panel)return;
+        panel.innerHTML='' +
+            '<div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="'+provider+'"><option value="">请选择企业</option></select></div>'+
+            window.renderApiConfigPanel(provider);
+        panel.setAttribute('data-api-ready','1');
+    });
+    if(typeof window.syncAiCompanyOptions==='function')window.syncAiCompanyOptions();
+};
+window.ensureAiPanelsUpgraded=function(){
+    try{window.upgradeAiPanels()}catch(e){console.error('upgradeAiPanels failed',e)}
+};
 })();
 </script>
 </body>

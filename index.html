@@ -3376,5 +3376,248 @@ if(!window.openAiDimensionDetail && typeof openAiDimensionDetail!=='undefined')w
 if(!window.openAiPhaseDetail && typeof openAiPhaseDetail!=='undefined')window.openAiPhaseDetail=openAiPhaseDetail;
 })();
 </script>
+<script>
+(function(){
+function normalizeCompanyNameFinal(name){
+    return String(name||'').replace(/\s+/g,'').replace(/\[(棰勭疆|鑷綍)\]/g,'').trim();
+}
+function getPresetCompaniesFinal(){
+    if(Array.isArray(window.PRESET) && window.PRESET.length)return window.PRESET.slice();
+    if(typeof PRESET!=='undefined' && Array.isArray(PRESET) && PRESET.length)return PRESET.slice();
+    return [];
+}
+function collectCompaniesFromDomFinal(){
+    var names=[];
+    document.querySelectorAll('#selectCompany option, .ai-company-select option').forEach(function(opt){
+        var value=(opt.value||opt.textContent||'').trim();
+        if(!value)return;
+        if(value==='请选择企业' || value==='璇烽€夋嫨浼佷笟')return;
+        names.push(value);
+    });
+    var seen={};
+    return names.map(function(name){
+        var normalized=normalizeCompanyNameFinal(name);
+        if(!normalized || seen[normalized])return null;
+        seen[normalized]=true;
+        return {name:name.replace(/\s*\[(棰勭疆|鑷綍)\]\s*/g,''),preset:true};
+    }).filter(Boolean);
+}
+function getCompanyListFinal(){
+    var combined=[];
+    var seen={};
+    function append(list){
+        (list||[]).forEach(function(item){
+            if(!item || !item.name)return;
+            var normalized=normalizeCompanyNameFinal(item.name);
+            if(!normalized || seen[normalized])return;
+            seen[normalized]=true;
+            combined.push(item);
+        });
+    }
+    try{
+        if(typeof window.getUserCompanies==='function')append(window.getUserCompanies());
+    }catch(e){}
+    append(getPresetCompaniesFinal());
+    append(collectCompaniesFromDomFinal());
+    return combined;
+}
+function buildOptionsHtmlFinal(companies){
+    var html='<option value="">请选择企业</option>';
+    companies.forEach(function(company){
+        var label=company.name+(company.preset?' [预置]':' [自录]');
+        html+='<option value="'+window.esc(company.name)+'">'+window.esc(label)+'</option>';
+    });
+    return html;
+}
+window.getAllCompaniesForUser=function(){
+    return getCompanyListFinal();
+};
+window.findCompanyBySelection=function(name){
+    var raw=String(name||'').trim();
+    var normalized=normalizeCompanyNameFinal(raw);
+    var all=getCompanyListFinal();
+    var found=all.find(function(company){
+        return String(company.name||'').trim()===raw || normalizeCompanyNameFinal(company.name)===normalized;
+    });
+    if(found)return found;
+    var inputName=((document.getElementById('companyName')||{}).value||'').trim();
+    if(inputName && normalizeCompanyNameFinal(inputName)===normalized){
+        var result={name:raw||inputName,companyName:inputName,timestamp:new Date().toISOString(),transient:true};
+        ['industry','legalPerson','registeredCapital','establishDate','mainProducts','phone','email','address','employees','revenue','exportRatio','businessScope','rdRatio','rdStaff','patentCount','rdInstitution','rdCapability','isoCert','ceCert','otherCerts','standardCoverage','brandCount','brandRatio','oemRatio','ecommerceRatio','exportCountries','brandAwareness','logisticsCost','deliveryDays','warehouseCount','supplyChainLevel','mainIssues','upgradeGoals'].forEach(function(id){
+            result[id]=(document.getElementById(id)||{}).value||'';
+        });
+        return result;
+    }
+    return null;
+};
+window.setAiCompanySelection=function(name){
+    var value=name||'';
+    var main=document.getElementById('selectCompany');
+    if(main)main.value=value;
+    document.querySelectorAll('.ai-company-select').forEach(function(select){
+        select.value=value;
+    });
+};
+window.syncAiCompanyOptions=function(){
+    var companies=getCompanyListFinal();
+    var selects=Array.prototype.slice.call(document.querySelectorAll('#selectCompany, .ai-company-select'));
+    if(!selects.length)return;
+    var current='';
+    selects.some(function(select){
+        current=(select.value||'').trim();
+        return !!current;
+    });
+    var optionsHtml=buildOptionsHtmlFinal(companies);
+    selects.forEach(function(select){
+        var selected=(select.value||current||'').trim();
+        select.innerHTML=optionsHtml;
+        if(selected && companies.some(function(company){
+            return normalizeCompanyNameFinal(company.name)===normalizeCompanyNameFinal(selected);
+        })){
+            var exact=companies.find(function(company){
+                return normalizeCompanyNameFinal(company.name)===normalizeCompanyNameFinal(selected);
+            });
+            select.value=exact ? exact.name : selected;
+        }else{
+            select.value='';
+        }
+    });
+};
+window.updateCompanySelect=(function(original){
+    return function(){
+        if(typeof original==='function')original();
+        window.syncAiCompanyOptions();
+    };
+})(window.updateCompanySelect);
+document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){
+        window.syncAiCompanyOptions();
+    },120);
+});
+if(document.readyState!=='loading'){
+    setTimeout(function(){
+        window.syncAiCompanyOptions();
+    },0);
+}
+})();
+</script>
+<script>
+(function(){
+function normalizeCompanyNameLatest(name){
+    return String(name||'').replace(/\s+/g,'').replace(/\s*\[[^\]]+\]\s*/g,'').trim();
+}
+function getPresetCompaniesLatest(){
+    if(Array.isArray(window.PRESET) && window.PRESET.length)return window.PRESET.slice();
+    if(typeof PRESET!=='undefined' && Array.isArray(PRESET) && PRESET.length)return PRESET.slice();
+    return [];
+}
+function collectCompaniesFromDomLatest(){
+    var values=[];
+    document.querySelectorAll('#selectCompany option, .ai-company-select option').forEach(function(opt){
+        var raw=(opt.value||opt.textContent||'').trim();
+        var normalized=normalizeCompanyNameLatest(raw);
+        if(!normalized)return;
+        values.push(raw.replace(/\s*\[[^\]]+\]\s*/g,''));
+    });
+    var seen={};
+    return values.map(function(name){
+        var normalized=normalizeCompanyNameLatest(name);
+        if(!normalized || seen[normalized])return null;
+        seen[normalized]=true;
+        return {name:name,preset:true};
+    }).filter(Boolean);
+}
+function getCompaniesLatest(){
+    var combined=[];
+    var seen={};
+    function append(list){
+        (list||[]).forEach(function(item){
+            if(!item || !item.name)return;
+            var normalized=normalizeCompanyNameLatest(item.name);
+            if(!normalized || seen[normalized])return;
+            seen[normalized]=true;
+            combined.push(item);
+        });
+    }
+    append(getPresetCompaniesLatest());
+    try{
+        if(typeof window.getUserCompanies==='function')append(window.getUserCompanies());
+    }catch(e){}
+    append(collectCompaniesFromDomLatest());
+    return combined;
+}
+function buildOptionsHtmlLatest(companies){
+    if(typeof buildCompaniesOptionsHtml==='function')return buildCompaniesOptionsHtml(companies);
+    var html='<option value="">请选择企业</option>';
+    companies.forEach(function(company){
+        html+='<option value="'+window.esc(company.name)+'">'+window.esc(company.name)+'</option>';
+    });
+    return html;
+}
+window.getAllCompaniesForUser=function(){
+    return getCompaniesLatest();
+};
+window.findCompanyBySelection=function(name){
+    var raw=String(name||'').trim();
+    var normalized=normalizeCompanyNameLatest(raw);
+    var found=getCompaniesLatest().find(function(company){
+        return normalizeCompanyNameLatest(company.name)===normalized;
+    });
+    if(found)return found;
+    var inputName=((document.getElementById('companyName')||{}).value||'').trim();
+    if(inputName && normalizeCompanyNameLatest(inputName)===normalized){
+        var transientCompany={name:raw||inputName,companyName:inputName,timestamp:new Date().toISOString(),transient:true};
+        ['industry','legalPerson','registeredCapital','establishDate','mainProducts','phone','email','address','employees','revenue','exportRatio','businessScope','rdRatio','rdStaff','patentCount','rdInstitution','rdCapability','isoCert','ceCert','otherCerts','standardCoverage','brandCount','brandRatio','oemRatio','ecommerceRatio','exportCountries','brandAwareness','logisticsCost','deliveryDays','warehouseCount','supplyChainLevel','mainIssues','upgradeGoals'].forEach(function(id){
+            transientCompany[id]=(document.getElementById(id)||{}).value||'';
+        });
+        return transientCompany;
+    }
+    return null;
+};
+window.setAiCompanySelection=function(name){
+    var value=name||'';
+    var main=document.getElementById('selectCompany');
+    if(main)main.value=value;
+    document.querySelectorAll('.ai-company-select').forEach(function(select){
+        select.value=value;
+    });
+};
+window.syncAiCompanyOptions=function(){
+    var companies=getCompaniesLatest();
+    var selects=Array.prototype.slice.call(document.querySelectorAll('#selectCompany, .ai-company-select'));
+    if(!selects.length)return;
+    var selected='';
+    selects.some(function(select){
+        selected=(select.value||'').trim();
+        return !!selected;
+    });
+    var html=buildOptionsHtmlLatest(companies);
+    selects.forEach(function(select){
+        var current=(select.value||selected||'').trim();
+        select.innerHTML=html;
+        if(current){
+            var exact=companies.find(function(company){
+                return normalizeCompanyNameLatest(company.name)===normalizeCompanyNameLatest(current);
+            });
+            select.value=exact?exact.name:'';
+        }else{
+            select.value='';
+        }
+    });
+};
+window.updateCompanySelect=(function(original){
+    return function(){
+        if(typeof original==='function')original();
+        window.syncAiCompanyOptions();
+    };
+})(window.updateCompanySelect);
+document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(window.syncAiCompanyOptions,120);
+});
+if(document.readyState!=='loading'){
+    setTimeout(window.syncAiCompanyOptions,0);
+}
+})();
+</script>
 </body>
 </html>

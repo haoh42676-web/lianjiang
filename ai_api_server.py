@@ -1,0 +1,581 @@
+import json
+import os
+import re
+import base64
+from io import BytesIO
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib import error, request
+
+from docx import Document
+from pypdf import PdfReader
+
+
+HOST = "127.0.0.1"
+PORT = int(os.environ.get("LJ_AI_API_PORT", "8765"))
+
+PROVIDER_DEFAULTS = {
+    "openai": {
+        "label": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "endpoint": "/chat/completions",
+        "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+        "api_key": os.environ.get("OPENAI_API_KEY", ""),
+    },
+    "deepseek": {
+        "label": "DeepSeek",
+        "base_url": "https://api.deepseek.com",
+        "endpoint": "/chat/completions",
+        "model": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
+        "api_key": os.environ.get("DEEPSEEK_API_KEY", ""),
+    },
+    "mimo": {
+        "label": "MiMo",
+        "base_url": os.environ.get("MIMO_BASE_URL", ""),
+        "endpoint": os.environ.get("MIMO_ENDPOINT", "/chat/completions"),
+        "model": os.environ.get("MIMO_MODEL", ""),
+        "api_key": os.environ.get("MIMO_API_KEY", ""),
+    },
+}
+
+DIMENSION_ORDER = [
+    "brand",
+    "marketing",
+    "production",
+    "rd",
+    "standard",
+    "logistics",
+    "capital",
+    "finance",
+]
+
+DIMENSION_LABELS = {
+    "brand": "国际化品牌",
+    "marketing": "国际化营销",
+    "production": "国际化制成",
+    "rd": "国际化研发",
+    "standard": "国际化标准与认证",
+    "logistics": "国际化物流",
+    "capital": "国际化资本",
+    "finance": "国际化金融",
+}
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def clamp_score(value):
+    try:
+        return max(0, min(100, int(round(float(value)))))
+    except Exception:
+        return 0
+
+
+def level_from_score(score):
+    if score >= 80:
+        return "E级-优秀"
+    if score >= 60:
+        return "D级-良好"
+    if score >= 40:
+        return "C级-合格"
+    if score >= 20:
+        return "B级-较差"
+    return "A级-差"
+
+
+def normalize_provider_config(provider, overrides):
+    base = dict(PROVIDER_DEFAULTS.get(provider, {}))
+    overrides = overrides or {}
+    for key in ("base_url", "endpoint", "model", "api_key"):
+        if overrides.get(key):
+            base[key] = overrides[key]
+    if base.get("base_url"):
+        base["base_url"] = base["base_url"].rstrip("/")
+    if not base.get("endpoint"):
+        base["endpoint"] = "/chat/completions"
+    if not str(base["endpoint"]).startswith("/"):
+        base["endpoint"] = "/" + str(base["endpoint"])
+    return base
+
+
+def extract_json_object(text):
+    if not text:
+        raise ValueError("empty response")
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```[a-zA-Z0-9_-]*", "", cleaned).strip()
+        cleaned = re.sub(r"```$", "", cleaned).strip()
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start < 0 or end < 0 or end <= start:
+        raise ValueError("json object not found")
+    return json.loads(cleaned[start : end + 1])
+
+
+def ensure_list(value, fallback=None):
+    if isinstance(value, list):
+        return value
+    return fallback or []
+
+
+def normalize_report(raw, provider, model, company_name):
+    scores = raw.get("scores") or {}
+    normalized_scores = {}
+    for key in DIMENSION_ORDER:
+        normalized_scores[key] = clamp_score(scores.get(key, 0))
+
+    total = raw.get("overallScore")
+    if total is None:
+        total = round(sum(normalized_scores.values()) / len(DIMENSION_ORDER))
+    total = clamp_score(total)
+    overall_level = raw.get("overallLevel") or level_from_score(total)
+
+    dims = []
+    dimension_analysis = raw.get("dimensionAnalysis") or []
+    by_key = {item.get("key"): item for item in dimension_analysis if isinstance(item, dict)}
+    for key in DIMENSION_ORDER:
+        item = by_key.get(key, {})
+        score = normalized_scores[key]
+        dims.append(
+            {
+                "key": key,
+                "name": DIMENSION_LABELS[key],
+                "score": score,
+                "level": item.get("level") or level_from_score(score),
+                "gap": clamp_score(item.get("gap", 0)),
+                "diagnosis": item.get("diagnosis", ""),
+                "swotFocus": item.get("swotFocus", ""),
+                "actions": ensure_list(item.get("actions")),
+                "kpis": ensure_list(item.get("kpis")),
+                "risks": ensure_list(item.get("risks")),
+            }
+        )
+
+    phases = []
+    for item in ensure_list(raw.get("phases")):
+        if not isinstance(item, dict):
+            continue
+        phases.append(
+            {
+                "name": item.get("name", ""),
+                "goals": ensure_list(item.get("goals")),
+            }
+        )
+
+    solutions = []
+    for item in ensure_list(raw.get("solutions")):
+        if not isinstance(item, dict):
+            continue
+        steps = []
+        for step in ensure_list(item.get("steps")):
+            if not isinstance(step, dict):
+                continue
+            steps.append(
+                {
+                    "t": step.get("title", ""),
+                    "d": step.get("detail", ""),
+                    "tm": step.get("timeline", ""),
+                }
+            )
+        solutions.append(
+            {
+                "title": item.get("title", ""),
+                "priority": item.get("priority", "medium"),
+                "content": ensure_list(item.get("content")),
+                "steps": steps,
+            }
+        )
+
+    return {
+        "provider": provider,
+        "model": model,
+        "generatedAt": raw.get("generatedAt") or now_iso(),
+        "companyName": company_name,
+        "overallScore": total,
+        "overallLevel": overall_level,
+        "executiveSummary": raw.get("executiveSummary", ""),
+        "methodology": raw.get("methodology", ""),
+        "researchBasis": raw.get("researchBasis", ""),
+        "coreFindings": ensure_list(raw.get("coreFindings")),
+        "dimensionAnalysis": dims,
+        "phases": phases,
+        "solutions": solutions,
+    }
+
+
+def build_prompt(payload):
+    provider_label = PROVIDER_DEFAULTS.get(payload["provider"], {}).get("label", payload["provider"])
+    return f"""
+你是{provider_label}产业集群研究分析引擎。你的任务不是泛泛评价，而是基于给定企业数据、论文研究方法、廉江基准与慈溪标杆，输出严谨、可执行、结构化的完整诊断方案。
+
+分析要求：
+1. 必须严格围绕八个维度：品牌、营销、制成、研发、标准与认证、物流、资本、金融。
+2. 必须综合以下研究口径：
+   - 八要素五层级评分
+   - 廉江研究基准与慈溪标杆对比
+   - SWOT切入
+   - 头雁效应与层级跃迁路径
+3. 不能只给总分，必须给出：
+   - 综合结论
+   - 各维度0-100分
+   - 各维度差距、诊断、SWOT切入点、动作、KPI、风险
+   - 0-30天、31-90天、3-6个月、6-12个月实施路线
+   - 完整解决方案列表
+4. 语言必须是中文，面向政府/园区/企业升级分析场景，专业、具体、克制。
+5. 只输出 JSON，不要 Markdown，不要解释，不要代码块。
+
+JSON schema:
+{{
+  "generatedAt": "ISO-8601 string",
+  "overallScore": 0,
+  "overallLevel": "E级-优秀",
+  "executiveSummary": "string",
+  "methodology": "string",
+  "researchBasis": "string",
+  "scores": {{
+    "brand": 0,
+    "marketing": 0,
+    "production": 0,
+    "rd": 0,
+    "standard": 0,
+    "logistics": 0,
+    "capital": 0,
+    "finance": 0
+  }},
+  "coreFindings": ["string"],
+  "dimensionAnalysis": [
+    {{
+      "key": "brand",
+      "level": "C级-合格",
+      "gap": 0,
+      "diagnosis": "string",
+      "swotFocus": "string",
+      "actions": ["string"],
+      "kpis": ["string"],
+      "risks": ["string"]
+    }}
+  ],
+  "phases": [
+    {{
+      "name": "0-30天",
+      "goals": ["string"]
+    }}
+  ],
+  "solutions": [
+    {{
+      "title": "string",
+      "priority": "high|medium|low",
+      "content": ["string"],
+      "steps": [
+        {{
+          "title": "string",
+          "detail": "string",
+          "timeline": "string"
+        }}
+      ]
+    }}
+  ]
+}}
+
+输入数据：
+{json.dumps(payload["analysis_input"], ensure_ascii=False)}
+""".strip()
+
+
+def build_messages(payload):
+    prompt = build_prompt(payload)
+    return [
+        {
+            "role": "system",
+            "content": "你是严谨的区域产业集群研究分析系统，擅长把论文方法转化为企业升级诊断。必须只输出合法 JSON。",
+        },
+        {"role": "user", "content": prompt},
+    ]
+
+
+FIELD_ALIASES = {
+    "companyName": [r"企业名称", r"公司名称", r"单位名称"],
+    "industry": [r"所属行业", r"行业", r"产业方向"],
+    "legalPerson": [r"法定代表人", r"法人代表", r"法人"],
+    "registeredCapital": [r"注册资本"],
+    "establishDate": [r"成立日期", r"成立时间", r"创立时间"],
+    "mainProducts": [r"主要产品", r"主营产品", r"核心产品"],
+    "phone": [r"联系电话", r"联系方式", r"电话"],
+    "email": [r"电子邮箱", r"邮箱", r"E-?mail"],
+    "address": [r"企业地址", r"地址", r"办公地址"],
+    "employees": [r"员工人数", r"职工人数", r"员工数量"],
+    "revenue": [r"年营业额", r"营业收入", r"年营收", r"营收"],
+    "exportRatio": [r"出口占比", r"出口比例"],
+    "businessScope": [r"经营范围", r"业务范围"],
+    "rdRatio": [r"研发投入占比", r"研发占比", r"研发经费占比"],
+    "rdStaff": [r"研发人员数量", r"研发人员", r"研发团队人数"],
+    "patentCount": [r"专利数量", r"专利数"],
+    "rdInstitution": [r"研发机构", r"研发平台", r"技术中心"],
+    "rdCapability": [r"自主研发能力", r"研发能力"],
+    "isoCert": [r"ISO认证", r"ISO9001"],
+    "ceCert": [r"CE认证"],
+    "otherCerts": [r"其他认证", r"国际认证"],
+    "standardCoverage": [r"标准覆盖率", r"标准覆盖"],
+    "brandCount": [r"自主品牌数量", r"品牌数量"],
+    "brandRatio": [r"品牌投入占比", r"品牌投入比例"],
+    "oemRatio": [r"OEM/ODM占比", r"OEM占比", r"ODM占比"],
+    "ecommerceRatio": [r"跨境电商占比", r"电商占比"],
+    "exportCountries": [r"出口国家数量", r"出口国家数", r"出口国家"],
+    "brandAwareness": [r"品牌知名度"],
+    "logisticsCost": [r"物流成本占比", r"物流成本"],
+    "deliveryDays": [r"平均交货周期", r"交货周期", r"交付周期"],
+    "warehouseCount": [r"海外仓数量", r"海外仓数"],
+    "supplyChainLevel": [r"供应链管理能力", r"供应链能力"],
+    "mainIssues": [r"企业主要问题", r"主要问题", r"当前问题"],
+    "upgradeGoals": [r"企业升级目标", r"升级目标", r"发展目标"],
+}
+
+
+def decode_upload_text(file_name, content_base64):
+    data = base64.b64decode(content_base64)
+    lower = (file_name or "").lower()
+    if lower.endswith(".docx"):
+        doc = Document(BytesIO(data))
+        return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    if lower.endswith(".pdf"):
+        reader = PdfReader(BytesIO(data))
+        return "\n".join((page.extract_text() or "") for page in reader.pages)
+    if lower.endswith(".json") or lower.endswith(".txt") or lower.endswith(".md"):
+        return data.decode("utf-8", errors="ignore")
+    return data.decode("utf-8", errors="ignore")
+
+
+def cleanup_value(value):
+    value = re.sub(r"\s+", " ", value or "").strip("：:;；，, ")
+    return value
+
+
+def normalize_date_text(value):
+    value = cleanup_value(value)
+    match = re.search(r"(\d{4})[年\-/\.](\d{1,2})[月\-/\.](\d{1,2})", value)
+    if not match:
+        return value
+    y, m, d = match.groups()
+    return f"{int(y):04d}-{int(m):02d}-{int(d):02d}"
+
+
+def regex_extract(text, aliases):
+    for alias in aliases:
+        patterns = [
+            rf"{alias}\s*[：:]\s*(.+)",
+            rf"{alias}\s+(.+)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                line = match.group(1).splitlines()[0]
+                return cleanup_value(line)
+    return ""
+
+
+def infer_industry(text):
+    if "小家电" in text:
+        return "小家电制造"
+    if "大家电" in text:
+        return "大家电制造"
+    if "电子" in text:
+        return "电子产品"
+    if "五金" in text:
+        return "五金制品"
+    return ""
+
+
+def parse_document_fields(text):
+    result = {}
+    for field, aliases in FIELD_ALIASES.items():
+        value = regex_extract(text, aliases)
+        if value:
+            result[field] = normalize_date_text(value) if field == "establishDate" else value
+
+    if not result.get("industry"):
+        inferred = infer_industry(text)
+        if inferred:
+            result["industry"] = inferred
+
+    if not result.get("companyName"):
+        lines = [cleanup_value(x) for x in text.splitlines() if cleanup_value(x)]
+        if lines:
+            result["companyName"] = lines[0][:80]
+
+    return result
+
+
+def build_parse_summary(fields):
+    labels = {
+        "companyName": "企业名称",
+        "industry": "所属行业",
+        "legalPerson": "法定代表人",
+        "registeredCapital": "注册资本",
+        "establishDate": "成立日期",
+        "mainProducts": "主要产品",
+        "employees": "员工人数",
+        "revenue": "年营业额",
+        "rdRatio": "研发投入占比",
+        "brandCount": "自主品牌数量",
+        "logisticsCost": "物流成本占比",
+        "upgradeGoals": "升级目标",
+    }
+    summary = []
+    for key, label in labels.items():
+        if fields.get(key):
+            summary.append({"field": key, "label": label, "value": fields[key]})
+    return summary
+
+
+def call_openai_compatible(provider, config, payload):
+    body = {
+        "model": config["model"],
+        "messages": build_messages(payload),
+        "temperature": 0.3,
+        "response_format": {"type": "json_object"},
+    }
+    url = config["base_url"] + config["endpoint"]
+    req = request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {config['api_key']}",
+        },
+        method="POST",
+    )
+    try:
+        with request.urlopen(req, timeout=120) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"{provider} HTTP {exc.code}: {detail}") from exc
+    except error.URLError as exc:
+        raise RuntimeError(f"{provider} network error: {exc.reason}") from exc
+
+    choices = raw.get("choices") or []
+    if not choices:
+        raise RuntimeError(f"{provider} returned no choices")
+    message = choices[0].get("message") or {}
+    content = message.get("content")
+    if isinstance(content, list):
+        text_parts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                text_parts.append(item.get("text", ""))
+        content = "\n".join(text_parts)
+    parsed = extract_json_object(content or "")
+    company_name = payload["analysis_input"]["company"].get("name", "")
+    return normalize_report(parsed, provider, config["model"], company_name)
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "LJAI/1.0"
+
+    def _send(self, code, payload):
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self._send(204, {})
+
+    def do_GET(self):
+        if self.path.startswith("/api/status"):
+            providers = {}
+            for key, info in PROVIDER_DEFAULTS.items():
+                providers[key] = {
+                    "label": info["label"],
+                    "configured": bool(info.get("api_key")),
+                    "base_url": info.get("base_url", ""),
+                    "model": info.get("model", ""),
+                }
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "serverTime": now_iso(),
+                    "providers": providers,
+                },
+            )
+            return
+        self._send(404, {"ok": False, "error": "not found"})
+
+    def do_POST(self):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(length).decode("utf-8")
+            payload = json.loads(raw_body or "{}")
+        except Exception:
+            self._send(400, {"ok": False, "error": "invalid json"})
+            return
+
+        if self.path.startswith("/api/intake/parse"):
+            file_name = payload.get("fileName", "")
+            content_base64 = payload.get("contentBase64", "")
+            if not file_name or not content_base64:
+                self._send(400, {"ok": False, "error": "missing file"})
+                return
+            try:
+                text = decode_upload_text(file_name, content_base64)
+                fields = parse_document_fields(text)
+            except Exception as exc:
+                self._send(400, {"ok": False, "error": f"parse failed: {exc}"})
+                return
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "fileName": file_name,
+                    "fields": fields,
+                    "summary": build_parse_summary(fields),
+                    "preview": text[:3000],
+                },
+            )
+            return
+
+        if not self.path.startswith("/api/ai/analyze"):
+            self._send(404, {"ok": False, "error": "not found"})
+            return
+
+        provider = payload.get("provider", "mimo")
+        if provider not in PROVIDER_DEFAULTS:
+            self._send(400, {"ok": False, "error": "unsupported provider"})
+            return
+
+        config = normalize_provider_config(provider, payload.get("providerConfig"))
+        if not config.get("base_url") or not config.get("model") or not config.get("api_key"):
+            self._send(
+                400,
+                {
+                    "ok": False,
+                    "error": f"{provider} not configured",
+                    "missing": {
+                        "base_url": not bool(config.get("base_url")),
+                        "model": not bool(config.get("model")),
+                        "api_key": not bool(config.get("api_key")),
+                    },
+                },
+            )
+            return
+
+        try:
+            report = call_openai_compatible(provider, config, payload)
+        except Exception as exc:
+            self._send(502, {"ok": False, "error": str(exc)})
+            return
+
+        self._send(200, {"ok": True, "report": report})
+
+
+if __name__ == "__main__":
+    httpd = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"LJ AI API server running at http://{HOST}:{PORT}")
+    httpd.serve_forever()

@@ -2390,7 +2390,7 @@ window.showSubPage=function(id){
 };
 var oldUpdateCompanySelect=window.updateCompanySelect;
 window.updateCompanySelect=function(){
-    oldUpdateCompanySelect();
+    if(typeof oldUpdateCompanySelect==='function')oldUpdateCompanySelect();
     ensureAiPanelsUpgraded();
     syncAiCompanyOptions();
     var name=(document.getElementById('selectCompany')||{}).value;
@@ -3347,12 +3347,12 @@ if(document.readyState!=='loading'){
         setBrowserModeHint();
     },0);
 }
-window.buildClickableDimCards=window.buildClickableDimCards||buildClickableDimCards;
-window.buildDimensionDetailSections=window.buildDimensionDetailSections||buildDimensionDetailSections;
-window.buildPhaseDetailSections=window.buildPhaseDetailSections||buildPhaseDetailSections;
-window.buildSolutionDetailSections=window.buildSolutionDetailSections||buildSolutionDetailSections;
-window.openAiDimensionDetail=window.openAiDimensionDetail||openAiDimensionDetail;
-window.openAiPhaseDetail=window.openAiPhaseDetail||openAiPhaseDetail;
+if(!window.buildClickableDimCards && typeof buildClickableDimCards!=='undefined')window.buildClickableDimCards=buildClickableDimCards;
+if(!window.buildDimensionDetailSections && typeof buildDimensionDetailSections!=='undefined')window.buildDimensionDetailSections=buildDimensionDetailSections;
+if(!window.buildPhaseDetailSections && typeof buildPhaseDetailSections!=='undefined')window.buildPhaseDetailSections=buildPhaseDetailSections;
+if(!window.buildSolutionDetailSections && typeof buildSolutionDetailSections!=='undefined')window.buildSolutionDetailSections=buildSolutionDetailSections;
+if(!window.openAiDimensionDetail && typeof openAiDimensionDetail!=='undefined')window.openAiDimensionDetail=openAiDimensionDetail;
+if(!window.openAiPhaseDetail && typeof openAiPhaseDetail!=='undefined')window.openAiPhaseDetail=openAiPhaseDetail;
 })();
 </script>
 </body>

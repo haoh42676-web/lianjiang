@@ -724,7 +724,10 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 </div>
 <div class="ai-panel active" id="aiPanel-mimo">
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select" id="selectCompany"><option value="">请选择企业</option></select></div>
-<div class="content-card-footer"><button class="btn btn-ai" onclick="startAIAnalysis()">🤖 调用MiMo AI分析</button></div>
+<div class="preset-info-box" style="margin-bottom:14px"><h4>MiMo API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 MiMo 的 Base URL、模型名和 API Key。如果你的 MiMo 服务不是 OpenAI 兼容接口，还需要填写对应 Endpoint。</p></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-mimo" placeholder="请输入 MiMo API Base URL"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-mimo" placeholder="请输入 MiMo 模型名"></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-mimo" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-mimo" placeholder="输入 MiMo API Key"></div></div>
+<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-mimo" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('mimo')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('mimo')">调用 MiMo 深度分析</button></div>
 </div>
 <div class="ai-panel" id="aiPanel-deepseek">
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="deepseek"><option value="">请选择企业</option></select></div>

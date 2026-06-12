@@ -1882,6 +1882,15 @@ var aiServerStatusCache=null;
 function aiStorageKey(p){return 'lj_ai_config_'+p}
 function getProviderKey(provider){return provider==='chatgpt'?'openai':provider}
 function getProviderMeta(provider){return AI_PROVIDER_META[provider]||AI_PROVIDER_META.mimo}
+function getCurrentCompanySelection(){
+    var panel=document.getElementById('aiPanel-'+getActiveAIProvider());
+    var panelSelect=panel?panel.querySelector('.ai-company-select'):null;
+    return (panelSelect&&panelSelect.value) || (document.getElementById('selectCompany')||{}).value || ''
+}
+function setAiCompanySelection(name){
+    if(document.getElementById('selectCompany'))document.getElementById('selectCompany').value=name||'';
+    document.querySelectorAll('.ai-company-select').forEach(function(sel){sel.value=name||''});
+}
 function readFileAsBase64(file){
     return new Promise(function(resolve,reject){
         var reader=new FileReader();
@@ -2183,19 +2192,33 @@ function upgradeAiPanels(){
     ['mimo','deepseek','chatgpt'].forEach(function(provider){
         var panel=document.getElementById('aiPanel-'+provider);
         if(!panel)return;
+        if(panel.getAttribute('data-api-ready')==='1')return;
         panel.innerHTML='' +
             '<div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="'+provider+'"><option value="">请选择企业</option></select></div>'+
             renderApiConfigPanel(provider);
+        panel.setAttribute('data-api-ready','1');
     });
     syncAiCompanyOptions();
+}
+function ensureAiPanelsUpgraded(){
+    try{upgradeAiPanels()}catch(e){console.error('upgradeAiPanels failed',e)}
 }
 function syncAiCompanyOptions(){
     var html=document.getElementById('selectCompany');
     document.querySelectorAll('.ai-company-select').forEach(function(sel){
-        var current=sel.value;
+        var current=sel.value || (html?html.value:'');
         sel.innerHTML=html?html.innerHTML:'<option value="">请选择企业</option>';
         if(current){sel.value=current}
-    })
+        sel.onchange=function(){
+            if(html)html.value=sel.value;
+            document.querySelectorAll('.ai-company-select').forEach(function(other){if(other!==sel)other.value=sel.value});
+        };
+    });
+    if(html){
+        html.onchange=function(){
+            document.querySelectorAll('.ai-company-select').forEach(function(sel){sel.value=html.value});
+        };
+    }
 }
 window.saveAIConfig=function(provider){
     var cfg={
@@ -2253,8 +2276,9 @@ function buildApiReportHtml(r){
 }
 window.startAIAnalysis=async function(provider){
     provider=provider||getActiveAIProvider();
-    var panel=document.getElementById('aiPanel-'+provider),select=panel?panel.querySelector('.ai-company-select'):document.getElementById('selectCompany'),name=select?select.value:'';
+    var panel=document.getElementById('aiPanel-'+provider),select=panel?panel.querySelector('.ai-company-select'):document.getElementById('selectCompany'),fallback=document.getElementById('selectCompany'),name=(select&&select.value)||(fallback&&fallback.value)||'';
     if(!name){showToast('请先选择企业');return}
+    setAiCompanySelection(name);
     var all=getAllCompaniesForUser();companyData=all.find(function(c){return c.name===name});
     if(!companyData){showToast('未找到企业数据');return}
     var cfg={
@@ -2266,6 +2290,8 @@ window.startAIAnalysis=async function(provider){
     saveProviderConfig(provider,cfg);
     if(!cfg.base_url||!cfg.model||!cfg.api_key){
         showToast('请先填写 '+getProviderMeta(provider).label+' 的 Base URL、模型名和 API Key');
+        var statusEl=document.getElementById('apiStatus-'+provider);
+        if(statusEl)statusEl.textContent='缺少配置：请填写 Base URL、模型名和 API Key 后再开始分析。';
         return
     }
     showLoading('正在调用 '+getProviderMeta(provider).label+' API 生成完整诊断方案...');
@@ -2305,17 +2331,44 @@ var oldSelectAI=window.selectAI;
 window.selectAI=function(ai,btn){
     selectedAIProvider=ai||'mimo';
     oldSelectAI(ai,btn);
+    ensureAiPanelsUpgraded();
     syncAiCompanyOptions();
+    var name=(document.getElementById('selectCompany')||{}).value||getCurrentCompanySelection();
+    if(name)setAiCompanySelection(name);
+};
+var oldShowSubPage=window.showSubPage;
+window.showSubPage=function(id){
+    oldShowSubPage(id);
+    if(id==='aiAnalysis'){
+        ensureAiPanelsUpgraded();
+        syncAiCompanyOptions();
+        var name=(document.getElementById('selectCompany')||{}).value||getCurrentCompanySelection();
+        if(name)setAiCompanySelection(name);
+    }
 };
 var oldUpdateCompanySelect=window.updateCompanySelect;
 window.updateCompanySelect=function(){
     oldUpdateCompanySelect();
+    ensureAiPanelsUpgraded();
     syncAiCompanyOptions();
+    var name=(document.getElementById('selectCompany')||{}).value;
+    if(name)setAiCompanySelection(name);
 };
 document.addEventListener('DOMContentLoaded',function(){
-    upgradeAiPanels();
+    ensureAiPanelsUpgraded();
     checkAIServer();
+    syncAiCompanyOptions();
+    var select=document.getElementById('selectCompany');
+    if(select&&select.value)setAiCompanySelection(select.value);
 });
+if(document.readyState!=='loading'){
+    setTimeout(function(){
+        ensureAiPanelsUpgraded();
+        syncAiCompanyOptions();
+        var select=document.getElementById('selectCompany');
+        if(select&&select.value)setAiCompanySelection(select.value);
+    },0);
+}
 })();
 </script>
 </body>

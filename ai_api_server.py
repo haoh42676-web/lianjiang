@@ -284,6 +284,16 @@ JSON schema:
 
 
 def build_messages(payload):
+    analysis_input = payload.get("analysis_input") or {}
+    custom_prompt = analysis_input.get("prompt")
+    if custom_prompt:
+        return [
+            {
+                "role": "system",
+                "content": "你是严谨的产业集群软件 AI 模块引擎。必须只输出合法 JSON。",
+            },
+            {"role": "user", "content": str(custom_prompt)},
+        ]
     prompt = build_prompt(payload)
     return [
         {
@@ -429,12 +439,15 @@ def build_parse_summary(fields):
 
 
 def call_openai_compatible(provider, config, payload):
+    analysis_input = payload.get("analysis_input") or {}
+    is_independent_module = bool(analysis_input.get("module"))
     body = {
         "model": config["model"],
         "messages": build_messages(payload),
         "temperature": 0.3,
-        "response_format": {"type": "json_object"},
     }
+    if provider != "deepseek":
+        body["response_format"] = {"type": "json_object"}
     url = config["base_url"] + config["endpoint"]
     req = request.Request(
         url,
@@ -466,6 +479,12 @@ def call_openai_compatible(provider, config, payload):
                 text_parts.append(item.get("text", ""))
         content = "\n".join(text_parts)
     parsed = extract_json_object(content or "")
+    if is_independent_module:
+        if not isinstance(parsed, dict):
+            raise RuntimeError(f"{provider} returned invalid module json")
+        if not parsed.get("model"):
+            parsed["model"] = config["model"]
+        return parsed
     company_name = payload["analysis_input"]["company"].get("name", "")
     return normalize_report(parsed, provider, config["model"], company_name)
 

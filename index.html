@@ -4428,5 +4428,1494 @@ document.addEventListener('click', function(evt){
 });
 })();
 </script>
+<script>
+(function(){
+var MODULE_REPORT_STORAGE_KEY = 'lj_independent_module_reports_v3';
+var MODULE_PROVIDER_STORAGE_KEY = 'lj_independent_module_providers_v3';
+var moduleReportCache = {};
+var moduleProviderCache = {};
+
+function safeEsc(value){
+    return (window.esc ? window.esc(value == null ? '' : String(value)) : String(value == null ? '' : value)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;'));
+}
+function nowIso(){
+    return new Date().toISOString();
+}
+function nowLabel(){
+    try{return new Date().toLocaleString('zh-CN');}catch(e){return nowIso();}
+}
+function getAllCompanies(){
+    return typeof window.getAllCompaniesForUser === 'function' ? (window.getAllCompaniesForUser() || []) : [];
+}
+function getCompanyByName(name){
+    return typeof window.findCompanyBySelection === 'function' ? window.findCompanyBySelection(name) : null;
+}
+function getProviderMetaSafe(provider){
+    if(window.getProviderMeta)return window.getProviderMeta(provider);
+    return { label: provider || 'AI', defaultBaseUrl:'', defaultModel:'' };
+}
+function getProviderConfigSafe(provider){
+    if(window.getProviderConfig)return window.getProviderConfig(provider);
+    return { base_url:'', model:'', api_key:'', endpoint:'/chat/completions' };
+}
+function getResearchModelSafe(){
+    return window.RESEARCH_FUSION_MODEL || {
+        order:['brand','marketing','rd','production','standard','logistics','capital','finance'],
+        lianjiang:{brand:49,marketing:45,rd:42,production:55,standard:46,logistics:43,capital:38,finance:44},
+        cixi:{brand:82,marketing:78,rd:86,production:84,standard:80,logistics:76,capital:88,finance:82},
+        method:'五维融合八要素评价',
+        source:'论文与研究数据'
+    };
+}
+function getDimensionMeta(key){
+    return (window.EIGHT_ELEMENTS && window.EIGHT_ELEMENTS[key]) || { icon:'*', name:key };
+}
+function num(value){
+    if(value == null || value === '')return 0;
+    var parsed = parseFloat(String(value).replace(/[^0-9.\-]/g,''));
+    return isNaN(parsed) ? 0 : parsed;
+}
+function clone(obj){
+    return JSON.parse(JSON.stringify(obj));
+}
+function uniqueText(list){
+    var seen = {};
+    return (Array.isArray(list) ? list : []).map(function(item){
+        return String(item == null ? '' : item).trim();
+    }).filter(function(item){
+        if(!item || seen[item])return false;
+        seen[item] = true;
+        return true;
+    });
+}
+function loadModuleCaches(){
+    try{moduleReportCache = JSON.parse(localStorage.getItem(MODULE_REPORT_STORAGE_KEY) || '{}') || {};}catch(e){moduleReportCache = {};}
+    try{moduleProviderCache = JSON.parse(localStorage.getItem(MODULE_PROVIDER_STORAGE_KEY) || '{}') || {};}catch(e){moduleProviderCache = {};}
+}
+function persistModuleCaches(){
+    localStorage.setItem(MODULE_REPORT_STORAGE_KEY, JSON.stringify(moduleReportCache));
+    localStorage.setItem(MODULE_PROVIDER_STORAGE_KEY, JSON.stringify(moduleProviderCache));
+}
+function getModuleProvider(moduleKey){
+    if(!moduleProviderCache[moduleKey])moduleProviderCache[moduleKey] = 'deepseek';
+    return moduleProviderCache[moduleKey];
+}
+function setModuleProvider(moduleKey, provider){
+    moduleProviderCache[moduleKey] = provider;
+    persistModuleCaches();
+    syncModuleProviderButtons(moduleKey);
+}
+function getModuleReport(moduleKey, companyName){
+    return moduleReportCache[moduleKey] && moduleReportCache[moduleKey][companyName] ? moduleReportCache[moduleKey][companyName] : null;
+}
+function saveModuleReport(moduleKey, companyName, report){
+    if(!moduleReportCache[moduleKey])moduleReportCache[moduleKey] = {};
+    moduleReportCache[moduleKey][companyName] = report;
+    persistModuleCaches();
+}
+function buildReportId(moduleKey, companyName){
+    var stamp = nowIso().replace(/[-:TZ.]/g,'').slice(0,14);
+    return moduleKey.toUpperCase() + '-' + safeEsc(companyName).replace(/[^A-Za-z0-9\u4e00-\u9fa5]/g,'').slice(0,8) + '-' + stamp;
+}
+function getStageText(score){
+    if(window.getDimLevel)return (window.getDimLevel(score) || {}).text || '';
+    if(score >= 80)return '引领型';
+    if(score >= 60)return '成长型';
+    if(score >= 40)return '追赶型';
+    return '补课型';
+}
+function getLevelText(score){
+    if(window.getLevel)return (window.getLevel(score) || {}).text || '';
+    return score >= 80 ? 'A级' : score >= 60 ? 'B级' : score >= 40 ? 'C级' : 'D级';
+}
+function getGapPriority(score, gap){
+    if(score < 40 || gap > 30)return '高';
+    if(score < 60 || gap > 15)return '中';
+    return '稳';
+}
+function getScoreReason(key, company, score){
+    if(typeof scoreReasonFromData === 'function')return scoreReasonFromData(key, company, score);
+    return { summary:'基于企业录入数据、研究基准和标杆差距进行归因。', items:[] };
+}
+function clampScore(value){
+    return Math.max(0, Math.min(100, Math.round(value)));
+}
+function scoreThreshold(value, thresholds){
+    for(var i=0;i<thresholds.length;i++){
+        if(value >= thresholds[i].v)return thresholds[i].s;
+    }
+    return thresholds.length ? thresholds[thresholds.length - 1].s : 0;
+}
+function enumScore(value, mapping, fallback){
+    return mapping.hasOwnProperty(value) ? mapping[value] : fallback;
+}
+function localScoreDimension(company, key){
+    var revenue = num(company.revenue);
+    var exportRatio = num(company.exportRatio);
+    var rdRatio = num(company.rdRatio);
+    var rdStaff = num(company.rdStaff);
+    var patents = num(company.patentCount);
+    var standardCoverage = num(company.standardCoverage);
+    var brandRatio = num(company.brandRatio);
+    var oemRatio = num(company.oemRatio);
+    var ecommerceRatio = num(company.ecommerceRatio);
+    var exportCountries = num(company.exportCountries);
+    var logisticsCost = num(company.logisticsCost);
+    var deliveryDays = num(company.deliveryDays);
+    var warehouseCount = num(company.warehouseCount);
+    var employees = num(company.employees);
+    if(key === 'brand'){
+        return clampScore(
+            scoreThreshold(num(company.brandCount),[{v:3,s:82},{v:2,s:70},{v:1,s:58},{v:0,s:38}]) * 0.18 +
+            scoreThreshold(brandRatio,[{v:10,s:80},{v:5,s:64},{v:2,s:50},{v:0,s:36}]) * 0.24 +
+            enumScore(company.brandAwareness,{'高':82,'较高':72,'一般':56,'较低':42,'低':32},46) * 0.18 +
+            scoreThreshold(100 - oemRatio,[{v:50,s:82},{v:30,s:66},{v:15,s:52},{v:0,s:36}]) * 0.20 +
+            scoreThreshold(exportCountries,[{v:25,s:80},{v:10,s:64},{v:5,s:50},{v:0,s:36}]) * 0.20
+        );
+    }
+    if(key === 'marketing'){
+        return clampScore(
+            scoreThreshold(exportRatio,[{v:70,s:86},{v:50,s:74},{v:30,s:60},{v:10,s:44},{v:0,s:30}]) * 0.30 +
+            scoreThreshold(ecommerceRatio,[{v:20,s:82},{v:10,s:66},{v:5,s:52},{v:0,s:36}]) * 0.24 +
+            scoreThreshold(exportCountries,[{v:30,s:84},{v:15,s:68},{v:8,s:54},{v:0,s:38}]) * 0.22 +
+            (String(company.businessScope || '').indexOf('进出口') >= 0 ? 72 : 44) * 0.24
+        );
+    }
+    if(key === 'rd'){
+        return clampScore(
+            scoreThreshold(rdRatio,[{v:5,s:90},{v:3,s:74},{v:1.5,s:58},{v:0,s:36}]) * 0.34 +
+            scoreThreshold(rdStaff,[{v:50,s:86},{v:20,s:70},{v:10,s:56},{v:0,s:34}]) * 0.22 +
+            scoreThreshold(patents,[{v:100,s:90},{v:50,s:76},{v:20,s:60},{v:0,s:36}]) * 0.24 +
+            enumScore(company.rdCapability,{'强':84,'较强':74,'一般':56,'弱':36},46) * 0.20
+        );
+    }
+    if(key === 'production'){
+        return clampScore(
+            scoreThreshold(employees,[{v:800,s:82},{v:300,s:70},{v:100,s:56},{v:0,s:38}]) * 0.24 +
+            enumScore(company.supplyChainLevel,{'强':82,'较强':72,'一般':56,'弱':38},46) * 0.24 +
+            scoreThreshold(30 - deliveryDays,[{v:15,s:82},{v:8,s:68},{v:0,s:54},{v:-99,s:38}]) * 0.22 +
+            enumScore(company.isoCert,{'已通过':76,'申请中':58,'未申请':36},46) * 0.14 +
+            scoreThreshold(revenue,[{v:30000,s:82},{v:10000,s:68},{v:3000,s:54},{v:0,s:38}]) * 0.16
+        );
+    }
+    if(key === 'standard'){
+        return clampScore(
+            enumScore(company.isoCert,{'已通过':82,'申请中':60,'未申请':34},44) * 0.24 +
+            enumScore(company.ceCert,{'已通过':82,'申请中':60,'未申请':34},44) * 0.24 +
+            scoreThreshold(standardCoverage,[{v:80,s:86},{v:60,s:72},{v:40,s:56},{v:0,s:34}]) * 0.28 +
+            (String(company.otherCerts || '').trim() ? 70 : 42) * 0.24
+        );
+    }
+    if(key === 'logistics'){
+        return clampScore(
+            scoreThreshold(25 - logisticsCost,[{v:12,s:80},{v:8,s:66},{v:4,s:54},{v:-99,s:36}]) * 0.26 +
+            scoreThreshold(35 - deliveryDays,[{v:18,s:82},{v:10,s:68},{v:4,s:54},{v:-99,s:36}]) * 0.28 +
+            scoreThreshold(warehouseCount,[{v:3,s:82},{v:2,s:70},{v:1,s:56},{v:0,s:40}]) * 0.20 +
+            enumScore(company.supplyChainLevel,{'强':82,'较强':72,'一般':56,'弱':38},46) * 0.26
+        );
+    }
+    if(key === 'capital'){
+        return clampScore(
+            scoreThreshold(revenue,[{v:50000,s:90},{v:20000,s:76},{v:5000,s:58},{v:0,s:36}]) * 0.38 +
+            scoreThreshold(employees,[{v:1000,s:84},{v:300,s:68},{v:100,s:54},{v:0,s:38}]) * 0.18 +
+            scoreThreshold(num(company.registeredCapital),[{v:5000,s:82},{v:2000,s:68},{v:500,s:52},{v:0,s:36}]) * 0.24 +
+            (String(company.upgradeGoals || '').indexOf('上市') >= 0 ? 72 : 48) * 0.20
+        );
+    }
+    if(key === 'finance'){
+        return clampScore(
+            scoreThreshold(exportRatio,[{v:70,s:84},{v:50,s:70},{v:30,s:58},{v:0,s:38}]) * 0.30 +
+            scoreThreshold(ecommerceRatio,[{v:20,s:80},{v:10,s:64},{v:5,s:52},{v:0,s:36}]) * 0.20 +
+            (String(company.businessScope || '').indexOf('进出口') >= 0 ? 72 : 46) * 0.18 +
+            (String(company.otherCerts || '').trim() ? 66 : 42) * 0.12 +
+            scoreThreshold(revenue,[{v:30000,s:80},{v:10000,s:66},{v:3000,s:52},{v:0,s:36}]) * 0.20
+        );
+    }
+    return 0;
+}
+function applyResearchFusionFallback(rawScores){
+    var model = getResearchModelSafe();
+    var scores = {};
+    (model.order || []).forEach(function(key){
+        var base = num(rawScores[key]);
+        var bench = num((model.cixi || {})[key]);
+        var local = num((model.lianjiang || {})[key]);
+        var gap = bench - base;
+        var headBoost = base >= local + 8 ? 4 : base >= local ? 2 : 0;
+        var penalty = gap >= 35 ? -5 : gap >= 25 ? -3 : gap >= 15 ? -1 : 0;
+        scores[key] = clampScore(base + headBoost + penalty);
+    });
+    if(scores.rd >= 70 && scores.production >= 65)scores.production = clampScore(scores.production + 3);
+    if(scores.standard >= 70 && scores.marketing >= 60)scores.marketing = clampScore(scores.marketing + 3);
+    if(scores.logistics < 45 && scores.marketing > 65)scores.marketing = clampScore(scores.marketing - 3);
+    if(scores.brand < 45 && scores.finance > 60)scores.finance = clampScore(scores.finance - 2);
+    return scores;
+}
+function calcScoresFallback(company){
+    var model = getResearchModelSafe();
+    var raw = {};
+    (model.order || []).forEach(function(key){
+        raw[key] = localScoreDimension(company || {}, key);
+    });
+    return applyResearchFusionFallback(raw);
+}
+function calcTotalFallback(scores){
+    var model = getResearchModelSafe();
+    var total = 0;
+    var order = model.order || [];
+    var weights = model.weights || { brand:0.13, marketing:0.13, rd:0.14, production:0.15, standard:0.11, logistics:0.11, capital:0.11, finance:0.12 };
+    order.forEach(function(key){
+        total += num(scores[key]) * num(weights[key] || 0.125);
+    });
+    return clampScore(total);
+}
+function getPlan(key, score, gap){
+    if(typeof getDimensionDeepPlan === 'function')return getDimensionDeepPlan(key, score, gap);
+    return { objective:'围绕短板维度制定提升方案。', actions:[], kpis:[], owner:'建议由企业负责人牵头', resource:'统筹品牌、研发、标准、物流和金融资源', risk:'关注执行节奏和资源协调', swot:{s:[],w:[],o:[],t:[]} };
+}
+function getSwotLine(key, scores){
+    if(typeof getSwotSentence === 'function')return getSwotSentence(key, scores || {});
+    return '';
+}
+function getResearchMeta(scores){
+    if(typeof buildResearchMeta === 'function')return buildResearchMeta(scores || {});
+    var model = getResearchModelSafe();
+    return { method:model.method || '五维融合八要素评价', source:model.source || '论文与研究数据', weak:[], strong:[] };
+}
+function calcScoresSafe(company){
+    return typeof window.calcScores === 'function' ? window.calcScores(company || {}) : calcScoresFallback(company || {});
+}
+function calcTotalSafe(scores){
+    return typeof window.calcTotalScore === 'function' ? window.calcTotalScore(scores || {}) : calcTotalFallback(scores || {});
+}
+function safeName(name){
+    return String(name == null ? '' : name).trim() || '未命名企业';
+}
+function rankLabel(rank, total){
+    if(!total)return '暂无对标样本';
+    if(rank <= 1)return '第1名 / 领跑组';
+    if(rank <= Math.max(2, Math.ceil(total * 0.3)))return '前30% / 领先组';
+    if(rank <= Math.max(3, Math.ceil(total * 0.7)))return '中位组';
+    return '后30% / 追赶组';
+}
+function certStrength(company){
+    return clampScore(
+        enumScore(company.isoCert,{'已通过':82,'申请中':58,'未申请':28},40) * 0.28 +
+        enumScore(company.ceCert,{'已通过':84,'申请中':58,'未申请':26},40) * 0.28 +
+        scoreThreshold(num(company.standardCoverage),[{v:80,s:86},{v:60,s:72},{v:40,s:56},{v:0,s:32}]) * 0.28 +
+        (String(company.otherCerts || '').trim() ? 72 : 38) * 0.16
+    );
+}
+function supplyStability(company){
+    return clampScore(
+        enumScore(company.supplyChainLevel,{'强':84,'较强':72,'一般':56,'弱':36},44) * 0.34 +
+        scoreThreshold(35 - num(company.deliveryDays),[{v:18,s:84},{v:10,s:70},{v:4,s:56},{v:-99,s:36}]) * 0.24 +
+        scoreThreshold(25 - num(company.logisticsCost),[{v:12,s:82},{v:8,s:68},{v:4,s:54},{v:-99,s:34}]) * 0.22 +
+        scoreThreshold(num(company.warehouseCount),[{v:3,s:82},{v:2,s:70},{v:1,s:56},{v:0,s:38}]) * 0.20
+    );
+}
+function channelStrength(company){
+    return clampScore(
+        scoreThreshold(num(company.exportRatio),[{v:70,s:88},{v:50,s:74},{v:30,s:60},{v:10,s:44},{v:0,s:30}]) * 0.34 +
+        scoreThreshold(num(company.ecommerceRatio),[{v:20,s:82},{v:10,s:68},{v:5,s:54},{v:0,s:36}]) * 0.24 +
+        scoreThreshold(num(company.exportCountries),[{v:30,s:84},{v:15,s:70},{v:8,s:56},{v:0,s:36}]) * 0.24 +
+        (String(company.businessScope || '').indexOf('进出口') >= 0 ? 76 : 42) * 0.18
+    );
+}
+function innovationStrength(company){
+    return clampScore(
+        scoreThreshold(num(company.rdRatio),[{v:5,s:90},{v:3,s:76},{v:1.5,s:60},{v:0,s:36}]) * 0.34 +
+        scoreThreshold(num(company.rdStaff),[{v:50,s:86},{v:20,s:72},{v:10,s:58},{v:0,s:34}]) * 0.22 +
+        scoreThreshold(num(company.patentCount),[{v:100,s:92},{v:50,s:78},{v:20,s:62},{v:0,s:34}]) * 0.26 +
+        enumScore(company.rdCapability,{'强':84,'较强':72,'一般':56,'弱':36},44) * 0.18
+    );
+}
+function scaleStrength(company){
+    return clampScore(
+        scoreThreshold(num(company.revenue),[{v:50000,s:90},{v:20000,s:76},{v:5000,s:60},{v:0,s:36}]) * 0.42 +
+        scoreThreshold(num(company.employees),[{v:1000,s:84},{v:300,s:70},{v:100,s:56},{v:0,s:38}]) * 0.24 +
+        scoreThreshold(num(company.registeredCapital),[{v:5000,s:84},{v:2000,s:70},{v:500,s:54},{v:0,s:36}]) * 0.20 +
+        (String(company.upgradeGoals || '').indexOf('上市') >= 0 ? 74 : 48) * 0.14
+    );
+}
+function brandAutonomy(company){
+    return clampScore(
+        scoreThreshold(num(company.brandCount),[{v:3,s:84},{v:2,s:72},{v:1,s:58},{v:0,s:34}]) * 0.28 +
+        scoreThreshold(num(company.brandRatio),[{v:10,s:82},{v:5,s:66},{v:2,s:52},{v:0,s:34}]) * 0.22 +
+        scoreThreshold(100 - num(company.oemRatio),[{v:50,s:84},{v:30,s:68},{v:15,s:54},{v:0,s:34}]) * 0.28 +
+        enumScore(company.brandAwareness,{'高':82,'较高':72,'一般':56,'较低':42,'低':30},44) * 0.22
+    );
+}
+function financeResilience(company){
+    return clampScore(
+        scoreThreshold(num(company.revenue),[{v:30000,s:82},{v:10000,s:68},{v:3000,s:54},{v:0,s:36}]) * 0.30 +
+        scoreThreshold(num(company.exportRatio),[{v:70,s:84},{v:50,s:70},{v:30,s:58},{v:0,s:38}]) * 0.22 +
+        scoreThreshold(num(company.ecommerceRatio),[{v:20,s:80},{v:10,s:66},{v:5,s:52},{v:0,s:36}]) * 0.18 +
+        scoreThreshold(num(company.registeredCapital),[{v:5000,s:82},{v:2000,s:68},{v:500,s:52},{v:0,s:36}]) * 0.18 +
+        (String(company.otherCerts || '').trim() ? 68 : 42) * 0.12
+    );
+}
+function compareRank(items, targetName, valueKey){
+    var sorted = (items || []).slice().sort(function(a, b){
+        return num(b[valueKey]) - num(a[valueKey]);
+    });
+    var rank = sorted.findIndex(function(item){ return safeName(item.name) === safeName(targetName); }) + 1;
+    return {
+        rank: rank || sorted.length,
+        total: sorted.length,
+        sorted: sorted
+    };
+}
+function buildPeerBenchmark(company, context){
+    var allCompanies = getAllCompanies();
+    var model = getResearchModelSafe();
+    var peers = allCompanies.map(function(item){
+        var scores = calcScoresSafe(item);
+        var totalScore = calcTotalSafe(scores);
+        return {
+            name: safeName(item.name),
+            totalScore: totalScore,
+            brandAutonomy: brandAutonomy(item),
+            channelStrength: channelStrength(item),
+            innovationStrength: innovationStrength(item),
+            certStrength: certStrength(item),
+            supplyStability: supplyStability(item),
+            scaleStrength: scaleStrength(item),
+            financeResilience: financeResilience(item),
+            exportRatio: num(item.exportRatio),
+            patentCount: num(item.patentCount),
+            revenue: num(item.revenue),
+            company: item,
+            scores: scores
+        };
+    }).filter(function(item){ return item.name; });
+    if(!peers.length){
+        peers.push({
+            name: safeName(company.name),
+            totalScore: context.totalScore,
+            brandAutonomy: brandAutonomy(company),
+            channelStrength: channelStrength(company),
+            innovationStrength: innovationStrength(company),
+            certStrength: certStrength(company),
+            supplyStability: supplyStability(company),
+            scaleStrength: scaleStrength(company),
+            financeResilience: financeResilience(company),
+            exportRatio: num(company.exportRatio),
+            patentCount: num(company.patentCount),
+            revenue: num(company.revenue),
+            company: company,
+            scores: context.scores
+        });
+    }
+    var targetName = safeName(company.name);
+    var totalRank = compareRank(peers, targetName, 'totalScore');
+    var peerAverageScore = Math.round(peers.reduce(function(sum, item){ return sum + num(item.totalScore); }, 0) / Math.max(1, peers.length));
+    var topPeer = totalRank.sorted[0] || peers[0];
+    var peerMap = {};
+    peers.forEach(function(item){ peerMap[item.name] = item; });
+    var axesConfig = [
+        { key:'totalScore', title:'综合竞争力', desc:'综合看企业的整体竞争位置。' },
+        { key:'scaleStrength', title:'规模与资本承载', desc:'比较营收规模、员工体量和资本承载能力。' },
+        { key:'innovationStrength', title:'创新转化能力', desc:'比较研发投入、研发团队和专利沉淀。' },
+        { key:'channelStrength', title:'市场与渠道穿透', desc:'比较出口、跨境电商和国家布局。' },
+        { key:'certStrength', title:'认证与合规完备度', desc:'比较国际认证和标准覆盖。' },
+        { key:'supplyStability', title:'供应与交付稳定性', desc:'比较交付、仓储和供应协同。' },
+        { key:'brandAutonomy', title:'品牌自主性', desc:'比较自主品牌、OEM依赖和品牌投入。' },
+        { key:'financeResilience', title:'财务韧性', desc:'比较营收质量、资本基础与抗波动能力。' }
+    ];
+    var axes = axesConfig.map(function(axis){
+        var rankInfo = compareRank(peers, targetName, axis.key);
+        var sorted = rankInfo.sorted;
+        var top = sorted[0] || {};
+        var target = peerMap[targetName] || sorted[0] || {};
+        var avg = Math.round(sorted.reduce(function(sum, item){ return sum + num(item[axis.key]); }, 0) / Math.max(1, sorted.length));
+        var topValue = num(top[axis.key]);
+        var myValue = num(target[axis.key]);
+        var gap = Math.max(0, topValue - myValue);
+        return {
+            id:'peer-' + axis.key,
+            key:axis.key,
+            title:axis.title,
+            score:myValue,
+            average:avg,
+            topValue:topValue,
+            topPeerName:safeName(top.name),
+            rank:rankInfo.rank,
+            total:rankInfo.total,
+            gap:gap,
+            position:rankLabel(rankInfo.rank, rankInfo.total),
+            description:axis.desc,
+            advantage: myValue >= avg ? '高于企业样本平均水平，可进一步固化为稳定优势。':'低于企业样本平均水平，需要专项补位。',
+            action: gap > 18 ? '建议进入年度攻坚项目池，设专责人和季度验收。': gap > 8 ? '建议纳入季度改善清单，围绕关键指标快速压差。':'建议保持当前优势并做制度化复制。'
+        };
+    });
+    var targetPeer = peerMap[targetName] || peers[0];
+    var nearestPeers = peers.filter(function(item){
+        return safeName(item.name) !== targetName;
+    }).map(function(item){
+        var dist = Math.abs(num(item.totalScore) - num(targetPeer.totalScore)) +
+            Math.abs(num(item.channelStrength) - num(targetPeer.channelStrength)) * 0.35 +
+            Math.abs(num(item.innovationStrength) - num(targetPeer.innovationStrength)) * 0.35 +
+            Math.abs(num(item.scaleStrength) - num(targetPeer.scaleStrength)) * 0.3;
+        return {
+            name:safeName(item.name),
+            totalScore:item.totalScore,
+            distance:Math.round(dist),
+            strongerIn:[
+                item.channelStrength > targetPeer.channelStrength ? '渠道' : '',
+                item.innovationStrength > targetPeer.innovationStrength ? '创新' : '',
+                item.certStrength > targetPeer.certStrength ? '认证' : '',
+                item.supplyStability > targetPeer.supplyStability ? '供应' : ''
+            ].filter(Boolean).slice(0,2),
+            weakerIn:[
+                item.channelStrength < targetPeer.channelStrength ? '渠道' : '',
+                item.innovationStrength < targetPeer.innovationStrength ? '创新' : '',
+                item.certStrength < targetPeer.certStrength ? '认证' : '',
+                item.supplyStability < targetPeer.supplyStability ? '供应' : ''
+            ].filter(Boolean).slice(0,2)
+        };
+    }).sort(function(a, b){ return a.distance - b.distance; }).slice(0, 3);
+    return {
+        targetRank: totalRank.rank,
+        totalPeers: totalRank.total,
+        peerAverageScore: peerAverageScore,
+        peerTopScore: num(topPeer.totalScore),
+        topPeerName: safeName(topPeer.name),
+        topPeerGap: Math.max(0, num(topPeer.totalScore) - num(context.totalScore)),
+        axes: axes,
+        nearestPeers: nearestPeers
+    };
+}
+function buildSolutionBundleFallback(context, company){
+    var model = getResearchModelSafe();
+    var dims = (model.order || []).map(function(key){
+        var score = num(context.scores[key]);
+        var gap = Math.max(0, num((model.cixi || {})[key]) - score);
+        return {
+            key:key,
+            name:getDimensionMeta(key).name,
+            score:score,
+            gap:gap,
+            plan:getPlan(key, score, gap)
+        };
+    }).sort(function(a,b){ return (a.score - b.score) || (b.gap - a.gap); });
+    return {
+        urgent:dims.filter(function(item){ return item.score < 60 || item.gap > 18; }).slice(0,3),
+        quickWins:dims.filter(function(item){ return item.score >= 50 && item.score < 70 && item.gap <= 18; }).slice(0,2),
+        dims:dims.slice(0,5),
+        phases:[
+            { name:'0-30天 诊断建账', items:['统一企业数据口径和责任清单','锁定前三个攻坚维度并建专项台账','建立月度预警与复盘节奏'] },
+            { name:'31-90天 短板攻坚', items:['围绕最低分维度上项目包','完成首轮制度、流程、供应协同改造','形成阶段性KPI验收记录'] },
+            { name:'3-6个月 能力固化', items:['把有效动作沉淀为SOP和模板','形成渠道、研发或认证的阶段性成果','复盘标杆差距是否收敛'] },
+            { name:'6-12个月 复制扩散', items:['将优势能力向产品线或关联企业复制','完成年度复评与资源再配置','进入下一轮标杆压差周期'] }
+        ]
+    };
+}
+function injectIndependentModuleStyles(){
+    if(document.getElementById('independent-module-styles'))return;
+    var style = document.createElement('style');
+    style.id = 'independent-module-styles';
+    style.textContent = [
+        '.module-shell{display:flex;flex-direction:column;gap:16px}',
+        '.module-toolbar{display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(240px,1fr) auto;gap:12px;align-items:end}',
+        '.module-toolbar .form-group{margin:0}',
+        '.module-provider-row{display:flex;gap:8px;flex-wrap:wrap}',
+        '.module-provider-btn{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#d7e7eb;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600}',
+        '.module-provider-btn.active{background:rgba(0,212,255,.14);border-color:rgba(0,212,255,.28);color:#9ce7ff}',
+        '.module-note{font-size:12px;line-height:1.8;color:#8fb1b9}',
+        '.module-report-head{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}',
+        '.module-report-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}',
+        '.module-mini{padding:12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}',
+        '.module-mini .k{font-size:11px;color:#89a8b0;margin-bottom:6px}',
+        '.module-mini .v{font-size:18px;color:#fff;font-weight:700}',
+        '.module-grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}',
+        '.module-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}',
+        '.module-card-btn{width:100%;text-align:left;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:10px;padding:14px;cursor:pointer;color:#dbe8eb}',
+        '.module-card-btn.active{border-color:rgba(0,212,255,.28);background:rgba(0,212,255,.08)}',
+        '.module-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}',
+        '.module-card-title{font-size:14px;font-weight:700;color:#fff;line-height:1.4}',
+        '.module-card-sub{font-size:12px;color:#8fb1b9;line-height:1.7}',
+        '.module-card-score{font-size:28px;line-height:1;color:#fff;font-weight:800}',
+        '.module-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}',
+        '.module-chip{padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(255,255,255,.06);color:#c8d9dd}',
+        '.module-chip.high{background:rgba(255,61,138,.12);color:#ff7cb4}',
+        '.module-chip.medium{background:rgba(255,170,0,.12);color:#ffc762}',
+        '.module-chip.low,.module-chip.stable{background:rgba(0,255,136,.12);color:#7cefb2}',
+        '.module-detail{display:none;padding:16px;border-radius:10px;background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.08)}',
+        '.module-detail.active{display:block}',
+        '.module-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}',
+        '.module-block{padding:12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}',
+        '.module-block h4{margin:0 0 8px 0;font-size:13px;color:#fff}',
+        '.module-block p,.module-block li{font-size:12px;line-height:1.8;color:#a8c4ca}',
+        '.module-section-title{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}',
+        '.module-section-title h3{margin:0;font-size:16px;color:#fff}',
+        '.module-alert-red{border-color:rgba(255,61,138,.24)!important;background:rgba(255,61,138,.07)!important}',
+        '.module-alert-yellow{border-color:rgba(255,170,0,.24)!important;background:rgba(255,170,0,.06)!important}',
+        '.module-alert-green{border-color:rgba(0,255,136,.24)!important;background:rgba(0,255,136,.06)!important}',
+        '.module-kv{display:grid;grid-template-columns:100px 1fr;gap:10px;font-size:12px;line-height:1.8}',
+        '.module-kv strong{color:#fff}',
+        '.module-divider{height:1px;background:rgba(255,255,255,.06);margin:12px 0}',
+        '.module-report-tag{padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,212,255,.12);color:#84e2ff}',
+        '@media (max-width:900px){.module-report-head,.module-toolbar{grid-template-columns:1fr}}'
+    ].join('');
+    document.head.appendChild(style);
+}
+function ensureSelectOptions(selectId, selectedName){
+    var select = document.getElementById(selectId);
+    if(!select)return;
+    var companies = getAllCompanies();
+    var html = '<option value="">请选择企业</option>';
+    companies.forEach(function(company){
+        html += '<option value="' + safeEsc(company.name) + '">' + safeEsc(company.name) + '</option>';
+    });
+    select.innerHTML = html;
+    if(selectedName && companies.some(function(item){ return item.name === selectedName; }))select.value = selectedName;
+    if(!select.value && companies.length)select.value = companies[0].name;
+}
+function providerButtonsHtml(moduleKey){
+    return ['mimo','deepseek','chatgpt'].map(function(provider){
+        var meta = getProviderMetaSafe(provider);
+        var active = getModuleProvider(moduleKey) === provider ? ' active' : '';
+        return '<button type="button" class="module-provider-btn' + active + '" data-module-provider="' + moduleKey + '" data-provider="' + provider + '" onclick="selectIndependentModuleProvider(\'' + moduleKey + '\',\'' + provider + '\')">' + safeEsc(meta.label) + '</button>';
+    }).join('');
+}
+function buildWorkbenchCard(moduleKey, title, summary, selectId, buttonText){
+    return '<div class="content-card"><div class="content-card-header"><h3>' + safeEsc(title) + '</h3><span class="tag tag-info">独立AI模块</span></div><div class="content-card-body module-shell">' +
+        '<div class="module-toolbar">' +
+            '<div class="form-group"><label class="form-label">选择企业</label><select class="form-select" id="' + selectId + '"></select></div>' +
+            '<div class="form-group"><label class="form-label">分析模型</label><div class="module-provider-row">' + providerButtonsHtml(moduleKey) + '</div></div>' +
+            '<button class="btn btn-primary" type="button" onclick="runIndependentModule(\'' + moduleKey + '\')">' + safeEsc(buttonText) + '</button>' +
+        '</div>' +
+        '<div class="module-note">' + safeEsc(summary) + ' 页面内置研究引擎先生成结构化底稿；若已保存 API 配置，会再调用独立 AI 深化报告。</div>' +
+        '<div class="module-note">软件化口径：每次分析均生成报告编号、算法版本、研究依据、证据链与责任闭环，便于后续沉淀为标准化系统。</div>' +
+    '</div></div>';
+}
+function syncModuleProviderButtons(moduleKey){
+    document.querySelectorAll('[data-module-provider="' + moduleKey + '"]').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-provider') === getModuleProvider(moduleKey));
+    });
+}
+window.selectIndependentModuleProvider = function(moduleKey, provider){
+    setModuleProvider(moduleKey, provider);
+};
+function ensureEvaluationWorkbench(){
+    injectIndependentModuleStyles();
+    var container = document.getElementById('evaluationContent');
+    if(!container)return;
+    container.style.display = 'block';
+    if(container.dataset.moduleReady === '1'){
+        ensureSelectOptions('evaluationCompanySelect', document.getElementById('evaluationCompanySelect') ? document.getElementById('evaluationCompanySelect').value : '');
+        syncModuleProviderButtons('evaluation');
+        return;
+    }
+    container.innerHTML = buildWorkbenchCard('evaluation','竞争力评估','基于八要素五层计点、廉江/慈溪SWOT对标、头雁层级跃迁评价，独立输出竞争定位报告。','evaluationCompanySelect','开始竞争力评估');
+    container.dataset.moduleReady = '1';
+    ensureSelectOptions('evaluationCompanySelect', '');
+    syncModuleProviderButtons('evaluation');
+}
+function ensureSolutionWorkbench(){
+    injectIndependentModuleStyles();
+    var container = document.getElementById('solutionContent');
+    if(!container)return;
+    container.style.display = 'block';
+    if(container.dataset.moduleReady === '1'){
+        ensureSelectOptions('solutionCompanySelect', document.getElementById('solutionCompanySelect') ? document.getElementById('solutionCompanySelect').value : '');
+        syncModuleProviderButtons('solution');
+        return;
+    }
+    container.innerHTML = buildWorkbenchCard('solution','升级方案生成','基于头雁效应层级跃迁路径与国际化研发体系研究，独立输出年度升级路线、项目包与治理安排。','solutionCompanySelect','开始生成升级方案');
+    container.dataset.moduleReady = '1';
+    ensureSelectOptions('solutionCompanySelect', '');
+    syncModuleProviderButtons('solution');
+}
+function ensureWarningWorkbench(){
+    injectIndependentModuleStyles();
+    var page = document.getElementById('page-warning');
+    if(!page || page.dataset.moduleReady === '1'){
+        ensureSelectOptions('warningCompany', document.getElementById('warningCompany') ? document.getElementById('warningCompany').value : '');
+        syncModuleProviderButtons('warning');
+        return;
+    }
+    var footer = page.querySelector('#page-warning .content-card-footer');
+    if(footer){
+        var extra = document.createElement('div');
+        extra.innerHTML = '<div class="form-group" style="margin-bottom:12px"><label class="form-label">分析模型</label><div class="module-provider-row">' + providerButtonsHtml('warning') + '</div></div><div class="module-note" style="margin-bottom:10px">经营预警为独立模块：先依据月度阈值引擎建立触发清单，再由 AI 补充影响说明、7天/30天处置建议与责任闭环。</div>';
+        footer.parentNode.insertBefore(extra, footer);
+        footer.innerHTML = '<button class="btn btn-primary btn-block" type="button" onclick="runIndependentModule(\'warning\')">开始经营预警检测</button>';
+    }
+    page.dataset.moduleReady = '1';
+    ensureSelectOptions('warningCompany', '');
+    syncModuleProviderButtons('warning');
+}
+function buildModuleContext(company){
+    var scores = calcScoresSafe(company);
+    return {
+        company: company,
+        scores: scores,
+        totalScore: calcTotalSafe(scores),
+        level: getLevelText(calcTotalSafe(scores)),
+        researchMeta: getResearchMeta(scores)
+    };
+}
+function synthesizeEvaluationReport(company){
+    var model = getResearchModelSafe();
+    var context = buildModuleContext(company);
+    var order = model.order || [];
+    var peerBenchmark = buildPeerBenchmark(company, context);
+    var dimensions = order.map(function(key){
+        var score = num(context.scores[key]);
+        var local = num((model.lianjiang || {})[key]);
+        var target = num((model.cixi || {})[key]);
+        var gap = Math.max(0, target - score);
+        var reason = getScoreReason(key, company, score);
+        var plan = getPlan(key, score, gap);
+        return {
+            id:key,
+            key:key,
+            title:getDimensionMeta(key).name,
+            icon:getDimensionMeta(key).icon,
+            score:score,
+            localBenchmark:local,
+            targetBenchmark:target,
+            gap:gap,
+            stage:getStageText(score),
+            priority:getGapPriority(score, gap),
+            scoreRationale:reason.summary,
+            evidence:uniqueText(reason.items).slice(0,4),
+            swotFocus:getSwotLine(key, context.scores),
+            advice:uniqueText(plan.actions || []).slice(0,3),
+            leverage:plan.objective || ''
+        };
+    }).sort(function(a,b){ return (a.score - b.score) || (b.gap - a.gap); });
+    var avgGap = Math.round(dimensions.reduce(function(sum, item){ return sum + item.gap; }, 0) / Math.max(1, dimensions.length));
+    var localDelta = Math.round(dimensions.reduce(function(sum, item){ return sum + (item.score - item.localBenchmark); }, 0) / Math.max(1, dimensions.length));
+    var clusterPosition = peerBenchmark.targetRank <= 1 ? '企业样本领跑段' : peerBenchmark.targetRank <= Math.max(2, Math.ceil(peerBenchmark.totalPeers * 0.35)) ? '企业样本优势段' : avgGap >= 25 ? '追赶段' : avgGap >= 12 ? '提升段' : '标杆接近段';
+    var report = {
+        module:'evaluation',
+        reportId:buildReportId('evaluation', company.name || '企业'),
+        reportTitle:'产业集群竞争力评估报告',
+        generatedAt:nowLabel(),
+        algorithmVersion:'Cluster-Competitiveness-Engine V2.3',
+        researchBasis:['八要素五层计点','廉江/慈溪SWOT对标','头雁效应层级跃迁评价','企业样本横向对标'],
+        companyName:company.name || '',
+        overallScore:context.totalScore,
+        overallLevel:context.level,
+        overview:{
+            avgGap:avgGap,
+            localDelta:localDelta,
+            topGap:dimensions[0] ? dimensions[0].title : '-',
+            topAdvantage:dimensions.slice().sort(function(a,b){ return (b.score - a.score) || (a.gap - b.gap); })[0].title,
+            clusterPosition:clusterPosition,
+            peerRank:peerBenchmark.targetRank,
+            peerTotal:peerBenchmark.totalPeers,
+            peerAverageScore:peerBenchmark.peerAverageScore,
+            peerTopName:peerBenchmark.topPeerName
+        },
+        executiveSummary:'以五维融合研究框架观察，该企业在当前企业样本中处于第' + peerBenchmark.targetRank + '/' + peerBenchmark.totalPeers + '位，属于' + clusterPosition + '。核心任务不是重复总报告结论，而是围绕横向竞争短板、标杆差距与可复制优势建立专项压差和治理闭环。',
+        peerBenchmark:peerBenchmark,
+        dimensions:dimensions,
+        topAdvantages:dimensions.slice().sort(function(a,b){ return (b.score - a.score) || (a.gap - b.gap); }).slice(0,2).map(function(item){
+            return {
+                key:item.key,
+                title:item.title,
+                narrative:'该维度已具备相对优势，可作为企业在集群与企业样本中的可复制能力样板。',
+                leverageAction:item.leverage || (item.advice[0] || '沉淀为内部标准模板')
+            };
+        }),
+        topGaps:dimensions.slice(0,3).map(function(item){
+            return {
+                key:item.key,
+                title:item.title,
+                narrative:'该维度与慈溪标杆仍有' + item.gap + '分差距，同时在企业横向样本中也存在明显竞争短板，属于优先压缩区。',
+                priorityAction:item.advice[0] || '建立专项提升项目'
+            };
+        }),
+        governanceRecommendations:[
+            '每月复评八要素得分并同步更新企业横向排名，形成双维度对标台账。',
+            '对前三个短板维度分别设置负责人、KPI、完成时点与复盘节点。',
+            '将优势维度沉淀为标准模板，用于集群内部复制与示范。',
+            '企业样本对标结果须进入经营例会，避免只对比集群均值而忽略直接竞争者。'
+        ]
+    };
+    return report;
+}
+function synthesizeSolutionReport(company){
+    var context = buildModuleContext(company);
+    var bundle = typeof buildCompletePlan === 'function' ? buildCompletePlan(context.scores, company) : buildSolutionBundleFallback(context, company);
+    var initiatives = (bundle.dims || []).slice(0,5).map(function(item, index){
+        var plan = item.plan || {};
+        return {
+            id:'INIT-' + (index + 1),
+            key:item.key,
+            title:item.name + '专项升级包',
+            dimension:item.name,
+            priority:plan.priority || getGapPriority(item.score, item.gap),
+            owner:plan.owner || '建议由企业负责人牵头',
+            window:index < 2 ? '0-90天' : index < 4 ? '3-6个月' : '6-12个月',
+            whyNow:'当前得分 ' + item.score + '，与标杆差距 ' + item.gap + ' 分，需要在升级窗口期优先处置。',
+            deliverables:uniqueText(plan.actions || []).slice(0,4),
+            kpis:uniqueText(plan.kpis || []).slice(0,4),
+            resources:plan.resource || '整合品牌、研发、标准、物流和金融资源',
+            dependencies:[item.name + '数据台账','负责人授权','月度复盘机制'],
+            risks:[plan.risk || '执行动作碎片化，导致投入无法形成闭环'],
+            expectedResult:plan.objective || '形成维度级能力跃迁',
+            dimensionLink:item.key
+        };
+    });
+    if(!initiatives.length){
+        initiatives = [{
+            id:'INIT-1',
+            key:'governance',
+            title:'基础治理与诊断建账专项',
+            dimension:'治理底座',
+            priority:'高',
+            owner:'建议由企业负责人牵头',
+            window:'0-90天',
+            whyNow:'当前缺少可执行项目包时，必须先建立统一治理底座。',
+            deliverables:['统一指标口径','建立专项台账','锁定负责人和预算','形成月度复盘制度'],
+            kpis:['完成1套统一指标台账','完成3个重点项目立项','形成月度复盘机制'],
+            resources:'经营、财务、生产、研发、外贸负责人联合参与',
+            dependencies:['管理授权','数据盘点','项目立项'],
+            risks:['若无负责人授权，后续专项将无法真正落地'],
+            expectedResult:'形成可执行的升级治理底座',
+            dimensionLink:'brand'
+        }];
+    }
+    var roadmap = (bundle.phases || []).map(function(phase, index){
+        return {
+            id:'PHASE-' + (index + 1),
+            phase:phase.name,
+            focus:index === 0 ? '先统一口径和责任，再集中补短板。' : index === 1 ? '以项目制推进短板攻坚。' : index === 2 ? '把有效做法固化为模板。' : '进入复制扩散与再评估阶段。',
+            deliverables:uniqueText(phase.items || []).slice(0,4),
+            gate:'完成本阶段关键交付后再进入下一阶段。'
+        };
+    });
+    if(!roadmap.length){
+        roadmap = buildSolutionBundleFallback(context, company).phases.map(function(phase, index){
+            return {
+                id:'PHASE-' + (index + 1),
+                phase:phase.name,
+                focus:index === 0 ? '先统一口径和责任，再集中补短板。' : index === 1 ? '以项目制推进短板攻坚。' : index === 2 ? '把有效做法固化为模板。' : '进入复制扩散与再评估阶段。',
+                deliverables:uniqueText(phase.items || []).slice(0,4),
+                gate:'完成本阶段关键交付后再进入下一阶段。'
+            };
+        });
+    }
+    return {
+        module:'solution',
+        reportId:buildReportId('solution', company.name || '企业'),
+        reportTitle:'产业升级方案与执行路线图',
+        generatedAt:nowLabel(),
+        algorithmVersion:'Cluster-Upgrade-Planner V2.3',
+        researchBasis:['头雁效应层级跃迁路径','国际化研发体系建设研究','五维融合八要素补短板路线'],
+        companyName:company.name || '',
+        overallScore:context.totalScore,
+        overallLevel:context.level,
+        overview:{
+            urgentCount:(bundle.urgent || []).length,
+            quickWinCount:(bundle.quickWins || []).length,
+            firstPhase:(roadmap[0] || {}).phase || '0-30天',
+            yearlyTarget:'12个月内完成核心短板压缩与优势复制'
+        },
+        executiveSummary:'升级方案页不重复主诊断，而是把研究结论转译为项目包、时间表、责任人和验收门槛，确保结果可执行、可追责、可复盘。',
+        strategyStatement:'遵循“先压短板、再固化能力、后复制扩散”的头雁跃迁路线。',
+        initiatives:initiatives,
+        roadmap:roadmap,
+        governance:[
+            '建立专项例会，每两周滚动检查项目里程碑与KPI达成率。',
+            '高优先级项目必须绑定预算、责任人和预警阈值，不接受只写建议不落任务。',
+            '每季度复核一次短板维度是否真正缩小差距，避免动作热闹但结果空转。'
+        ],
+        stopDoing:[
+            '停止泛泛罗列改进建议而不定义负责人和时点。',
+            '停止把所有维度同时开工，优先集中资源解决高差距项。',
+            '停止只看动作数量，不看对标差距和经营结果的变化。'
+        ]
+    };
+}
+function buildWarningIssueSet(data, company){
+    var issues = [];
+    function push(severity, key, metric, current, threshold, signal, impact, immediateAction, within7Days, within30Days, owner, watch){
+        issues.push({
+            id:'ALERT-' + (issues.length + 1),
+            key:key,
+            dimension:getDimensionMeta(key).name,
+            title:getDimensionMeta(key).name + '异常信号',
+            severity:severity,
+            metric:metric,
+            current:current,
+            threshold:threshold,
+            signal:signal,
+            impact:impact,
+            immediateAction:immediateAction,
+            within7Days:within7Days,
+            within30Days:within30Days,
+            owner:owner,
+            watch:watch
+        });
+    }
+    var dr = num(data.defectRate), dl = num(data.deliveryRate), rr = num(data.returnRate), pm = num(data.profitMargin), ec = num(data.exportRatio), cr = num(data.costRatio), inv = num(data.inventoryTurnover), comp = num(data.complaints);
+    if(dr > 5)push('red','production','次品率',dr + '%','<=5%','制造质量已越过红线。','会同步推高返工、退货和客户投诉。','立即冻结高缺陷批次出货并复核工序。','完成缺陷来源溯源和临时纠偏。','固化质量阈值、复检抽样和责任追踪。','生产总监','次品率、返工率、复检通过率');
+    else if(dr > 3)push('yellow','production','次品率',dr + '%','<=3%','质量出现波动。','若不及时收敛，会拖累交付稳定性。','增加过程抽检频次。','复盘高缺陷工序。','导入持续质控闭环。','质量负责人','次品率、返工成本');
+    if(dl && dl < 90)push('red','logistics','准时交付率',dl + '%','>=90%','交付掉入高风险区。','会直接影响客户履约和回款节奏。','拉出全部延期订单倒排修复。','拆分生产端与物流端根因。','重建订单排程和交付预警。','供应链负责人','准时交付率、延期单量');
+    else if(dl && dl < 95)push('yellow','logistics','准时交付率',dl + '%','>=95%','交付开始偏离稳态。','客户满意度与复购意愿会先行下降。','锁定高频延期单。','处理瓶颈工序和物流节点。','补齐订单协同节奏。','供应链负责人','延期结构、交付周期');
+    if(rr > 1.5)push('red','brand','退货率',rr + '%','<=1.5%','品牌体验和产品适配出现明显损伤。','可能引发口碑下降与渠道信任受损。','按市场/SKU/原因分层复盘退货。','修正包装说明、售后响应和质检口径。','将退货原因纳入月度闭环。','品牌负责人','退货率、差评占比');
+    else if(rr > 1)push('yellow','brand','退货率',rr + '%','<=1%','客户体验开始承压。','会侵蚀品牌信誉与渠道效率。','先定位高退货SKU。','完成重点市场原因复盘。','建立退货预测和复盘机制。','品牌负责人','重点市场退货原因');
+    if(pm && pm < 5)push('red','finance','利润率',pm + '%','>=5%','利润安全垫不足。','现金流和投放能力都会被压制。','拆解低毛利订单与高成本来源。','修正报价与成本结构。','建立利润率红黄线机制。','财务负责人','利润率、回款周期');
+    else if(pm && pm < 8)push('yellow','finance','利润率',pm + '%','>=8%','盈利空间偏窄。','说明产品结构或成本结构仍有问题。','复盘低毛利订单。','调整高成本品类结构。','固化利润监控规则。','财务负责人','毛利结构、报价策略');
+    if(cr > 80)push('red','finance','成本占比',cr + '%','<=80%','成本占比超出安全线。','会持续吞噬利润并限制升级投入。','按物料/人工/物流拆成本。','追踪最高波动源。','形成月度成本压降项目。','财务负责人','单位制造成本、物流成本');
+    else if(cr > 75)push('yellow','finance','成本占比',cr + '%','<=75%','成本已偏高。','利润会被慢性侵蚀。','锁定高成本订单。','复盘低效工序。','纳入月度成本看板。','财务负责人','异常订单、成本占比');
+    if(ec && ec < 40)push('yellow','marketing','出口占比',ec + '%','>=40%','国际市场拓展力度偏弱。','增长弹性不足，难支撑集群外向升级。','优先补高转化海外渠道。','检查重点市场询盘转化。','建立市场分层投放节奏。','外贸负责人','询盘数、转化率');
+    if(inv && inv < 4)push('yellow','logistics','库存周转',inv,'>=4','库存周转偏慢。','会占压现金并拉高仓储风险。','梳理滞销SKU与积压库存。','清理慢动销结构。','接入库存预警和需求预测。','仓储负责人','周转率、积压库存占比');
+    if(comp > 10)push('red','brand','客户投诉',comp,'<=10','投诉量偏高。','售后和质量闭环需要立即修复。','按类型建立48小时闭环。','定位重复投诉来源。','形成月度投诉治理机制。','售后负责人','结案时长、重复投诉率');
+    else if(comp > 5)push('yellow','brand','客户投诉',comp,'<=5','投诉开始上升。','说明售后SOP和问题话术存在缺口。','优先修复高频问题。','补齐响应流程。','建立投诉分级制度。','售后负责人','投诉来源、闭环率');
+    return issues;
+}
+function synthesizeWarningReport(company, inputData){
+    var context = buildModuleContext(company);
+    var issues = buildWarningIssueSet(inputData || {}, company);
+    var redCount = issues.filter(function(item){ return item.severity === 'red'; }).length;
+    var yellowCount = issues.filter(function(item){ return item.severity === 'yellow'; }).length;
+    var riskLevel = redCount ? '红色' : yellowCount ? '黄色' : '绿色';
+    return {
+        module:'warning',
+        reportId:buildReportId('warning', company.name || '企业'),
+        reportTitle:'经营预警检测与处置报告',
+        generatedAt:nowLabel(),
+        algorithmVersion:'Cluster-Warning-Engine V2.3',
+        researchBasis:['月度阈值预警规则','八要素经营影响映射','SWOT threat watch'],
+        companyName:company.name || '',
+        overallScore:context.totalScore,
+        overallLevel:context.level,
+        riskLevel:riskLevel,
+        snapshot:{
+            month:(inputData && inputData.month) || '当前录入周期',
+            redCount:redCount,
+            yellowCount:yellowCount,
+            greenCount:issues.filter(function(item){ return item.severity === 'green'; }).length
+        },
+        executiveSummary:riskLevel === '红色' ? '本期已出现高风险触发项，优先任务是止血、归因、建立闭环，不再做泛泛战略陈述。' : riskLevel === '黄色' ? '本期进入重点观察区，需要把波动指标锁定到责任人和处置窗口。' : '本期整体处于稳定区，应维持监测节奏并防止异常反弹。',
+        alerts:issues,
+        watchlist:uniqueText(issues.map(function(item){ return item.watch; })).slice(0,6).map(function(item, index){
+            return { id:'WATCH-' + (index + 1), metric:item, target:'下月回到阈值以内', reason:'当前已被预警引擎识别为重点跟踪项', owner:'对应业务负责人' };
+        }),
+        governance:[
+            '红色预警必须在48小时内形成处理结论和责任归属。',
+            '黄色预警必须在7天内完成根因分析和处置动作。',
+            '每月形成预警复盘记录，并与竞争力评估和升级方案联动。'
+        ]
+    };
+}
+function parseJsonLoose(text){
+    if(text == null)throw new Error('模型未返回内容');
+    if(typeof text !== 'string')text = JSON.stringify(text);
+    text = text.trim();
+    try{return JSON.parse(text);}catch(e){}
+    var start = text.indexOf('{');
+    var end = text.lastIndexOf('}');
+    if(start >= 0 && end > start){
+        return JSON.parse(text.slice(start, end + 1));
+    }
+    throw new Error('模型返回的不是有效 JSON');
+}
+function shouldUseDirectApi(){
+    var host = String((window.location && window.location.hostname) || '');
+    var protocol = String((window.location && window.location.protocol) || '');
+    return /\.github\.io$/i.test(host) || protocol === 'https:';
+}
+function buildModuleAiPrompt(moduleKey, provider, company, localReport, extraInput){
+    var providerLabel = (getProviderMetaSafe(provider) || {}).label || provider;
+    var header = [
+        '你是产业集群诊断平台中的独立模块分析引擎。',
+        '当前模块不是总报告附属页，而是单独的软件功能模块。',
+        '请基于论文研究口径、企业录入数据、本地研究引擎底稿，输出严格 JSON。',
+        '不要输出 Markdown，不要输出额外解释。'
+    ];
+    var schema = [];
+    if(moduleKey === 'evaluation'){
+        schema = [
+            '{',
+            '  "executiveSummary":"string",',
+            '  "clusterPosition":"string",',
+            '  "topAdvantages":[{"key":"brand","narrative":"string","leverageAction":"string"}],',
+            '  "topGaps":[{"key":"brand","narrative":"string","priorityAction":"string"}],',
+            '  "dimensionNarratives":[{"key":"brand","scoreRationale":"string","evidence":["string"],"managementAdvice":["string"]}],',
+            '  "governanceRecommendations":["string"]',
+            '}'
+        ];
+    }else if(moduleKey === 'solution'){
+        schema = [
+            '{',
+            '  "executiveSummary":"string",',
+            '  "strategyStatement":"string",',
+            '  "initiativeNarratives":[{"id":"INIT-1","whyNow":"string","expectedResult":"string","executionTips":["string"]}],',
+            '  "phaseNarratives":[{"phase":"0-30天","focus":"string","successGate":"string"}],',
+            '  "governance":["string"],',
+            '  "stopDoing":["string"]',
+            '}'
+        ];
+    }else{
+        schema = [
+            '{',
+            '  "executiveSummary":"string",',
+            '  "riskStatement":"string",',
+            '  "alertNarratives":[{"id":"ALERT-1","impact":"string","immediateAction":"string","within7Days":"string","within30Days":"string","ownerNote":"string"}],',
+            '  "watchlistNarratives":[{"metric":"string","whyWatch":"string","target":"string"}],',
+            '  "governance":["string"]',
+            '}'
+        ];
+    }
+    return header.concat([
+        '模块名称：' + moduleKey,
+        '调用模型提供方：' + providerLabel,
+        '研究口径：竞争力评估使用八要素五层计点 + 廉江/慈溪SWOT对标 + 头雁层级跃迁；升级方案使用头雁跃迁路径 + 国际化研发体系研究；经营预警使用月度阈值触发 + 八要素影响映射。',
+        '请不要改变本地底稿中的核心数值，只能增强解释、动作和治理建议。',
+        '输出 JSON schema：'
+    ]).concat(schema).concat([
+        '企业与本地底稿如下：',
+        JSON.stringify({ company:company, localReport:localReport, extraInput:extraInput || null })
+    ]).join('\n');
+}
+async function requestModuleAi(moduleKey, provider, company, localReport, extraInput){
+    var cfg = getProviderConfigSafe(provider);
+    if(!cfg.base_url || !cfg.model || !cfg.api_key){
+        return { ok:false, error:'未配置 API，已使用本地研究引擎底稿。' };
+    }
+    var endpoint = String(cfg.endpoint || '/chat/completions').trim() || '/chat/completions';
+    if(endpoint.charAt(0) !== '/')endpoint = '/' + endpoint;
+    var directUrl = String(cfg.base_url || '').trim().replace(/\/+$/,'') + endpoint;
+    var prompt = buildModuleAiPrompt(moduleKey, provider, company, localReport, extraInput);
+    var payload = {
+        model:String(cfg.model || '').trim(),
+        temperature:0.2,
+        messages:[
+            { role:'system', content:'你是产业集群软件中的独立模块AI引擎，只输出 JSON。' },
+            { role:'user', content:prompt }
+        ]
+    };
+    if(provider !== 'deepseek'){
+        payload.response_format = { type:'json_object' };
+    }
+    try{
+        if(!shouldUseDirectApi()){
+            try{
+                var proxyRes = await fetch('http://127.0.0.1:8765/api/ai/analyze',{
+                    method:'POST',
+                    headers:{ 'Content-Type':'application/json' },
+                    body:JSON.stringify({
+                        provider: provider === 'chatgpt' ? 'openai' : provider,
+                        providerConfig: cfg,
+                        analysis_input: { company:company, module:moduleKey, localReport:localReport, extraInput:extraInput || null, prompt:prompt }
+                    })
+                });
+                var proxyData = await proxyRes.json();
+                if(proxyRes.ok && proxyData && proxyData.ok){
+                    return { ok:true, data:proxyData.report || proxyData };
+                }
+            }catch(proxyErr){}
+        }
+        var response = await fetch(directUrl,{
+            method:'POST',
+            headers:{
+                'Content-Type':'application/json',
+                'Authorization':'Bearer ' + String(cfg.api_key || '').trim()
+            },
+            body:JSON.stringify(payload)
+        });
+        var text = await response.text();
+        var parsed = {};
+        try{parsed = text ? JSON.parse(text) : {};}catch(e){parsed = { raw:text };}
+        if(!response.ok){
+            var message = (parsed && ((parsed.error && parsed.error.message) || parsed.message || parsed.error)) || ('HTTP ' + response.status);
+            return { ok:false, error:String(message) };
+        }
+        var content = parsed && parsed.choices && parsed.choices[0] && parsed.choices[0].message ? parsed.choices[0].message.content : text;
+        if(Array.isArray(content)){
+            content = content.map(function(part){
+                if(typeof part === 'string')return part;
+                return part && part.text ? part.text : JSON.stringify(part);
+            }).join('\n');
+        }
+        return { ok:true, data:parseJsonLoose(content) };
+    }catch(err){
+        return { ok:false, error:err.message || 'AI 请求失败' };
+    }
+}
+function mergeEvaluationReport(localReport, aiData){
+    var merged = clone(localReport);
+    if(aiData.executiveSummary)merged.executiveSummary = aiData.executiveSummary;
+    if(aiData.clusterPosition)merged.overview.clusterPosition = aiData.clusterPosition;
+    if(Array.isArray(aiData.topAdvantages)){
+        merged.topAdvantages = merged.topAdvantages.map(function(item){
+            var found = aiData.topAdvantages.find(function(ai){ return ai.key === item.key; });
+            return found ? Object.assign({}, item, found) : item;
+        });
+    }
+    if(Array.isArray(aiData.topGaps)){
+        merged.topGaps = merged.topGaps.map(function(item){
+            var found = aiData.topGaps.find(function(ai){ return ai.key === item.key; });
+            return found ? Object.assign({}, item, found) : item;
+        });
+    }
+    if(Array.isArray(aiData.dimensionNarratives)){
+        merged.dimensions = merged.dimensions.map(function(item){
+            var found = aiData.dimensionNarratives.find(function(ai){ return ai.key === item.key; });
+            if(!found)return item;
+            return Object.assign({}, item, {
+                scoreRationale: found.scoreRationale || item.scoreRationale,
+                evidence: uniqueText((found.evidence || []).concat(item.evidence || [])).slice(0,5),
+                advice: uniqueText((found.managementAdvice || []).concat(item.advice || [])).slice(0,4)
+            });
+        });
+    }
+    if(Array.isArray(aiData.governanceRecommendations))merged.governanceRecommendations = uniqueText(aiData.governanceRecommendations).slice(0,5);
+    return merged;
+}
+function mergeSolutionReport(localReport, aiData){
+    var merged = clone(localReport);
+    if(aiData.executiveSummary)merged.executiveSummary = aiData.executiveSummary;
+    if(aiData.strategyStatement)merged.strategyStatement = aiData.strategyStatement;
+    if(Array.isArray(aiData.initiativeNarratives)){
+        merged.initiatives = merged.initiatives.map(function(item){
+            var found = aiData.initiativeNarratives.find(function(ai){ return ai.id === item.id; });
+            if(!found)return item;
+            return Object.assign({}, item, {
+                whyNow: found.whyNow || item.whyNow,
+                expectedResult: found.expectedResult || item.expectedResult,
+                deliverables: uniqueText((item.deliverables || []).concat(found.executionTips || [])).slice(0,5)
+            });
+        });
+    }
+    if(Array.isArray(aiData.phaseNarratives)){
+        merged.roadmap = merged.roadmap.map(function(item){
+            var found = aiData.phaseNarratives.find(function(ai){ return ai.phase === item.phase; });
+            return found ? Object.assign({}, item, { focus: found.focus || item.focus, gate: found.successGate || item.gate }) : item;
+        });
+    }
+    if(Array.isArray(aiData.governance))merged.governance = uniqueText(aiData.governance).slice(0,5);
+    if(Array.isArray(aiData.stopDoing))merged.stopDoing = uniqueText(aiData.stopDoing).slice(0,5);
+    if(!merged.initiatives || !merged.initiatives.length){
+        merged.initiatives = localReport.initiatives || [];
+    }
+    if(!merged.roadmap || !merged.roadmap.length){
+        merged.roadmap = localReport.roadmap || [];
+    }
+    return merged;
+}
+function mergeWarningReport(localReport, aiData){
+    var merged = clone(localReport);
+    if(aiData.executiveSummary)merged.executiveSummary = aiData.executiveSummary;
+    if(aiData.riskStatement)merged.riskStatement = aiData.riskStatement;
+    if(Array.isArray(aiData.alertNarratives)){
+        merged.alerts = merged.alerts.map(function(item){
+            var found = aiData.alertNarratives.find(function(ai){ return ai.id === item.id; });
+            if(!found)return item;
+            return Object.assign({}, item, {
+                impact: found.impact || item.impact,
+                immediateAction: found.immediateAction || item.immediateAction,
+                within7Days: found.within7Days || item.within7Days,
+                within30Days: found.within30Days || item.within30Days,
+                owner: found.ownerNote || item.owner
+            });
+        });
+    }
+    if(Array.isArray(aiData.watchlistNarratives)){
+        merged.watchlist = aiData.watchlistNarratives.map(function(item, index){
+            return { id:'WATCH-' + (index + 1), metric:item.metric, target:item.target || '回到阈值以内', reason:item.whyWatch || '', owner:'对应业务负责人' };
+        });
+    }
+    if(Array.isArray(aiData.governance))merged.governance = uniqueText(aiData.governance).slice(0,5);
+    if(!merged.alerts || !merged.alerts.length){
+        merged.alerts = localReport.alerts || [];
+    }
+    return merged;
+}
+async function buildIndependentModuleReport(moduleKey, provider, company, extraInput){
+    var localReport = moduleKey === 'evaluation'
+        ? synthesizeEvaluationReport(company)
+        : moduleKey === 'solution'
+            ? synthesizeSolutionReport(company)
+            : synthesizeWarningReport(company, extraInput || {});
+    var aiRes = await requestModuleAi(moduleKey, provider, company, localReport, extraInput);
+    var merged = localReport;
+    if(aiRes.ok && aiRes.data){
+        merged = moduleKey === 'evaluation'
+            ? mergeEvaluationReport(localReport, aiRes.data)
+            : moduleKey === 'solution'
+                ? mergeSolutionReport(localReport, aiRes.data)
+                : mergeWarningReport(localReport, aiRes.data);
+        merged.aiMode = 'AI增强';
+    }else{
+        merged.aiMode = '研究引擎草案';
+        merged.aiNote = aiRes.error || '未配置 API';
+    }
+    merged.provider = provider;
+    merged.providerLabel = getProviderMetaSafe(provider).label;
+    return merged;
+}
+function buildMetaHeader(report, badge){
+    return '<div class="module-report-head">' +
+        '<div class="module-block"><div class="module-section-title"><h3>' + safeEsc(report.reportTitle) + '</h3><span class="module-report-tag">' + safeEsc(badge) + '</span></div>' +
+            '<p style="margin:0;color:#c6dde2;line-height:1.9">' + safeEsc(report.executiveSummary || report.riskStatement || report.strategyStatement || '') + '</p>' +
+            '<div class="module-divider"></div>' +
+            '<div class="module-kv"><strong>报告编号</strong><span>' + safeEsc(report.reportId) + '</span><strong>算法版本</strong><span>' + safeEsc(report.algorithmVersion) + '</span><strong>生成时间</strong><span>' + safeEsc(report.generatedAt) + '</span><strong>AI模式</strong><span>' + safeEsc(report.aiMode || '研究引擎草案') + (report.aiNote ? ' / ' + safeEsc(report.aiNote) : '') + '</span></div>' +
+        '</div>' +
+        '<div class="module-report-meta">' +
+            '<div class="module-mini"><div class="k">综合得分</div><div class="v">' + safeEsc(report.overallScore) + '</div></div>' +
+            '<div class="module-mini"><div class="k">等级</div><div class="v">' + safeEsc(report.overallLevel) + '</div></div>' +
+            '<div class="module-mini"><div class="k">研究依据</div><div class="v" style="font-size:12px;line-height:1.5">' + safeEsc((report.researchBasis || []).join(' / ')) + '</div></div>' +
+            '<div class="module-mini"><div class="k">模型来源</div><div class="v" style="font-size:14px">' + safeEsc(report.providerLabel || '本地研究引擎') + '</div></div>' +
+        '</div>' +
+    '</div>';
+}
+function renderEvaluationReport(report){
+    var html = '';
+    html += buildMetaHeader(report, '竞争定位');
+    html += '<div class="content-card"><div class="content-card-header"><h3>定位总览</h3><span class="tag tag-info">软件化指标面板</span></div><div class="content-card-body"><div class="module-grid-4">' +
+        '<div class="module-mini"><div class="k">平均标杆差距</div><div class="v">' + safeEsc(report.overview.avgGap) + '分</div></div>' +
+        '<div class="module-mini"><div class="k">企业样本排名</div><div class="v">' + safeEsc(report.overview.peerRank) + '/' + safeEsc(report.overview.peerTotal) + '</div></div>' +
+        '<div class="module-mini"><div class="k">首要短板</div><div class="v" style="font-size:16px">' + safeEsc(report.overview.topGap) + '</div></div>' +
+        '<div class="module-mini"><div class="k">竞争位置</div><div class="v" style="font-size:16px">' + safeEsc(report.overview.clusterPosition) + '</div></div>' +
+    '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>企业横向对标</h3><span class="tag tag-info">不只对比集群均值</span></div><div class="content-card-body"><div class="module-grid-4">' +
+        '<div class="module-mini"><div class="k">样本平均分</div><div class="v">' + safeEsc(report.peerBenchmark.peerAverageScore) + '</div></div>' +
+        '<div class="module-mini"><div class="k">样本最高分</div><div class="v">' + safeEsc(report.peerBenchmark.peerTopScore) + '</div></div>' +
+        '<div class="module-mini"><div class="k">头部企业</div><div class="v" style="font-size:14px">' + safeEsc(report.peerBenchmark.topPeerName) + '</div></div>' +
+        '<div class="module-mini"><div class="k">与头部差距</div><div class="v">' + safeEsc(report.peerBenchmark.topPeerGap) + '分</div></div>' +
+    '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>跨维竞争轴</h3><span class="tag tag-info">点击查看轴向解释</span></div><div class="content-card-body"><div class="module-grid-4">';
+    (report.peerBenchmark.axes || []).forEach(function(axis){
+        html += '<button type="button" class="module-card-btn" data-independent-card="evaluation" data-card-id="' + safeEsc(axis.id) + '" onclick="openIndependentDetail(\'evaluation\',\'' + safeEsc(axis.id) + '\')">' +
+            '<div class="module-card-top"><div><div class="module-card-title">' + safeEsc(axis.title) + '</div><div class="module-card-sub">排名 ' + safeEsc(axis.rank) + '/' + safeEsc(axis.total) + '</div></div><div class="module-card-score">' + safeEsc(axis.score) + '</div></div>' +
+            '<div class="module-card-sub">均值 ' + safeEsc(axis.average) + ' / 头部 ' + safeEsc(axis.topValue) + ' / 差距 ' + safeEsc(axis.gap) + '</div>' +
+            '<div class="module-chip-row"><span class="module-chip">' + safeEsc(axis.position) + '</span><span class="module-chip">' + safeEsc(axis.action) + '</span></div>' +
+        '</button>';
+    });
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>八要素定位卡</h3><span class="tag tag-info">点击查看评分解释</span></div><div class="content-card-body"><div class="module-grid-4">';
+    report.dimensions.forEach(function(item){
+        var pcls = item.priority === '高' ? 'high' : item.priority === '中' ? 'medium' : 'stable';
+        html += '<button type="button" class="module-card-btn" data-independent-card="evaluation" data-card-id="' + safeEsc(item.id) + '" onclick="openIndependentDetail(\'evaluation\',\'' + safeEsc(item.id) + '\')">' +
+            '<div class="module-card-top"><div><div class="module-card-title">' + safeEsc(item.icon + ' ' + item.title) + '</div><div class="module-card-sub">廉江 ' + safeEsc(item.localBenchmark) + ' / 慈溪 ' + safeEsc(item.targetBenchmark) + '</div></div><div class="module-card-score">' + safeEsc(item.score) + '</div></div>' +
+            '<div class="module-card-sub">差距 ' + safeEsc(item.gap) + ' 分，当前处于 ' + safeEsc(item.stage) + '。</div>' +
+            '<div class="module-chip-row"><span class="module-chip ' + pcls + '">' + safeEsc(item.priority) + '优先级</span><span class="module-chip">' + safeEsc((item.advice[0] || '查看详细建议')) + '</span></div>' +
+        '</button>';
+    });
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>评分依据与管理建议</h3><span class="tag tag-success">点击上方卡片切换</span></div><div class="content-card-body">';
+    (report.peerBenchmark.axes || []).forEach(function(axis){
+        html += '<div class="module-detail" data-independent-detail="evaluation" data-detail-id="' + safeEsc(axis.id) + '">' +
+            '<div class="module-section-title"><h3>' + safeEsc(axis.title) + '</h3><span class="module-report-tag">' + safeEsc(axis.position) + '</span></div>' +
+            '<div class="module-detail-grid">' +
+                '<div class="module-block"><h4>轴向定位</h4><p>' + safeEsc(axis.description) + '</p><p>本企业在该竞争轴的得分为 ' + safeEsc(axis.score) + '，在 ' + safeEsc(axis.total) + ' 家企业样本中排名第 ' + safeEsc(axis.rank) + '。</p></div>' +
+                '<div class="module-block"><h4>对标解释</h4><p>样本均值 ' + safeEsc(axis.average) + '，头部企业 ' + safeEsc(axis.topPeerName) + ' 得分 ' + safeEsc(axis.topValue) + '，当前差距 ' + safeEsc(axis.gap) + ' 分。</p><p>' + safeEsc(axis.advantage) + '</p></div>' +
+                '<div class="module-block"><h4>行动建议</h4><p>' + safeEsc(axis.action) + '</p><p>软件化要求：该竞争轴必须进入季度复盘，并与升级项目包的KPI直接联动。</p></div>' +
+            '</div></div>';
+    });
+    report.dimensions.forEach(function(item, index){
+        html += '<div class="module-detail' + (index === 0 ? ' active' : '') + '" data-independent-detail="evaluation" data-detail-id="' + safeEsc(item.id) + '">' +
+            '<div class="module-section-title"><h3>' + safeEsc(item.icon + ' ' + item.title) + '</h3><span class="module-report-tag">差距 ' + safeEsc(item.gap) + ' 分</span></div>' +
+            '<div class="module-detail-grid">' +
+                '<div class="module-block"><h4>评分解释</h4><p>' + safeEsc(item.scoreRationale) + '</p><ul>' + item.evidence.map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div>' +
+                '<div class="module-block"><h4>对标判断</h4><p>本企业得分 ' + safeEsc(item.score) + '，廉江基准 ' + safeEsc(item.localBenchmark) + '，慈溪标杆 ' + safeEsc(item.targetBenchmark) + '，当前差距 ' + safeEsc(item.gap) + ' 分。</p><p>' + safeEsc(item.swotFocus) + '</p></div>' +
+                '<div class="module-block"><h4>具体建议</h4><ul>' + item.advice.map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul><p>' + safeEsc(item.leverage) + '</p></div>' +
+            '</div></div>';
+    });
+    html += '</div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>相似企业参照</h3><span class="tag tag-info">最近竞争样本</span></div><div class="content-card-body"><div class="module-grid-3">';
+    (report.peerBenchmark.nearestPeers || []).forEach(function(peer){
+        html += '<div class="module-block"><h4>' + safeEsc(peer.name) + '</h4><p>综合得分 ' + safeEsc(peer.totalScore) + '，相似距离 ' + safeEsc(peer.distance) + '。</p><p><strong style="color:#fff">对方更强：</strong>' + safeEsc((peer.strongerIn || []).join(' / ') || '暂无明显强项') + '</p><p><strong style="color:#fff">我方更强：</strong>' + safeEsc((peer.weakerIn || []).join(' / ') || '暂无明显优势') + '</p></div>';
+    });
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>管理结论</h3><span class="tag tag-warning">决策层摘要</span></div><div class="content-card-body"><div class="module-grid-3">';
+    html += '<div class="module-block"><h4>相对优势</h4><ul>' + report.topAdvantages.map(function(item){ return '<li><strong style="color:#fff">' + safeEsc(item.title) + '：</strong>' + safeEsc(item.narrative) + ' ' + safeEsc(item.leverageAction) + '</li>'; }).join('') + '</ul></div>';
+    html += '<div class="module-block"><h4>优先补差</h4><ul>' + report.topGaps.map(function(item){ return '<li><strong style="color:#fff">' + safeEsc(item.title) + '：</strong>' + safeEsc(item.narrative) + ' ' + safeEsc(item.priorityAction) + '</li>'; }).join('') + '</ul></div>';
+    html += '<div class="module-block"><h4>治理建议</h4><ul>' + (report.governanceRecommendations || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div>';
+    html += '</div></div></div>';
+    return html;
+}
+function renderSolutionReport(report){
+    var html = '';
+    html += buildMetaHeader(report, '升级执行');
+    html += '<div class="content-card"><div class="content-card-header"><h3>年度执行看板</h3><span class="tag tag-info">项目化输出</span></div><div class="content-card-body"><div class="module-grid-4">' +
+        '<div class="module-mini"><div class="k">攻坚项目</div><div class="v">' + safeEsc(report.overview.urgentCount) + '</div></div>' +
+        '<div class="module-mini"><div class="k">快赢事项</div><div class="v">' + safeEsc(report.overview.quickWinCount) + '</div></div>' +
+        '<div class="module-mini"><div class="k">起步阶段</div><div class="v" style="font-size:14px">' + safeEsc(report.overview.firstPhase) + '</div></div>' +
+        '<div class="module-mini"><div class="k">年度目标</div><div class="v" style="font-size:14px">' + safeEsc(report.overview.yearlyTarget) + '</div></div>' +
+    '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>升级项目包</h3><span class="tag tag-info">点击查看交付清单</span></div><div class="content-card-body"><div class="module-grid-3">';
+    report.initiatives.forEach(function(item){
+        var pcls = item.priority === '高' ? 'high' : item.priority === '中' ? 'medium' : 'stable';
+        html += '<button type="button" class="module-card-btn" data-independent-card="solution" data-card-id="' + safeEsc(item.id) + '" onclick="openIndependentDetail(\'solution\',\'' + safeEsc(item.id) + '\')">' +
+            '<div class="module-card-top"><div><div class="module-card-title">' + safeEsc(item.title) + '</div><div class="module-card-sub">' + safeEsc(item.dimension) + ' / ' + safeEsc(item.window) + '</div></div><span class="module-chip ' + pcls + '">' + safeEsc(item.priority) + '优先</span></div>' +
+            '<div class="module-card-sub">' + safeEsc(item.whyNow) + '</div>' +
+            '<div class="module-chip-row"><span class="module-chip">' + safeEsc(item.owner) + '</span><span class="module-chip">' + safeEsc((item.kpis || []).length) + '项KPI</span></div>' +
+        '</button>';
+    });
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>项目详情</h3><span class="tag tag-success">任务 / KPI / 风险 / 依赖</span></div><div class="content-card-body">';
+    report.initiatives.forEach(function(item, index){
+        html += '<div class="module-detail' + (index === 0 ? ' active' : '') + '" data-independent-detail="solution" data-detail-id="' + safeEsc(item.id) + '">' +
+            '<div class="module-section-title"><h3>' + safeEsc(item.title) + '</h3><span class="module-report-tag">' + safeEsc(item.window) + '</span></div>' +
+            '<div class="module-detail-grid">' +
+                '<div class="module-block"><h4>为什么现在做</h4><p>' + safeEsc(item.whyNow) + '</p><p><strong style="color:#fff">预期结果：</strong>' + safeEsc(item.expectedResult) + '</p></div>' +
+                '<div class="module-block"><h4>交付清单</h4><ul>' + (item.deliverables || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div>' +
+                '<div class="module-block"><h4>KPI与依赖</h4><ul>' + (item.kpis || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul><p><strong style="color:#fff">依赖：</strong>' + safeEsc((item.dependencies || []).join(' / ')) + '</p></div>' +
+                '<div class="module-block"><h4>负责人 / 风险</h4><p><strong style="color:#fff">牵头：</strong>' + safeEsc(item.owner) + '</p><p><strong style="color:#fff">资源：</strong>' + safeEsc(item.resources) + '</p><ul>' + (item.risks || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div>' +
+            '</div></div>';
+    });
+    html += '</div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>阶段路线</h3><span class="tag tag-warning">12个月推进</span></div><div class="content-card-body"><div class="module-grid-4">';
+    report.roadmap.forEach(function(item){
+        html += '<div class="module-block"><h4>' + safeEsc(item.phase) + '</h4><p>' + safeEsc(item.focus) + '</p><ul>' + (item.deliverables || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul><p><strong style="color:#fff">关口：</strong>' + safeEsc(item.gate) + '</p></div>';
+    });
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>治理与约束</h3><span class="tag tag-info">避免建议空转</span></div><div class="content-card-body"><div class="module-grid-3"><div class="module-block"><h4>治理动作</h4><ul>' + (report.governance || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div><div class="module-block"><h4>战略主线</h4><p>' + safeEsc(report.strategyStatement) + '</p></div><div class="module-block"><h4>明确停止</h4><ul>' + (report.stopDoing || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div></div></div></div>';
+    return html;
+}
+function renderWarningReport(report){
+    var html = '';
+    html += buildMetaHeader(report, '经营预警');
+    html += '<div class="content-card"><div class="content-card-header"><h3>预警概览</h3><span class="tag tag-info">阈值触发面板</span></div><div class="content-card-body"><div class="module-grid-4">' +
+        '<div class="module-mini"><div class="k">风险等级</div><div class="v">' + safeEsc(report.riskLevel) + '</div></div>' +
+        '<div class="module-mini"><div class="k">红色触发</div><div class="v">' + safeEsc(report.snapshot.redCount) + '</div></div>' +
+        '<div class="module-mini"><div class="k">黄色触发</div><div class="v">' + safeEsc(report.snapshot.yellowCount) + '</div></div>' +
+        '<div class="module-mini"><div class="k">监测周期</div><div class="v" style="font-size:14px">' + safeEsc(report.snapshot.month) + '</div></div>' +
+    '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>触发卡片</h3><span class="tag tag-info">点击查看处置闭环</span></div><div class="content-card-body"><div class="module-grid-3">';
+    report.alerts.forEach(function(item){
+        var cls = item.severity === 'red' ? ' module-alert-red' : item.severity === 'yellow' ? ' module-alert-yellow' : ' module-alert-green';
+        html += '<button type="button" class="module-card-btn' + cls + '" data-independent-card="warning" data-card-id="' + safeEsc(item.id) + '" onclick="openIndependentDetail(\'warning\',\'' + safeEsc(item.id) + '\')">' +
+            '<div class="module-card-top"><div><div class="module-card-title">' + safeEsc(item.dimension + ' / ' + item.metric) + '</div><div class="module-card-sub">阈值 ' + safeEsc(item.threshold) + '，当前 ' + safeEsc(item.current) + '</div></div><span class="module-chip ' + (item.severity === 'red' ? 'high' : item.severity === 'yellow' ? 'medium' : 'stable') + '">' + safeEsc(item.severity === 'red' ? '红色' : item.severity === 'yellow' ? '黄色' : '绿色') + '</span></div>' +
+            '<div class="module-card-sub">' + safeEsc(item.signal) + '</div>' +
+            '<div class="module-chip-row"><span class="module-chip">' + safeEsc(item.owner) + '</span><span class="module-chip">' + safeEsc(item.watch) + '</span></div>' +
+        '</button>';
+    });
+    if(!report.alerts.length){
+        html += '<div class="module-block"><h4>本期无异常</h4><p>当前没有识别到高风险触发项，建议继续录入月度经营数据并保持监测节奏。</p></div>';
+    }
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>预警详情</h3><span class="tag tag-warning">即时 / 7天 / 30天</span></div><div class="content-card-body">';
+    report.alerts.forEach(function(item, index){
+        html += '<div class="module-detail' + (index === 0 ? ' active' : '') + '" data-independent-detail="warning" data-detail-id="' + safeEsc(item.id) + '">' +
+            '<div class="module-section-title"><h3>' + safeEsc(item.title) + '</h3><span class="module-report-tag">' + safeEsc(item.metric) + '</span></div>' +
+            '<div class="module-detail-grid">' +
+                '<div class="module-block"><h4>风险影响</h4><p>' + safeEsc(item.impact) + '</p><p><strong style="color:#fff">当前信号：</strong>' + safeEsc(item.signal) + '</p></div>' +
+                '<div class="module-block"><h4>立即处置</h4><p>' + safeEsc(item.immediateAction) + '</p><p><strong style="color:#fff">7天内：</strong>' + safeEsc(item.within7Days) + '</p></div>' +
+                '<div class="module-block"><h4>30天闭环</h4><p>' + safeEsc(item.within30Days) + '</p><p><strong style="color:#fff">责任人：</strong>' + safeEsc(item.owner) + '</p></div>' +
+                '<div class="module-block"><h4>继续跟踪</h4><p>' + safeEsc(item.watch) + '</p><p><strong style="color:#fff">阈值：</strong>' + safeEsc(item.threshold) + '</p></div>' +
+            '</div></div>';
+    });
+    html += '</div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>监测闭环</h3><span class="tag tag-success">下月继续跟踪</span></div><div class="content-card-body"><div class="module-grid-3"><div class="module-block"><h4>监测清单</h4><ul>' + (report.watchlist || []).map(function(item){ return '<li>' + safeEsc(item.metric) + ' / ' + safeEsc(item.target) + '</li>'; }).join('') + '</ul></div><div class="module-block"><h4>治理要求</h4><ul>' + (report.governance || []).map(function(text){ return '<li>' + safeEsc(text) + '</li>'; }).join('') + '</ul></div><div class="module-block"><h4>风险摘要</h4><p>' + safeEsc(report.riskStatement || report.executiveSummary) + '</p></div></div></div></div>';
+    return html;
+}
+window.openIndependentDetail = function(moduleKey, detailId){
+    document.querySelectorAll('[data-independent-card="' + moduleKey + '"]').forEach(function(card){
+        card.classList.toggle('active', card.getAttribute('data-card-id') === detailId);
+    });
+    document.querySelectorAll('[data-independent-detail="' + moduleKey + '"]').forEach(function(detail){
+        detail.classList.toggle('active', detail.getAttribute('data-detail-id') === detailId);
+    });
+};
+function renderIndependentModule(moduleKey, report){
+    if(moduleKey === 'evaluation'){
+        ensureEvaluationWorkbench();
+        var result = document.getElementById('evaluationResult');
+        result.style.display = 'block';
+        result.innerHTML = renderEvaluationReport(report);
+    }else if(moduleKey === 'solution'){
+        ensureSolutionWorkbench();
+        var solution = document.getElementById('solutionResult');
+        solution.style.display = 'block';
+        solution.innerHTML = renderSolutionReport(report);
+    }else{
+        ensureWarningWorkbench();
+        var warning = document.getElementById('warningResult');
+        warning.style.display = 'block';
+        warning.innerHTML = renderWarningReport(report);
+    }
+}
+function getSelectedCompanyName(moduleKey){
+    if(moduleKey === 'evaluation')return (document.getElementById('evaluationCompanySelect') || {}).value || '';
+    if(moduleKey === 'solution')return (document.getElementById('solutionCompanySelect') || {}).value || '';
+    return (document.getElementById('warningCompany') || {}).value || '';
+}
+function getPresetWarningDataFromUi(){
+    var companyName = (document.getElementById('warningCompany') || {}).value || '';
+    if(!companyName || typeof PRESET_WARNINGS === 'undefined' || !PRESET_WARNINGS[companyName])return null;
+    if(typeof selectedWarningData !== 'undefined' && selectedWarningData)return selectedWarningData;
+    var activeBtn = document.querySelector('#monthSelector .month-btn.active');
+    if(activeBtn){
+        var monthMatch = String(activeBtn.textContent || '').match(/(\d{1,2})/);
+        if(monthMatch){
+            var monthIndex = Math.max(1, parseInt(monthMatch[1],10)) - 1;
+            if(PRESET_WARNINGS[companyName][monthIndex]){
+                return PRESET_WARNINGS[companyName][monthIndex];
+            }
+        }
+    }
+    var presetPanel = document.getElementById('warningPresetData');
+    if(!presetPanel || !String(presetPanel.innerText || '').trim())return null;
+    var text = String(presetPanel.innerText || '');
+    var rowMap = [
+        ['month', /月份\s*([0-9]{4}-[0-9]{2})/],
+        ['revenue', /月营业额\s*([0-9.]+万元?)/],
+        ['defectRate', /次品率\s*([0-9.]+%)/],
+        ['deliveryRate', /交付准时率\s*([0-9.]+%)/],
+        ['exportRatio', /出口占比\s*([0-9.]+%)/],
+        ['employees', /员工人数\s*([0-9.]+人)/],
+        ['costRatio', /成本占比\s*([0-9.]+%)/],
+        ['profitMargin', /利润率\s*([0-9.]+%)/],
+        ['complaints', /客户投诉\s*([0-9.]+件)/],
+        ['returnRate', /退货率\s*([0-9.]+%)/],
+        ['inventoryTurnover', /库存周转\s*([0-9.]+次)/]
+    ];
+    var data = {};
+    rowMap.forEach(function(item){
+        var m = text.match(item[1]);
+        if(m)data[item[0]] = m[1];
+    });
+    return Object.keys(data).length ? data : null;
+}
+function getWarningInputPayload(){
+    var presetData = getPresetWarningDataFromUi();
+    if(presetData)return presetData;
+    var text = (document.getElementById('monthlyData') || {}).value || '';
+    var data = {};
+    var pairs = [
+        ['revenue', /(营收|营业额|营业收入)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['defectRate', /(次品率|不良率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['deliveryRate', /(交付|准时交付率|交付准时率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['exportRatio', /(出口占比|出口比重)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['costRatio', /(成本占比|成本率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['profitMargin', /(利润率|毛利率|净利率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['complaints', /(投诉|客诉)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['returnRate', /(退货率|退单率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['inventoryTurnover', /(周转|库存周转)[^0-9]{0,8}(\d+\.?\d*)/]
+    ];
+    pairs.forEach(function(pair){
+        var m = String(text).match(pair[1]);
+        if(m)data[pair[0]] = m[2];
+    });
+    return data;
+}
+window.runIndependentModule = async function(moduleKey){
+    if(moduleKey === 'evaluation')ensureEvaluationWorkbench();
+    if(moduleKey === 'solution')ensureSolutionWorkbench();
+    if(moduleKey === 'warning')ensureWarningWorkbench();
+    var companyName = getSelectedCompanyName(moduleKey);
+    if(!companyName){
+        if(window.showToast)window.showToast('请先选择企业');
+        return;
+    }
+    var company = getCompanyByName(companyName);
+    if(!company){
+        if(window.showToast)window.showToast('未找到企业数据');
+        return;
+    }
+    var provider = getModuleProvider(moduleKey);
+    var extraInput = moduleKey === 'warning' ? getWarningInputPayload() : null;
+    if(moduleKey === 'warning' && (!extraInput || !Object.keys(extraInput).length) && !(typeof selectedWarningData !== 'undefined' && selectedWarningData)){
+        if(window.showToast)window.showToast('请先选择预置月份或录入经营数据');
+        return;
+    }
+    if(window.showLoading)window.showLoading('正在生成' + (moduleKey === 'evaluation' ? '竞争力评估' : moduleKey === 'solution' ? '升级方案' : '经营预警') + '...');
+    try{
+        var report = await buildIndependentModuleReport(moduleKey, provider, company, extraInput);
+        saveModuleReport(moduleKey, company.name, report);
+        renderIndependentModule(moduleKey, report);
+        if(window.setApiInlineAlert){
+            window.setApiInlineAlert(provider, report.aiMode === 'AI增强'
+                ? getProviderMetaSafe(provider).label + ' 已完成 ' + (moduleKey === 'evaluation' ? '竞争力评估' : moduleKey === 'solution' ? '升级方案生成' : '经营预警检测') + '。'
+                : '当前使用的是本地研究引擎草案：' + safeEsc(report.aiNote || 'AI 未返回增强结果。'), report.aiMode === 'AI增强');
+        }
+        if(window.showToast)window.showToast((moduleKey === 'evaluation' ? '竞争力评估' : moduleKey === 'solution' ? '升级方案' : '经营预警') + (report.aiMode === 'AI增强' ? ' AI 分析完成' : '已生成本地草案'));
+    }catch(err){
+        if(window.showToast)window.showToast('模块分析失败：' + err.message);
+        if(window.setApiInlineAlert){
+            window.setApiInlineAlert(provider, '独立模块 AI 调用失败：' + err.message);
+        }
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+};
+window.updateEvaluationPage = function(){
+    ensureEvaluationWorkbench();
+    var companyName = getSelectedCompanyName('evaluation');
+    var stored = companyName ? getModuleReport('evaluation', companyName) : null;
+    var result = document.getElementById('evaluationResult');
+    if(stored){
+        renderIndependentModule('evaluation', stored);
+    }else if(result){
+        result.style.display = 'none';
+        result.innerHTML = '';
+    }
+};
+window.showSolutions = function(){
+    ensureSolutionWorkbench();
+    var companyName = getSelectedCompanyName('solution');
+    var stored = companyName ? getModuleReport('solution', companyName) : null;
+    var result = document.getElementById('solutionResult');
+    if(stored){
+        renderIndependentModule('solution', stored);
+    }else if(result){
+        result.style.display = 'none';
+        result.innerHTML = '';
+    }
+};
+window.analyzeWarning = function(){
+    return window.runIndependentModule('warning');
+};
+var originalShowSubPageIndependent = window.showSubPage;
+window.showSubPage = function(id){
+    if(originalShowSubPageIndependent)originalShowSubPageIndependent(id);
+    if(id === 'evaluation')window.updateEvaluationPage();
+    if(id === 'solution')window.showSolutions();
+    if(id === 'warning')ensureWarningWorkbench();
+};
+document.addEventListener('change', function(evt){
+    var target = evt.target;
+    if(!target)return;
+    if(target.id === 'evaluationCompanySelect'){
+        var report = getModuleReport('evaluation', target.value);
+        if(report)renderIndependentModule('evaluation', report);
+        else{
+            var result = document.getElementById('evaluationResult');
+            if(result){result.style.display = 'none';result.innerHTML = '';}
+        }
+    }
+    if(target.id === 'solutionCompanySelect'){
+        var sreport = getModuleReport('solution', target.value);
+        if(sreport)renderIndependentModule('solution', sreport);
+        else{
+            var sresult = document.getElementById('solutionResult');
+            if(sresult){sresult.style.display = 'none';sresult.innerHTML = '';}
+        }
+    }
+    if(target.id === 'warningCompany'){
+        var wreport = getModuleReport('warning', target.value);
+        if(wreport)renderIndependentModule('warning', wreport);
+    }
+});
+document.addEventListener('DOMContentLoaded', function(){
+    loadModuleCaches();
+    ensureEvaluationWorkbench();
+    ensureSolutionWorkbench();
+    ensureWarningWorkbench();
+});
+if(document.readyState !== 'loading'){
+    loadModuleCaches();
+    ensureEvaluationWorkbench();
+    ensureSolutionWorkbench();
+    ensureWarningWorkbench();
+}
+})();
+</script>
 </body>
 </html>

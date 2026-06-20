@@ -2,17 +2,35 @@ import json
 import os
 import re
 import base64
+import hashlib
+import time
 from io import BytesIO
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import error, request
-
 from docx import Document
 from pypdf import PdfReader
 
 
-HOST = "127.0.0.1"
-PORT = int(os.environ.get("LJ_AI_API_PORT", "8765"))
+HOST = os.environ.get("LJ_AI_API_HOST", "0.0.0.0")
+PORT = int(os.environ.get("PORT") or os.environ.get("LJ_AI_API_PORT", "8765"))
+MAX_REQUEST_BYTES = int(os.environ.get("LJ_MAX_REQUEST_BYTES", str(8 * 1024 * 1024)))
+MAX_UPLOAD_BYTES = int(os.environ.get("LJ_MAX_UPLOAD_BYTES", str(6 * 1024 * 1024)))
+MAX_UPLOAD_TEXT_CHARS = int(os.environ.get("LJ_MAX_UPLOAD_TEXT_CHARS", "120000"))
+REQUEST_WINDOW_SECONDS = int(os.environ.get("LJ_RATE_LIMIT_WINDOW_SECONDS", "60"))
+UPLOAD_LIMIT_PER_WINDOW = int(os.environ.get("LJ_UPLOAD_LIMIT_PER_WINDOW", "12"))
+AI_LIMIT_PER_WINDOW = int(os.environ.get("LJ_AI_LIMIT_PER_WINDOW", "30"))
+ALLOW_ORIGIN = os.environ.get("LJ_ALLOW_ORIGIN", "*").strip() or "*"
+UPLOAD_ALLOWED_EXTENSIONS = {".doc", ".docx", ".pdf", ".txt", ".md", ".json"}
+UPLOAD_MAGIC_PREFIXES = {
+    ".docx": [b"PK\x03\x04"],
+    ".pdf": [b"%PDF"],
+    ".json": [b"{", b"[", b"\xef\xbb\xbf{"],
+    ".txt": [],
+    ".md": [],
+    ".doc": [b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"],
+}
+REQUEST_BUCKETS = {}
 
 PROVIDER_DEFAULTS = {
     "openai": {
@@ -65,6 +83,54 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+def client_ip_from_headers(handler):
+    forwarded = handler.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if handler.client_address and handler.client_address[0]:
+        return handler.client_address[0]
+    return "unknown"
+
+
+def mask_secret(value):
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "*" * len(value)
+    return value[:4] + "*" * (len(value) - 8) + value[-4:]
+
+
+def json_log(event, **fields):
+    payload = {"ts": now_iso(), "event": event}
+    payload.update(fields)
+    print(json.dumps(payload, ensure_ascii=False), flush=True)
+
+
+def get_bucket_key(handler, scope):
+    basis = f"{scope}:{client_ip_from_headers(handler)}"
+    return hashlib.sha256(basis.encode("utf-8")).hexdigest()
+
+
+def check_rate_limit(handler, scope, limit):
+    now = time.time()
+    key = get_bucket_key(handler, scope)
+    bucket = REQUEST_BUCKETS.get(key)
+    if not bucket or now - bucket["window_start"] >= REQUEST_WINDOW_SECONDS:
+        bucket = {"window_start": now, "count": 0}
+        REQUEST_BUCKETS[key] = bucket
+    bucket["count"] += 1
+    remaining = max(0, limit - bucket["count"])
+    reset_in = max(0, int(REQUEST_WINDOW_SECONDS - (now - bucket["window_start"])))
+    allowed = bucket["count"] <= limit
+    return {
+        "allowed": allowed,
+        "remaining": remaining,
+        "reset_in": reset_in,
+        "count": bucket["count"],
+    }
+
+
 def clamp_score(value):
     try:
         return max(0, min(100, int(round(float(value)))))
@@ -99,6 +165,23 @@ def normalize_provider_config(provider, overrides):
     return base
 
 
+def validate_upload(file_name, data):
+    lower = (file_name or "").lower().strip()
+    ext = ""
+    if "." in lower:
+        ext = lower[lower.rfind(".") :]
+    if ext not in UPLOAD_ALLOWED_EXTENSIONS:
+        raise ValueError(f"unsupported extension: {ext or 'none'}")
+    if not data:
+        raise ValueError("empty file")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise ValueError(f"file too large: {len(data)} bytes")
+    prefixes = UPLOAD_MAGIC_PREFIXES.get(ext) or []
+    if prefixes and not any(data.startswith(prefix) for prefix in prefixes):
+        raise ValueError(f"file signature mismatch for {ext}")
+    return ext
+
+
 def extract_json_object(text):
     if not text:
         raise ValueError("empty response")
@@ -117,6 +200,15 @@ def ensure_list(value, fallback=None):
     if isinstance(value, list):
         return value
     return fallback or []
+
+
+def maybe_decode_text(data):
+    for encoding in ("utf-8-sig", "utf-8", "gb18030", "gbk"):
+        try:
+            return data.decode(encoding)
+        except Exception:
+            continue
+    return data.decode("utf-8", errors="ignore")
 
 
 def normalize_report(raw, provider, model, company_name):
@@ -344,16 +436,22 @@ FIELD_ALIASES = {
 
 def decode_upload_text(file_name, content_base64):
     data = base64.b64decode(content_base64)
+    ext = validate_upload(file_name, data)
     lower = (file_name or "").lower()
     if lower.endswith(".docx"):
         doc = Document(BytesIO(data))
-        return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        return text[:MAX_UPLOAD_TEXT_CHARS]
+    if lower.endswith(".doc"):
+        text = maybe_decode_text(data)
+        return text[:MAX_UPLOAD_TEXT_CHARS]
     if lower.endswith(".pdf"):
         reader = PdfReader(BytesIO(data))
-        return "\n".join((page.extract_text() or "") for page in reader.pages)
+        text = "\n".join((page.extract_text() or "") for page in reader.pages)
+        return text[:MAX_UPLOAD_TEXT_CHARS]
     if lower.endswith(".json") or lower.endswith(".txt") or lower.endswith(".md"):
-        return data.decode("utf-8", errors="ignore")
-    return data.decode("utf-8", errors="ignore")
+        return maybe_decode_text(data)[:MAX_UPLOAD_TEXT_CHARS]
+    return maybe_decode_text(data)[:MAX_UPLOAD_TEXT_CHARS]
 
 
 def cleanup_value(value):
@@ -496,12 +594,21 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Origin", ALLOW_ORIGIN)
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Requested-With")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        json_log(
+            "http_access",
+            ip=client_ip_from_headers(self),
+            method=getattr(self, "command", ""),
+            path=getattr(self, "path", ""),
+            detail=(format % args) if args else format,
+        )
 
     def do_OPTIONS(self):
         self._send(204, {})
@@ -528,26 +635,61 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"ok": False, "error": "not found"})
 
     def do_POST(self):
+        request_id = hashlib.sha256(f"{time.time()}:{self.path}:{client_ip_from_headers(self)}".encode("utf-8")).hexdigest()[:16]
+        length_header = self.headers.get("Content-Length", "0")
         try:
-            length = int(self.headers.get("Content-Length", "0"))
+            length = int(length_header)
+            if length <= 0:
+                self._send(400, {"ok": False, "error": "empty request", "requestId": request_id})
+                return
+            if length > MAX_REQUEST_BYTES:
+                self._send(413, {"ok": False, "error": "request too large", "requestId": request_id})
+                return
             raw_body = self.rfile.read(length).decode("utf-8")
             payload = json.loads(raw_body or "{}")
         except Exception:
-            self._send(400, {"ok": False, "error": "invalid json"})
+            self._send(400, {"ok": False, "error": "invalid json", "requestId": request_id})
             return
 
         if self.path.startswith("/api/intake/parse"):
+            limit_state = check_rate_limit(self, "upload", UPLOAD_LIMIT_PER_WINDOW)
+            if not limit_state["allowed"]:
+                self._send(
+                    429,
+                    {
+                        "ok": False,
+                        "error": "upload rate limit exceeded",
+                        "retryAfterSeconds": limit_state["reset_in"],
+                        "requestId": request_id,
+                    },
+                )
+                return
             file_name = payload.get("fileName", "")
             content_base64 = payload.get("contentBase64", "")
             if not file_name or not content_base64:
-                self._send(400, {"ok": False, "error": "missing file"})
+                self._send(400, {"ok": False, "error": "missing file", "requestId": request_id})
                 return
             try:
                 text = decode_upload_text(file_name, content_base64)
                 fields = parse_document_fields(text)
             except Exception as exc:
-                self._send(400, {"ok": False, "error": f"parse failed: {exc}"})
+                json_log(
+                    "upload_parse_failed",
+                    requestId=request_id,
+                    ip=client_ip_from_headers(self),
+                    fileName=file_name,
+                    error=str(exc),
+                )
+                self._send(400, {"ok": False, "error": f"parse failed: {exc}", "requestId": request_id})
                 return
+            json_log(
+                "upload_parsed",
+                requestId=request_id,
+                ip=client_ip_from_headers(self),
+                fileName=file_name,
+                extractedFields=list(fields.keys()),
+                previewChars=min(len(text), 3000),
+            )
             self._send(
                 200,
                 {
@@ -556,17 +698,31 @@ class Handler(BaseHTTPRequestHandler):
                     "fields": fields,
                     "summary": build_parse_summary(fields),
                     "preview": text[:3000],
+                    "requestId": request_id,
                 },
             )
             return
 
         if not self.path.startswith("/api/ai/analyze"):
-            self._send(404, {"ok": False, "error": "not found"})
+            self._send(404, {"ok": False, "error": "not found", "requestId": request_id})
+            return
+
+        limit_state = check_rate_limit(self, "ai", AI_LIMIT_PER_WINDOW)
+        if not limit_state["allowed"]:
+            self._send(
+                429,
+                {
+                    "ok": False,
+                    "error": "ai rate limit exceeded",
+                    "retryAfterSeconds": limit_state["reset_in"],
+                    "requestId": request_id,
+                },
+            )
             return
 
         provider = payload.get("provider", "mimo")
         if provider not in PROVIDER_DEFAULTS:
-            self._send(400, {"ok": False, "error": "unsupported provider"})
+            self._send(400, {"ok": False, "error": "unsupported provider", "requestId": request_id})
             return
 
         config = normalize_provider_config(provider, payload.get("providerConfig"))
@@ -581,17 +737,47 @@ class Handler(BaseHTTPRequestHandler):
                         "model": not bool(config.get("model")),
                         "api_key": not bool(config.get("api_key")),
                     },
+                    "requestId": request_id,
                 },
             )
             return
 
+        analysis_input = payload.get("analysis_input") or {}
+        company_name = ((analysis_input.get("company") or {}).get("name") if isinstance(analysis_input.get("company"), dict) else "") or ""
+        module_key = analysis_input.get("module") or "analysis"
+        started_at = time.time()
         try:
             report = call_openai_compatible(provider, config, payload)
         except Exception as exc:
-            self._send(502, {"ok": False, "error": str(exc)})
+            json_log(
+                "ai_request_failed",
+                requestId=request_id,
+                ip=client_ip_from_headers(self),
+                provider=provider,
+                model=config.get("model"),
+                baseUrl=config.get("base_url"),
+                apiKeyMasked=mask_secret(config.get("api_key")),
+                module=module_key,
+                companyName=company_name,
+                error=str(exc),
+                elapsedMs=int((time.time() - started_at) * 1000),
+            )
+            self._send(502, {"ok": False, "error": str(exc), "requestId": request_id})
             return
 
-        self._send(200, {"ok": True, "report": report})
+        json_log(
+            "ai_request_succeeded",
+            requestId=request_id,
+            ip=client_ip_from_headers(self),
+            provider=provider,
+            model=config.get("model"),
+            baseUrl=config.get("base_url"),
+            apiKeyMasked=mask_secret(config.get("api_key")),
+            module=module_key,
+            companyName=company_name,
+            elapsedMs=int((time.time() - started_at) * 1000),
+        )
+        self._send(200, {"ok": True, "report": report, "requestId": request_id})
 
 
 if __name__ == "__main__":

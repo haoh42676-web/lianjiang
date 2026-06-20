@@ -10,6 +10,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import error, request
 from docx import Document
 from pypdf import PdfReader
+import requests
+from requests.adapters import HTTPAdapter
 
 
 HOST = os.environ.get("LJ_AI_API_HOST", "0.0.0.0")
@@ -321,79 +323,30 @@ def normalize_report(raw, provider, model, company_name):
 
 def build_prompt(payload):
     provider_label = PROVIDER_DEFAULTS.get(payload["provider"], {}).get("label", payload["provider"])
+    compact_input = payload["analysis_input"]
     return f"""
-??{provider_label}??????????????????????????????????????????????????????????
+你是{provider_label}产业集群诊断引擎。请按“五维融合、八要素、SWOT、头雁企业带动、阶段跃迁”输出企业升级诊断。
 
-?????????????
-1. ????????????????????????????????????
-2. ???????????????????????????????????
-3. SWOT ????????????????????????????????????????
-4. ?????????????????????????????????????
-5. ???????????????????????????????????????????????
+要求：
+1. 只输出合法 JSON，不要 Markdown。
+2. 评分范围 0-100，八要素都要给出分数与解释。
+3. 结论必须具体，给出评分依据、差距、行动、KPI、风险、阶段方案。
+4. 结论要能支撑网页中的卡片点击详情，因此各字段必须完整。
+5. `researchBasis` 用一句话概括论文/研究方法，不要展开成长段。
 
-?????
-1. ????????? 0-100 ????
-2. ??????????????????????????????????SWOT ????????KPI??????
-3. ????????????0-30??31-90??3-6???6-12???
-4. ???????????????????????????????????
-5. ????????????????????????????????????
-6. ?????? JSON??? Markdown????????????
+JSON keys:
+generatedAt, overallScore, overallLevel, executiveSummary, methodology, researchBasis,
+scores, coreFindings, dimensionAnalysis, phases, solutions
 
-JSON schema:
-{{
-  "generatedAt": "ISO-8601 string",
-  "overallScore": 0,
-  "overallLevel": "E? ??",
-  "executiveSummary": "string",
-  "methodology": "string",
-  "researchBasis": "string",
-  "scores": {{
-    "brand": 0,
-    "marketing": 0,
-    "production": 0,
-    "rd": 0,
-    "standard": 0,
-    "logistics": 0,
-    "capital": 0,
-    "finance": 0
-  }},
-  "coreFindings": ["string"],
-  "dimensionAnalysis": [
-    {{
-      "key": "brand",
-      "level": "C? ??",
-      "gap": 0,
-      "diagnosis": "string",
-      "swotFocus": "string",
-      "actions": ["string"],
-      "kpis": ["string"],
-      "risks": ["string"]
-    }}
-  ],
-  "phases": [
-    {{
-      "name": "0-30?",
-      "goals": ["string"]
-    }}
-  ],
-  "solutions": [
-    {{
-      "title": "string",
-      "priority": "high|medium|low",
-      "content": ["string"],
-      "steps": [
-        {{
-          "title": "string",
-          "detail": "string",
-          "timeline": "string"
-        }}
-      ]
-    }}
-  ]
-}}
+其中：
+- scores 必须包含 brand, marketing, production, rd, standard, logistics, capital, finance
+- dimensionAnalysis 每项必须包含 key, level, gap, diagnosis, swotFocus, actions, kpis, risks
+- phases 每项包含 name, goals
+- solutions 每项包含 title, priority, content, steps
+- steps 每项包含 title, detail, timeline
 
-???????
-{json.dumps(payload["analysis_input"], ensure_ascii=False)}
+输入数据：
+{json.dumps(compact_input, ensure_ascii=False)}
 """.strip()
 
 
@@ -568,24 +521,41 @@ def call_openai_compatible(provider, config, payload):
     }
     if provider != "deepseek":
         body["response_format"] = {"type": "json_object"}
-    url = config["base_url"] + config["endpoint"]
-    req = request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config['api_key']}",
-        },
-        method="POST",
-    )
+    session = requests.Session()
+    session.trust_env = False
+    session.mount("https://", HTTPAdapter(pool_connections=4, pool_maxsize=4, max_retries=0))
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {config['api_key']}",
+        "Connection": "close",
+    }
+    last_exc = None
+    for attempt in range(2):
+        try:
+            if attempt == 1:
+                body["temperature"] = 0.2
+            resp = session.post(
+                config["base_url"] + config["endpoint"],
+                headers=headers,
+                json=body,
+                timeout=120,
+            )
+            break
+        except requests.exceptions.RequestException as exc:
+            last_exc = exc
+            resp = None
+            if attempt == 0:
+                time.sleep(1)
+                continue
+            raise RuntimeError(f"{provider} network error: {exc}") from exc
+    if resp is None:
+        raise RuntimeError(f"{provider} network error: {last_exc}")
+    if not resp.ok:
+        raise RuntimeError(f"{provider} HTTP {resp.status_code}: {resp.text}")
     try:
-        with request.urlopen(req, timeout=120) as resp:
-            raw = json.loads(resp.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(f"{provider} HTTP {exc.code}: {detail}") from exc
-    except error.URLError as exc:
-        raise RuntimeError(f"{provider} network error: {exc.reason}") from exc
+        raw = resp.json()
+    except Exception as exc:
+        raise RuntimeError(f"{provider} returned invalid json: {resp.text[:1000]}") from exc
 
     choices = raw.get("choices") or []
     if not choices:

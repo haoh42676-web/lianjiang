@@ -1,10 +1,8 @@
 services:
   - type: web
     name: lianjiang-ai-api
-    runtime: python
+    runtime: docker
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python ai_api_server.py
     healthCheckPath: /api/status
     envVars:
       - key: PYTHON_VERSION

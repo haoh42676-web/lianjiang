@@ -101,6 +101,29 @@ def mask_secret(value):
     return value[:4] + "*" * (len(value) - 8) + value[-4:]
 
 
+def parse_multipart_file(raw_bytes, content_type):
+    match = re.search(r'boundary="?([^";]+)"?', str(content_type or ""), re.I)
+    if not match:
+        raise ValueError("missing multipart boundary")
+    boundary = match.group(1).encode("utf-8")
+    delimiter = b"--" + boundary
+    for part in raw_bytes.split(delimiter):
+        part = part.strip()
+        if not part or part == b"--":
+            continue
+        header_block, separator, body = part.partition(b"\r\n\r\n")
+        if not separator:
+            continue
+        headers = header_block.decode("utf-8", errors="ignore")
+        if 'name="file"' not in headers:
+            continue
+        filename_match = re.search(r'filename="([^"]*)"', headers)
+        file_name = os.path.basename(filename_match.group(1)) if filename_match else ""
+        file_bytes = body.rstrip(b"\r\n")
+        return file_name, base64.b64encode(file_bytes).decode("ascii")
+    raise ValueError("missing file part")
+
+
 def json_log(event, **fields):
     payload = {"ts": now_iso(), "event": event}
     payload.update(fields)
@@ -637,20 +660,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         request_id = hashlib.sha256(f"{time.time()}:{self.path}:{client_ip_from_headers(self)}".encode("utf-8")).hexdigest()[:16]
         length_header = self.headers.get("Content-Length", "0")
-        try:
-            length = int(length_header)
-            if length <= 0:
-                self._send(400, {"ok": False, "error": "empty request", "requestId": request_id})
-                return
-            if length > MAX_REQUEST_BYTES:
-                self._send(413, {"ok": False, "error": "request too large", "requestId": request_id})
-                return
-            raw_body = self.rfile.read(length).decode("utf-8")
-            payload = json.loads(raw_body or "{}")
-        except Exception:
-            self._send(400, {"ok": False, "error": "invalid json", "requestId": request_id})
-            return
-
         if self.path.startswith("/api/intake/parse"):
             limit_state = check_rate_limit(self, "upload", UPLOAD_LIMIT_PER_WINDOW)
             if not limit_state["allowed"]:
@@ -664,8 +673,38 @@ class Handler(BaseHTTPRequestHandler):
                     },
                 )
                 return
-            file_name = payload.get("fileName", "")
-            content_base64 = payload.get("contentBase64", "")
+            try:
+                length = int(length_header)
+                if length <= 0:
+                    self._send(400, {"ok": False, "error": "empty request", "requestId": request_id})
+                    return
+                if length > MAX_REQUEST_BYTES:
+                    self._send(413, {"ok": False, "error": "request too large", "requestId": request_id})
+                    return
+            except Exception:
+                self._send(400, {"ok": False, "error": "invalid content length", "requestId": request_id})
+                return
+
+            file_name = ""
+            content_base64 = ""
+            content_type = (self.headers.get("Content-Type", "") or "").lower()
+            if "multipart/form-data" in content_type:
+                try:
+                    raw_bytes = self.rfile.read(length)
+                    file_name, content_base64 = parse_multipart_file(raw_bytes, self.headers.get("Content-Type", ""))
+                except Exception as exc:
+                    self._send(400, {"ok": False, "error": f"invalid multipart upload: {exc}", "requestId": request_id})
+                    return
+            else:
+                try:
+                    raw_body = self.rfile.read(length).decode("utf-8")
+                    payload = json.loads(raw_body or "{}")
+                except Exception:
+                    self._send(400, {"ok": False, "error": "invalid json", "requestId": request_id})
+                    return
+                file_name = payload.get("fileName", "")
+                content_base64 = payload.get("contentBase64", "")
+
             if not file_name or not content_base64:
                 self._send(400, {"ok": False, "error": "missing file", "requestId": request_id})
                 return
@@ -701,6 +740,20 @@ class Handler(BaseHTTPRequestHandler):
                     "requestId": request_id,
                 },
             )
+            return
+
+        try:
+            length = int(length_header)
+            if length <= 0:
+                self._send(400, {"ok": False, "error": "empty request", "requestId": request_id})
+                return
+            if length > MAX_REQUEST_BYTES:
+                self._send(413, {"ok": False, "error": "request too large", "requestId": request_id})
+                return
+            raw_body = self.rfile.read(length).decode("utf-8")
+            payload = json.loads(raw_body or "{}")
+        except Exception:
+            self._send(400, {"ok": False, "error": "invalid json", "requestId": request_id})
             return
 
         if not self.path.startswith("/api/ai/analyze"):

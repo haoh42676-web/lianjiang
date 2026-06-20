@@ -741,7 +741,7 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 <div class="ai-panel" id="aiPanel-chatgpt">
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="chatgpt"><option value="">请选择企业</option></select></div>
 <div class="preset-info-box" style="margin-bottom:14px"><h4>OpenAI API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 OpenAI 的 Base URL、模型名和 API Key。</p></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-chatgpt" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-chatgpt" placeholder="如：gpt-4o-mini" value="gpt-4o-mini"></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-chatgpt" placeholder="https://gpt.fengxiaole.top/v1" value="https://gpt.fengxiaole.top/v1"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-chatgpt" placeholder="固定使用：gpt-5.4" value="gpt-5.4"></div></div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-chatgpt" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-chatgpt" placeholder="输入 OpenAI API Key"></div></div>
 <div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-chatgpt" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('chatgpt')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('chatgpt')">调用 OpenAI 深度分析</button></div>
 </div>
@@ -5332,10 +5332,11 @@ function shouldUseDirectApi(){
 function buildModuleAiPrompt(moduleKey, provider, company, localReport, extraInput){
     var providerLabel = (getProviderMetaSafe(provider) || {}).label || provider;
     var header = [
-        '你是产业集群诊断平台中的独立模块分析引擎。',
-        '当前模块不是总报告附属页，而是单独的软件功能模块。',
-        '请基于论文研究口径、企业录入数据、本地研究引擎底稿，输出严格 JSON。',
-        '不要输出 Markdown，不要输出额外解释。'
+        '?????????????? AI ???????',
+        '?????????????????????????',
+        '?????????????????????????????? JSON?',
+        '???????????????????????',
+        '???? Markdown??????????'
     ];
     var schema = [];
     if(moduleKey === 'evaluation'){
@@ -5355,7 +5356,7 @@ function buildModuleAiPrompt(moduleKey, provider, company, localReport, extraInp
             '  "executiveSummary":"string",',
             '  "strategyStatement":"string",',
             '  "initiativeNarratives":[{"id":"INIT-1","whyNow":"string","expectedResult":"string","executionTips":["string"]}],',
-            '  "phaseNarratives":[{"phase":"0-30天","focus":"string","successGate":"string"}],',
+            '  "phaseNarratives":[{"phase":"0-30?","focus":"string","successGate":"string"}],',
             '  "governance":["string"],',
             '  "stopDoing":["string"]',
             '}'
@@ -5372,16 +5373,17 @@ function buildModuleAiPrompt(moduleKey, provider, company, localReport, extraInp
         ];
     }
     return header.concat([
-        '模块名称：' + moduleKey,
-        '调用模型提供方：' + providerLabel,
-        '研究口径：竞争力评估使用八要素五层计点 + 廉江/慈溪SWOT对标 + 头雁层级跃迁；升级方案使用头雁跃迁路径 + 国际化研发体系研究；经营预警使用月度阈值触发 + 八要素影响映射。',
-        '请不要改变本地底稿中的核心数值，只能增强解释、动作和治理建议。',
-        '输出 JSON schema：'
+        '?????' + moduleKey,
+        '????????' + providerLabel,
+        '??????????????????????/?? SWOT ????????????????????????????????????????????????????????????????????????????????',
+        '?????????????????????????KPI?????????',
+        '?? JSON schema?'
     ]).concat(schema).concat([
-        '企业与本地底稿如下：',
+        '??????????',
         JSON.stringify({ company:company, localReport:localReport, extraInput:extraInput || null })
     ]).join('\n');
 }
+
 async function requestModuleAi(moduleKey, provider, company, localReport, extraInput){
     var cfg = getProviderConfigSafe(provider);
     if(!cfg.base_url || !cfg.model || !cfg.api_key){

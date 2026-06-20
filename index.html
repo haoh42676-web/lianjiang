@@ -6258,5 +6258,514 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 })();
 </script>
+<script>
+(function(){
+function wn(v){
+    var num = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g,''));
+    return isNaN(num) ? 0 : num;
+}
+function clamp(v,min,max){
+    return Math.max(min, Math.min(max, v));
+}
+function warningLevelText(score){
+    if(score >= 85)return 'A级';
+    if(score >= 70)return 'B级';
+    if(score >= 55)return 'C级';
+    if(score >= 40)return 'D级';
+    return 'E级';
+}
+function warningRiskLabel(alerts){
+    if(alerts.some(function(item){ return item.severity === 'red'; }))return '红色';
+    if(alerts.some(function(item){ return item.severity === 'yellow'; }))return '黄色';
+    return '绿色';
+}
+function getWarningProvider(){
+    var active = document.querySelector('[data-module-provider="warning"].active');
+    if(active)return active.getAttribute('data-provider') || 'deepseek';
+    try{
+        return localStorage.getItem('lj_independent_provider_warning') || 'deepseek';
+    }catch(e){}
+    return 'deepseek';
+}
+function normalizeCompanyNameForWarning(name){
+    return String(name || '').replace(/\s+/g,'').replace(/\s*\[[^\]]+\]\s*/g,'').trim();
+}
+function getAllWarningCompanies(){
+    var list = [];
+    var seen = {};
+    function append(items){
+        (items || []).forEach(function(item){
+            if(!item || !item.name)return;
+            var key = normalizeCompanyNameForWarning(item.name);
+            if(!key || seen[key])return;
+            seen[key] = true;
+            list.push(item);
+        });
+    }
+    append(window.PRESET || []);
+    if(typeof window.getUserCompanies === 'function'){
+        try{append(window.getUserCompanies() || []);}catch(e){}
+    }
+    return list;
+}
+function getWarningCompanyByNameSafe(name){
+    var key = normalizeCompanyNameForWarning(name);
+    return getAllWarningCompanies().find(function(item){
+        return normalizeCompanyNameForWarning(item.name) === key;
+    }) || null;
+}
+function getPresetWarningDataset(companyName){
+    if(!window.PRESET_WARNINGS || !window.PRESET_WARNINGS[companyName])return null;
+    return window.PRESET_WARNINGS[companyName];
+}
+function setWarningSelectedData(data){
+    window.__warningSelectedData = data ? JSON.parse(JSON.stringify(data)) : null;
+    var panel = document.getElementById('warningPresetData');
+    if(panel){
+        if(data)panel.setAttribute('data-warning-payload', JSON.stringify(data));
+        else panel.removeAttribute('data-warning-payload');
+    }
+}
+function getWarningSelectedData(){
+    if(window.__warningSelectedData)return JSON.parse(JSON.stringify(window.__warningSelectedData));
+    var panel = document.getElementById('warningPresetData');
+    if(panel){
+        var raw = panel.getAttribute('data-warning-payload') || '';
+        if(raw){
+            try{return JSON.parse(raw);}catch(e){}
+        }
+    }
+    return null;
+}
+function parseManualWarningInput(text){
+    var input = String(text || '');
+    var pairs = [
+        ['month', /(20\d{2}[-\/年\.]\d{1,2})/],
+        ['revenue', /(营收|营业额|营业收入|月营业额)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['defectRate', /(次品率|不良率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['deliveryRate', /(交付准时率|交付率|准时交付率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['exportRatio', /(出口占比|出口比重)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['costRatio', /(成本占比|成本率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['profitMargin', /(利润率|净利率|毛利率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['complaints', /(投诉|客诉)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['returnRate', /(退货率|退单率)[^0-9]{0,8}(\d+\.?\d*)/],
+        ['inventoryTurnover', /(库存周转|周转)[^0-9]{0,8}(\d+\.?\d*)/]
+    ];
+    var data = {};
+    pairs.forEach(function(item){
+        var match = input.match(item[1]);
+        if(!match)return;
+        if(item[0] === 'month'){
+            data.month = match[1].replace(/[年\/\.]/g,'-').replace(/-(\d)(?!\d)/,'-0$1');
+        }else{
+            data[item[0]] = match[2];
+        }
+    });
+    if(data.revenue && String(data.revenue).indexOf('万元') < 0)data.revenue += '万元';
+    ['defectRate','deliveryRate','exportRatio','costRatio','profitMargin','returnRate'].forEach(function(key){
+        if(data[key] && String(data[key]).indexOf('%') < 0)data[key] += '%';
+    });
+    if(data.complaints && String(data.complaints).indexOf('件') < 0)data.complaints += '件';
+    if(data.inventoryTurnover && String(data.inventoryTurnover).indexOf('次') < 0)data.inventoryTurnover += '次';
+    return data;
+}
+function getWarningInputPayloadStable(){
+    var preset = getWarningSelectedData();
+    if(preset)return preset;
+    var companyName = ((document.getElementById('warningCompany') || {}).value || '').trim();
+    var presetList = getPresetWarningDataset(companyName);
+    var activeBtn = document.querySelector('#monthSelector .month-btn.active');
+    if(presetList && activeBtn){
+        var monthMatch = String(activeBtn.textContent || '').match(/(\d{1,2})/);
+        if(monthMatch){
+            var idx = Math.max(1, parseInt(monthMatch[1], 10)) - 1;
+            if(presetList[idx]){
+                setWarningSelectedData(presetList[idx]);
+                return JSON.parse(JSON.stringify(presetList[idx]));
+            }
+        }
+    }
+    var manualText = ((document.getElementById('monthlyData') || {}).value || '').trim();
+    return manualText ? parseManualWarningInput(manualText) : null;
+}
+function buildWarningAlertItem(id, severity, dimension, metric, threshold, current, signal, impact, immediateAction, within7Days, within30Days, owner, watch){
+    return {
+        id:id,
+        severity:severity,
+        dimension:dimension,
+        metric:metric,
+        threshold:threshold,
+        current:current,
+        signal:signal,
+        title:dimension + '预警 / ' + metric,
+        impact:impact,
+        immediateAction:immediateAction,
+        within7Days:within7Days,
+        within30Days:within30Days,
+        owner:owner,
+        watch:watch
+    };
+}
+function buildWarningAlerts(inputData, company){
+    var alerts = [];
+    var defectRate = wn(inputData.defectRate);
+    var deliveryRate = wn(inputData.deliveryRate);
+    var returnRate = wn(inputData.returnRate);
+    var profitMargin = wn(inputData.profitMargin);
+    var exportRatio = wn(inputData.exportRatio);
+    var costRatio = wn(inputData.costRatio);
+    var inventoryTurnover = wn(inputData.inventoryTurnover);
+    var complaints = wn(inputData.complaints);
+    if(defectRate > 5){
+        alerts.push(buildWarningAlertItem('ALERT-QUALITY-RED','red','制造质量','次品率','<= 5%', defectRate + '%','次品率已越过红线，质量波动正在放大利润与退货压力。','次品率异常会同时侵蚀利润率、交付稳定性与品牌口碑。','立即锁定近三批次异常工序与来料批次，暂停高缺陷批次继续放量。','完成缺陷分层复盘，补齐高风险工序抽检频率。','将问题工序形成质量闭环和责任考核，连续一个月回到阈值内。','质量负责人','下月继续跟踪次品率、返工率和出货复检通过率'));
+    }else if(defectRate > 3){
+        alerts.push(buildWarningAlertItem('ALERT-QUALITY-YELLOW','yellow','制造质量','次品率','<= 3%', defectRate + '%','次品率进入波动区，说明生产过程控制开始失稳。','若不及时收敛，次品率容易继续传导到退货与客诉。','增加过程抽检频次，聚焦高缺陷工序做针对性纠偏。','完成缺陷 Pareto 复盘，明确一项最主要缺陷来源。','把整改动作写入月度质量看板并验证改善幅度。','质量负责人','下月继续跟踪次品率和返工成本'));
+    }
+    if(deliveryRate && deliveryRate < 90){
+        alerts.push(buildWarningAlertItem('ALERT-DELIVERY-RED','red','履约交付','交付准时率','>= 90%', deliveryRate + '%','交付准时率明显偏低，客户承诺兑现风险很高。','连续交付失约会直接损伤客户黏性并挤压后续订单。','立即拉出延期订单清单，按订单金额和客户重要度倒排恢复。','完成生产、备料、物流三端原因拆解，逐项指定责任人。','建立延期订单周跟踪机制，将异常交付恢复至阈值内。','生产与交付负责人','下月继续跟踪准时交付率、延期单量和平均交期'));
+    }else if(deliveryRate && deliveryRate < 95){
+        alerts.push(buildWarningAlertItem('ALERT-DELIVERY-YELLOW','yellow','履约交付','交付准时率','>= 95%', deliveryRate + '%','交付准时率开始脱离稳态区间。','交付波动会推高客户沟通成本并挤压生产排程。','拉出延期订单与风险订单，区分生产端和物流端原因。','建立重点订单日跟踪表，优先保障高价值客户。','形成交付异常复盘模板，避免同类问题重复发生。','生产与交付负责人','下月继续跟踪延期订单结构和交付恢复速度'));
+    }
+    if(returnRate > 1.5){
+        alerts.push(buildWarningAlertItem('ALERT-RETURN-RED','red','客户体验','退货率','<= 1.5%', returnRate + '%','退货率已处于高风险区，说明产品适配或质量兑现存在明显问题。','退货率抬升会吞噬利润并持续拉低品牌信任。','立即按市场、SKU、问题类型拆分退货原因，先止住主要退货源。','完成售后、包装、说明书与质检口径联合排查。','将高退货 SKU 纳入专项整改并验证退货率恢复。','售后与品控负责人','下月继续跟踪退货率、差评占比和售后关闭时长'));
+    }else if(returnRate > 1){
+        alerts.push(buildWarningAlertItem('ALERT-RETURN-YELLOW','yellow','客户体验','退货率','<= 1%', returnRate + '%','退货率开始抬升，客户体验正在承压。','若与客诉叠加，会很快演变为品牌层面的负反馈。','抽样复核近期退货样本，核对缺陷类型与使用场景。','形成高频退货原因分布图，明确排名前二的问题。','把改进结果回传到售前说明、包装与售后 SOP。','售后与品控负责人','下月继续跟踪重点市场退货原因变化'));
+    }
+    if(profitMargin && profitMargin < 5){
+        alerts.push(buildWarningAlertItem('ALERT-PROFIT-RED','red','盈利安全','利润率','>= 5%', profitMargin + '%','利润率跌破安全垫，现金流承压风险显著。','利润空间不足会削弱企业在研发、品牌和渠道上的持续投入能力。','先拆解低毛利订单、主要原料波动与汇率影响，暂停继续放大量低效订单。','完成订单结构与物料成本复盘，识别三项最主要利润侵蚀源。','形成利润修复计划，逐月验证报价、产品结构和成本动作效果。','经营与财务负责人','下月继续跟踪利润率、回款周期和成本占比'));
+    }else if(profitMargin && profitMargin < 8){
+        alerts.push(buildWarningAlertItem('ALERT-PROFIT-YELLOW','yellow','盈利安全','利润率','>= 8%', profitMargin + '%','利润率偏窄，说明经营质量还不够健康。','利润空间不足会限制升级方案的持续投入能力。','优先复盘低毛利订单和高成本物料，避免新增低质量规模。','建立月度毛利结构盘点，区分客户、渠道和产品的贡献。','把利润修复动作纳入经营例会持续追踪。','经营与财务负责人','下月继续跟踪毛利结构与报价执行情况'));
+    }
+    if(costRatio > 80){
+        alerts.push(buildWarningAlertItem('ALERT-COST-RED','red','成本控制','成本占比','<= 80%', costRatio + '%','成本占比过高，说明利润被持续吞噬。','成本异常若不处理，会使经营预警快速扩散到盈利与现金流层面。','立即拆开物料、人工、物流三类成本，锁定最高波动源。','完成异常订单与高成本工序梳理，优先处理前两项。','建立单位制造成本月度复盘，验证降本动作落地。','财务与供应链负责人','下月继续跟踪原料成本、物流成本和单位制造成本'));
+    }else if(costRatio > 75){
+        alerts.push(buildWarningAlertItem('ALERT-COST-YELLOW','yellow','成本控制','成本占比','<= 75%', costRatio + '%','成本占比开始偏离健康区间。','成本结构不稳会让利润改善动作被抵消。','先查高成本订单与低效率工序，确认是否有异常波动源。','完成成本偏差分解，明确责任归属。','将关键降本动作纳入月度经营看板。','财务与供应链负责人','下月继续跟踪成本偏差来源'));
+    }
+    if(inventoryTurnover && inventoryTurnover < 3.2){
+        alerts.push(buildWarningAlertItem('ALERT-INVENTORY-RED','red','库存效率','库存周转','>= 3.2次', inventoryTurnover + '次','库存周转过慢，现金与仓储压力都在上升。','库存慢周转会压缩现金流，也会掩盖订单结构问题。','立即清理滞销 SKU 与积压品，冻结新增低周转备货。','形成库存年龄分层清单，区分结构性积压与短期波动。','建立 SKU 去化和补货联动机制，把慢周转品逐步拉回阈值。','供应链负责人','下月继续跟踪库存周转与滞销库存占比'));
+    }else if(inventoryTurnover && inventoryTurnover < 4){
+        alerts.push(buildWarningAlertItem('ALERT-INVENTORY-YELLOW','yellow','库存效率','库存周转','>= 4次', inventoryTurnover + '次','库存周转偏慢，结构性积压风险开始显现。','如果不及时优化，后续可能传导为现金流与仓储成本问题。','梳理慢动销 SKU 与安全库存设置，避免过度备货。','形成库存去化清单，聚焦库存占用最高的品类。','把库存效率与销售预测联动复盘。','供应链负责人','下月继续跟踪库存年龄结构与动销改善'));
+    }
+    if(complaints > 10){
+        alerts.push(buildWarningAlertItem('ALERT-COMPLAINT-RED','red','客户声音','客户投诉','<= 10件', complaints + '件','投诉量显著偏高，说明售后与产品体验都在承压。','投诉堆积会加速品牌负面反馈扩散。','立即按投诉类型建立 48 小时关闭机制，防止继续扩散。','完成高频投诉原因拆解，优先修复重复性问题。','把投诉闭环效率与复发率纳入责任考核。','售后负责人','下月继续跟踪投诉关闭时长与重复投诉率'));
+    }else if(complaints > 5){
+        alerts.push(buildWarningAlertItem('ALERT-COMPLAINT-YELLOW','yellow','客户声音','客户投诉','<= 5件', complaints + '件','投诉量开始抬头，客户满意度已有波动。','若与退货率同步升高，品牌风险会进一步加剧。','补齐售后响应 SOP 与高频问题话术。','统计前五类投诉来源并逐项处理。','把投诉波动纳入月度经营复盘。','售后负责人','下月继续跟踪投诉来源与关闭率'));
+    }
+    if(exportRatio && exportRatio < 25){
+        alerts.push(buildWarningAlertItem('ALERT-MARKET-YELLOW','yellow','市场拓展','出口占比','>= 25%', exportRatio + '%','出口占比偏低，对外向型增长弹性不足。','外向市场动能不足会削弱企业与头部样本的竞争距离缩小速度。','优先复盘已验证有转化潜力的海外渠道，不盲目铺量。','建立重点市场询盘和转化跟踪。','把渠道试错结果回写到升级方案模块。','外贸负责人','下月继续跟踪重点市场询盘数与转化率'));
+    }
+    if(!alerts.length){
+        alerts.push(buildWarningAlertItem('ALERT-STABLE-1','green','经营稳定性','核心指标监测','持续处于阈值内','当前整体稳定','本期未触发明显异常，但仍需维持节奏化监测。','当前经营状态稳定，重点是防止质量、交付和盈利指标反弹。','继续按月更新质量、交付、利润、成本、退货和投诉数据。','完成下月监测计划与责任人确认。','将稳定指标固化为月度经营例会固定检查项。','经营负责人','下月继续跟踪关键经营指标是否持续稳定'));
+    }
+    return alerts;
+}
+function mergeWarningAiData(localReport, aiData){
+    var merged = JSON.parse(JSON.stringify(localReport));
+    if(!aiData || typeof aiData !== 'object')return merged;
+    if(aiData.executiveSummary)merged.executiveSummary = aiData.executiveSummary;
+    if(aiData.riskStatement)merged.riskStatement = aiData.riskStatement;
+    if(Array.isArray(aiData.alertNarratives)){
+        merged.alerts = merged.alerts.map(function(item){
+            var found = aiData.alertNarratives.find(function(ai){ return ai.id === item.id; });
+            if(!found)return item;
+            item.impact = found.impact || item.impact;
+            item.immediateAction = found.immediateAction || item.immediateAction;
+            item.within7Days = found.within7Days || item.within7Days;
+            item.within30Days = found.within30Days || item.within30Days;
+            item.owner = found.ownerNote || item.owner;
+            return item;
+        });
+    }
+    if(Array.isArray(aiData.watchlistNarratives) && aiData.watchlistNarratives.length){
+        merged.watchlist = aiData.watchlistNarratives.map(function(item, index){
+            return {
+                id:'WATCH-' + (index + 1),
+                metric:item.metric || ('监测项' + (index + 1)),
+                target:item.target || '回到阈值以内',
+                reason:item.whyWatch || '',
+                owner:'对应业务负责人'
+            };
+        });
+    }
+    if(Array.isArray(aiData.governance) && aiData.governance.length){
+        merged.governance = aiData.governance.slice(0,6);
+    }
+    return merged;
+}
+function buildWarningReportStable(company, inputData, providerLabel){
+    var alerts = buildWarningAlerts(inputData || {}, company || {});
+    var redCount = alerts.filter(function(item){ return item.severity === 'red'; }).length;
+    var yellowCount = alerts.filter(function(item){ return item.severity === 'yellow'; }).length;
+    var greenCount = alerts.filter(function(item){ return item.severity === 'green'; }).length;
+    var score = clamp(Math.round(88 - redCount * 18 - yellowCount * 8 + Math.min(greenCount, 1) * 2), 35, 96);
+    var riskLevel = warningRiskLabel(alerts);
+    return {
+        module:'warning',
+        reportId:'WARNING-' + String((company && company.name) || '企业').replace(/[^\w\u4e00-\u9fa5]+/g,'').slice(0,18) + '-' + new Date().toISOString().replace(/[^\d]/g,'').slice(0,14),
+        reportTitle:'经营预警检测与处置报告',
+        generatedAt:new Date().toLocaleString('zh-CN'),
+        algorithmVersion:'Cluster-Warning-Engine V2.4',
+        researchBasis:['月度阈值预警规则','八要素经营影响映射','竞争对标风险监测'],
+        companyName:(company && company.name) || '',
+        overallScore:score,
+        overallLevel:warningLevelText(score),
+        riskLevel:riskLevel,
+        snapshot:{
+            month:(inputData && inputData.month) || '当前录入周期',
+            redCount:redCount,
+            yellowCount:yellowCount,
+            greenCount:greenCount
+        },
+        executiveSummary:riskLevel === '红色'
+            ? '本期出现高风险经营触发项，应先止损、再归因、再形成责任闭环，不再停留于泛化建议。'
+            : riskLevel === '黄色'
+                ? '本期进入重点观察区，需要把波动指标直接挂到责任人、时间窗和处置动作上。'
+                : '本期整体处于稳定区，重点是维持监测节奏并防止异常反弹。',
+        riskStatement:riskLevel === '红色'
+            ? '当前经营风险已影响稳定交付或盈利安全，建议按 48 小时、7 天、30 天三个时间窗闭环。'
+            : riskLevel === '黄色'
+                ? '当前经营指标已有波动，应避免其继续扩散到利润、退货和客户关系。'
+                : '当前没有识别到高风险触发项，建议继续维持月度监测和例会复盘。',
+        alerts:alerts,
+        watchlist:alerts.map(function(item, index){
+            return {
+                id:'WATCH-' + (index + 1),
+                metric:item.metric,
+                target:item.threshold,
+                reason:item.watch,
+                owner:item.owner
+            };
+        }),
+        governance:[
+            '红色预警必须在48小时内形成处理结论与责任归属。',
+            '黄色预警必须在7天内完成根因分析和处置动作。',
+            '每月形成经营预警复盘记录，并与竞争力评估和升级方案联动。'
+        ],
+        aiMode:'研究引擎草案',
+        aiNote:'',
+        providerLabel:providerLabel || '本地研究引擎'
+    };
+}
+function renderWarningReportStable(report){
+    var escFn = typeof window.safeEsc === 'function' ? window.safeEsc : (typeof window.esc === 'function' ? window.esc : function(v){
+        return String(v == null ? '' : v)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    });
+    var html = '';
+    html += '<div class="module-report-head">' +
+        '<div class="module-block"><div class="module-section-title"><h3>' + escFn(report.reportTitle || '经营预警检测与处置报告') + '</h3><span class="module-report-tag">经营预警</span></div>' +
+            '<p style="margin:0;color:#c6dde2;line-height:1.9">' + escFn(report.executiveSummary || '') + '</p>' +
+            '<div class="module-divider"></div>' +
+            '<div class="module-kv"><strong>报告编号</strong><span>' + escFn(report.reportId || '-') + '</span><strong>算法版本</strong><span>' + escFn(report.algorithmVersion || '-') + '</span><strong>生成时间</strong><span>' + escFn(report.generatedAt || '-') + '</span><strong>AI模式</strong><span>' + escFn(report.aiMode || '研究引擎草案') + (report.aiNote ? ' / ' + escFn(report.aiNote) : '') + '</span></div>' +
+        '</div>' +
+        '<div class="module-report-meta">' +
+            '<div class="module-mini"><div class="k">综合得分</div><div class="v">' + escFn(report.overallScore || '-') + '</div></div>' +
+            '<div class="module-mini"><div class="k">等级</div><div class="v">' + escFn(report.overallLevel || '-') + '</div></div>' +
+            '<div class="module-mini"><div class="k">研究依据</div><div class="v" style="font-size:12px;line-height:1.5">' + escFn((report.researchBasis || []).join(' / ')) + '</div></div>' +
+            '<div class="module-mini"><div class="k">模型来源</div><div class="v" style="font-size:14px">' + escFn(report.providerLabel || '本地研究引擎') + '</div></div>' +
+        '</div>' +
+    '</div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>预警概览</h3><span class="tag tag-info">阈值触发面板</span></div><div class="content-card-body"><div class="module-grid-4">' +
+        '<div class="module-mini"><div class="k">风险等级</div><div class="v">' + escFn(report.riskLevel || '-') + '</div></div>' +
+        '<div class="module-mini"><div class="k">红色触发</div><div class="v">' + escFn(report.snapshot && report.snapshot.redCount || 0) + '</div></div>' +
+        '<div class="module-mini"><div class="k">黄色触发</div><div class="v">' + escFn(report.snapshot && report.snapshot.yellowCount || 0) + '</div></div>' +
+        '<div class="module-mini"><div class="k">监测周期</div><div class="v" style="font-size:14px">' + escFn(report.snapshot && report.snapshot.month || '-') + '</div></div>' +
+    '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>触发卡片</h3><span class="tag tag-info">点击查看处置闭环</span></div><div class="content-card-body"><div class="module-grid-3">';
+    (report.alerts || []).forEach(function(item){
+        var cls = item.severity === 'red' ? ' module-alert-red' : item.severity === 'yellow' ? ' module-alert-yellow' : ' module-alert-green';
+        var levelCls = item.severity === 'red' ? 'high' : item.severity === 'yellow' ? 'medium' : 'stable';
+        var levelText = item.severity === 'red' ? '红色' : item.severity === 'yellow' ? '黄色' : '绿色';
+        html += '<button type="button" class="module-card-btn' + cls + '" data-independent-card="warning" data-card-id="' + escFn(item.id) + '" onclick="openIndependentDetail(\'warning\',\'' + escFn(item.id) + '\')">' +
+            '<div class="module-card-top"><div><div class="module-card-title">' + escFn(item.dimension + ' / ' + item.metric) + '</div><div class="module-card-sub">阈值 ' + escFn(item.threshold) + '，当前 ' + escFn(item.current) + '</div></div><span class="module-chip ' + levelCls + '">' + escFn(levelText) + '</span></div>' +
+            '<div class="module-card-sub">' + escFn(item.signal || '') + '</div>' +
+            '<div class="module-chip-row"><span class="module-chip">' + escFn(item.owner || '-') + '</span><span class="module-chip">' + escFn(item.watch || '-') + '</span></div>' +
+        '</button>';
+    });
+    if(!(report.alerts || []).length){
+        html += '<div class="module-block"><h4>本期无异常</h4><p>当前没有识别到高风险触发项，建议继续录入月度经营数据并保持监测节奏。</p></div>';
+    }
+    html += '</div></div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>预警详情</h3><span class="tag tag-warning">即时 / 7天 / 30天</span></div><div class="content-card-body">';
+    (report.alerts || []).forEach(function(item, index){
+        html += '<div class="module-detail' + (index === 0 ? ' active' : '') + '" data-independent-detail="warning" data-detail-id="' + escFn(item.id) + '">' +
+            '<div class="module-section-title"><h3>' + escFn(item.title || (item.dimension + ' / ' + item.metric)) + '</h3><span class="module-report-tag">' + escFn(item.metric || '-') + '</span></div>' +
+            '<div class="module-detail-grid">' +
+                '<div class="module-block"><h4>风险影响</h4><p>' + escFn(item.impact || '') + '</p><p><strong style="color:#fff">当前信号：</strong>' + escFn(item.signal || '') + '</p></div>' +
+                '<div class="module-block"><h4>立即处置</h4><p>' + escFn(item.immediateAction || '') + '</p><p><strong style="color:#fff">7天内：</strong>' + escFn(item.within7Days || '') + '</p></div>' +
+                '<div class="module-block"><h4>30天闭环</h4><p>' + escFn(item.within30Days || '') + '</p><p><strong style="color:#fff">责任人：</strong>' + escFn(item.owner || '-') + '</p></div>' +
+                '<div class="module-block"><h4>继续跟踪</h4><p>' + escFn(item.watch || '') + '</p><p><strong style="color:#fff">阈值：</strong>' + escFn(item.threshold || '-') + '</p></div>' +
+            '</div></div>';
+    });
+    html += '</div></div>';
+    html += '<div class="content-card"><div class="content-card-header"><h3>监测闭环</h3><span class="tag tag-success">下月继续跟踪</span></div><div class="content-card-body"><div class="module-grid-3">' +
+        '<div class="module-block"><h4>监测清单</h4><ul>' + (report.watchlist || []).map(function(item){ return '<li>' + escFn(item.metric) + ' / ' + escFn(item.target) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="module-block"><h4>治理要求</h4><ul>' + (report.governance || []).map(function(text){ return '<li>' + escFn(text) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="module-block"><h4>风险摘要</h4><p>' + escFn(report.riskStatement || report.executiveSummary || '') + '</p></div>' +
+    '</div></div></div>';
+    return html;
+}
+function saveWarningReportCache(companyName, report){
+    try{
+        var session = typeof window.checkSession === 'function' ? window.checkSession() : null;
+        var user = session && session.u ? session.u : 'guest';
+        var key = 'lj_module_warning_' + user + '_' + normalizeCompanyNameForWarning(companyName);
+        localStorage.setItem(key, JSON.stringify(report));
+    }catch(e){}
+}
+function getWarningReportCache(companyName){
+    try{
+        var session = typeof window.checkSession === 'function' ? window.checkSession() : null;
+        var user = session && session.u ? session.u : 'guest';
+        var key = 'lj_module_warning_' + user + '_' + normalizeCompanyNameForWarning(companyName);
+        return JSON.parse(localStorage.getItem(key) || 'null');
+    }catch(e){
+        return null;
+    }
+}
+function autoPickWarningMonth(){
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('#monthSelector .month-btn'));
+    if(!buttons.length)return;
+    var active = document.querySelector('#monthSelector .month-btn.active');
+    if(active)return;
+    buttons[buttons.length - 1].click();
+}
+var originalOnWarningCompanyChange = window.onWarningCompanyChange;
+window.onWarningCompanyChange = function(){
+    if(typeof originalOnWarningCompanyChange === 'function')originalOnWarningCompanyChange();
+    setWarningSelectedData(null);
+    var companyName = ((document.getElementById('warningCompany') || {}).value || '').trim();
+    if(getPresetWarningDataset(companyName)){
+        setTimeout(autoPickWarningMonth, 0);
+    }else{
+        var panel = document.getElementById('warningPresetData');
+        if(panel){
+            panel.style.display = 'none';
+            panel.innerHTML = '';
+        }
+    }
+    var cached = companyName ? getWarningReportCache(companyName) : null;
+    if(cached && typeof window.renderIndependentModule === 'function'){
+        window.renderIndependentModule('warning', cached);
+    }
+};
+var originalSelectWarningMonth = window.selectWarningMonth;
+window.selectWarningMonth = function(companyName, month, btn){
+    if(typeof originalSelectWarningMonth === 'function')originalSelectWarningMonth(companyName, month, btn);
+    var preset = getPresetWarningDataset(companyName);
+    if(preset && preset[month - 1]){
+        setWarningSelectedData(preset[month - 1]);
+    }
+};
+window.getPresetWarningDataFromUi = function(){
+    return getWarningInputPayloadStable();
+};
+window.getWarningInputPayload = function(){
+    return getWarningInputPayloadStable();
+};
+async function runStableWarningModule(){
+    var companyName = ((document.getElementById('warningCompany') || {}).value || '').trim();
+    if(!companyName){
+        if(window.showToast)window.showToast('请先选择企业');
+        return;
+    }
+    var company = getWarningCompanyByNameSafe(companyName) || { name:companyName };
+    var payload = getWarningInputPayloadStable();
+    if(!payload || !Object.keys(payload).length){
+        if(window.showToast)window.showToast('请选择预制月份或录入月度经营数据');
+        return;
+    }
+    var provider = getWarningProvider();
+    var providerMeta = typeof window.getProviderMeta === 'function' ? window.getProviderMeta(provider) : { label:provider };
+    if(window.showLoading)window.showLoading('正在生成经营预警检测报告...');
+    try{
+        var report = buildWarningReportStable(company, payload, providerMeta.label);
+        if(typeof window.requestModuleAi === 'function'){
+            var aiRes = await window.requestModuleAi('warning', provider, company, report, payload);
+            if(aiRes && aiRes.ok && aiRes.data){
+                report = mergeWarningAiData(report, aiRes.data);
+                report.aiMode = 'AI增强';
+                report.aiNote = '';
+            }else if(aiRes && aiRes.error){
+                report.aiMode = '研究引擎草案';
+                report.aiNote = aiRes.error;
+            }
+        }
+        report.provider = provider;
+        report.providerLabel = providerMeta.label || provider;
+        saveWarningReportCache(companyName, report);
+        if(typeof window.renderIndependentModule === 'function'){
+            window.renderIndependentModule('warning', report);
+        }
+        if(window.setApiInlineAlert){
+            window.setApiInlineAlert(provider, report.aiMode === 'AI增强'
+                ? (report.providerLabel + ' 已完成经营预警 AI 分析')
+                : ('当前使用本地研究引擎底稿。' + (report.aiNote ? ' ' + report.aiNote : '')), report.aiMode === 'AI增强');
+        }
+        if(window.showToast)window.showToast(report.aiMode === 'AI增强' ? '经营预警 AI 分析完成' : '经营预警报告已生成');
+    }catch(err){
+        if(window.showToast)window.showToast('经营预警生成失败：' + String(err && err.message || err));
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+}
+window.buildWarningReportStable = buildWarningReportStable;
+window.renderWarningReport = renderWarningReportStable;
+var originalRunIndependentModule = window.runIndependentModule;
+window.runIndependentModule = async function(moduleKey){
+    if(moduleKey === 'warning'){
+        return runStableWarningModule();
+    }
+    if(typeof originalRunIndependentModule === 'function'){
+        return originalRunIndependentModule(moduleKey);
+    }
+};
+var previousStableRenderIndependentModule = window.renderIndependentModule;
+window.renderIndependentModule = function(moduleKey, report){
+    if(moduleKey === 'warning'){
+        var result = document.getElementById('warningResult');
+        if(result){
+            result.style.display = 'block';
+            result.innerHTML = renderWarningReportStable(report || {});
+        }
+        var page = document.getElementById('page-warning');
+        if(page)page.style.display = 'block';
+        return;
+    }
+    if(typeof previousStableRenderIndependentModule === 'function'){
+        return previousStableRenderIndependentModule(moduleKey, report);
+    }
+};
+window.analyzeWarning = function(){
+    return runStableWarningModule();
+};
+document.addEventListener('change', function(evt){
+    if(evt.target && evt.target.id === 'warningCompany'){
+        setTimeout(function(){
+            var companyName = ((document.getElementById('warningCompany') || {}).value || '').trim();
+            var cached = companyName ? getWarningReportCache(companyName) : null;
+            if(cached && typeof window.renderIndependentModule === 'function'){
+                window.renderIndependentModule('warning', cached);
+            }
+        }, 80);
+    }
+});
+if(document.readyState !== 'loading'){
+    setTimeout(function(){
+        var companyName = ((document.getElementById('warningCompany') || {}).value || '').trim();
+        if(companyName && getPresetWarningDataset(companyName))autoPickWarningMonth();
+    }, 120);
+}else{
+    document.addEventListener('DOMContentLoaded', function(){
+        var companyName = ((document.getElementById('warningCompany') || {}).value || '').trim();
+        if(companyName && getPresetWarningDataset(companyName))autoPickWarningMonth();
+    });
+}
+})();
+</script>
 </body>
 </html>

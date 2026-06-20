@@ -1,0 +1,13 @@
+{
+  "name": "lianjiang-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lianjiang cluster analysis platform tooling",
+  "scripts": {
+    "test:pages": "node test_github_pages_ai.js"
+  },
+  "dependencies": {
+    "playwright": "^1.61.0"
+  }
+}

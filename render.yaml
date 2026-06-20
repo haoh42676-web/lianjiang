@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: lianjiang-ai-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python ai_api_server.py
+    healthCheckPath: /api/status
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: LJ_ALLOW_ORIGIN
+        value: https://haoh42676-web.github.io
+      - key: LJ_MAX_REQUEST_BYTES
+        value: "8388608"
+      - key: LJ_MAX_UPLOAD_BYTES
+        value: "6291456"
+      - key: LJ_MAX_UPLOAD_TEXT_CHARS
+        value: "120000"
+      - key: LJ_RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: LJ_UPLOAD_LIMIT_PER_WINDOW
+        value: "12"
+      - key: LJ_AI_LIMIT_PER_WINDOW
+        value: "30"

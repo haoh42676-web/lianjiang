@@ -1894,9 +1894,10 @@ document.addEventListener('DOMContentLoaded',async function(){
 </script>
 <script>
 (function(){
-var AI_PROXY_URL='http://127.0.0.1:8765/api/ai/analyze';
-var AI_STATUS_URL='http://127.0.0.1:8765/api/status';
-var INTAKE_PARSE_URL='http://127.0.0.1:8765/api/intake/parse';
+var DEFAULT_REMOTE_API_BASE='https://lianjiang-ai-api.onrender.com';
+var AI_PROXY_URL=(window.AI_PROXY_URL|| (DEFAULT_REMOTE_API_BASE + '/api/ai/analyze'));
+var AI_STATUS_URL=(window.AI_STATUS_URL|| (DEFAULT_REMOTE_API_BASE + '/api/status'));
+var INTAKE_PARSE_URL=(window.INTAKE_PARSE_URL|| (DEFAULT_REMOTE_API_BASE + '/api/intake/parse'));
 var AI_PROVIDER_META={
     mimo:{label:'MiMo',defaultBaseUrl:'',defaultModel:'',endpoint:'/chat/completions',button:'调用 MiMo AI 深度分析',theme:'mimo'},
     deepseek:{label:'DeepSeek',defaultBaseUrl:'https://api.deepseek.com',defaultModel:'deepseek-chat',endpoint:'/chat/completions',button:'调用 DeepSeek 深度分析',theme:'deepseek'},
@@ -2607,7 +2608,7 @@ window.saveAIConfig=function(provider){
 };
 window.checkAIServer=async function(){
     try{
-        var res=await fetch('http://127.0.0.1:8765/api/status',{method:'GET'});
+        var res=await fetch((window.AI_STATUS_URL||AI_STATUS_URL),{method:'GET'});
         var data=await res.json();
         if(!res.ok||!data.ok)throw new Error(data.error||'代理不可用');
         window.aiServerStatusCache=data;
@@ -2658,7 +2659,7 @@ window.startAIAnalysis=async function(provider){
             report=await callProviderDirect(provider,cfg,window.companyData);
         }else{
             try{
-                var proxyRes=await fetch('http://127.0.0.1:8765/api/ai/analyze',{
+                var proxyRes=await fetch((window.AI_PROXY_URL||AI_PROXY_URL),{
                     method:'POST',
                     headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({
@@ -3227,7 +3228,7 @@ window.saveAIConfig=function(provider){
 };
 window.checkAIServer=async function(){
     try{
-        var res=await fetch('http://127.0.0.1:8765/api/status',{method:'GET'});
+        var res=await fetch((window.AI_STATUS_URL||AI_STATUS_URL),{method:'GET'});
         var data=await res.json();
         if(!res.ok||!data.ok)throw new Error(data.error||'代理不可用');
         window.aiServerStatusCache=data;
@@ -3278,7 +3279,7 @@ window.startAIAnalysis=async function(provider){
             report=await callProviderDirect(provider,cfg,window.companyData);
         }else{
             try{
-                var proxyRes=await fetch('http://127.0.0.1:8765/api/ai/analyze',{
+                var proxyRes=await fetch((window.AI_PROXY_URL||AI_PROXY_URL),{
                     method:'POST',
                     headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({
@@ -5404,7 +5405,7 @@ async function requestModuleAi(moduleKey, provider, company, localReport, extraI
     try{
         if(!shouldUseDirectApi()){
             try{
-                var proxyRes = await fetch('http://127.0.0.1:8765/api/ai/analyze',{
+                var proxyRes = await fetch((window.AI_PROXY_URL||AI_PROXY_URL),{
                     method:'POST',
                     headers:{ 'Content-Type':'application/json' },
                     body:JSON.stringify({

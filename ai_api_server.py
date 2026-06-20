@@ -4,6 +4,7 @@ import re
 import base64
 import hashlib
 import time
+import subprocess
 from io import BytesIO
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -371,6 +372,51 @@ def build_messages(payload):
     ]
 
 
+def call_gateway_via_browser(config, body):
+    script_path = os.path.join(os.path.dirname(__file__), "gateway_browser_proxy.mjs")
+    node_path = os.environ.get(
+        "LJ_NODE_PATH",
+        r"C:\Users\Administrator\AppData\Local\Microsoft\WinGet\Packages\OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe\node-v24.16.0-win-x64\node.exe",
+    )
+    payload = {
+        "base_url": config["base_url"],
+        "api_key": config["api_key"],
+        "body": body,
+        "force_json": True,
+    }
+    last_error = None
+    for _ in range(2):
+        proc = subprocess.run(
+            [node_path, script_path, json.dumps(payload, ensure_ascii=False)],
+            capture_output=True,
+            text=False,
+            timeout=180,
+            check=False,
+        )
+        stdout_text = (proc.stdout or b"").decode("utf-8", errors="ignore")
+        stderr_text = (proc.stderr or b"").decode("utf-8", errors="ignore")
+        if proc.returncode != 0:
+            last_error = stderr_text.strip() or stdout_text.strip()
+            if "ERR_CONNECTION_CLOSED" in last_error:
+                time.sleep(1)
+                continue
+            raise RuntimeError(f"browser gateway proxy failed: {last_error}")
+        try:
+            result = json.loads(stdout_text.strip())
+            break
+        except Exception as exc:
+            last_error = stdout_text[:1000]
+            raise RuntimeError(f"browser gateway proxy returned invalid json: {last_error}") from exc
+    else:
+        raise RuntimeError(f"browser gateway proxy failed: {last_error or 'unknown error'}")
+    if not result.get("ok"):
+        raise RuntimeError(f"browser gateway proxy HTTP {result.get('status')}: {result.get('text', '')[:1000]}")
+    try:
+        return json.loads(result.get("text") or "{}")
+    except Exception as exc:
+        raise RuntimeError(f"browser gateway proxy returned non-json body: {str(result.get('text') or '')[:1000]}") from exc
+
+
 FIELD_ALIASES = {
     "companyName": [r"企业名称", r"公司名称", r"单位名称"],
     "industry": [r"所属行业", r"行业", r"产业方向"],
@@ -528,8 +574,14 @@ def call_openai_compatible(provider, config, payload):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {config['api_key']}",
         "Connection": "close",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+        "Referer": "https://gpt.fengxiaole.top/login",
+        "sec-ch-ua": '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
     }
     last_exc = None
+    raw = None
     for attempt in range(2):
         try:
             if attempt == 1:
@@ -547,15 +599,30 @@ def call_openai_compatible(provider, config, payload):
             if attempt == 0:
                 time.sleep(1)
                 continue
+            if provider == "openai" and "gpt.fengxiaole.top" in str(config.get("base_url", "")):
+                raw = call_gateway_via_browser(config, body)
+                resp = None
+                break
             raise RuntimeError(f"{provider} network error: {exc}") from exc
     if resp is None:
-        raise RuntimeError(f"{provider} network error: {last_exc}")
-    if not resp.ok:
-        raise RuntimeError(f"{provider} HTTP {resp.status_code}: {resp.text}")
-    try:
-        raw = resp.json()
-    except Exception as exc:
-        raise RuntimeError(f"{provider} returned invalid json: {resp.text[:1000]}") from exc
+        if raw is None:
+            raise RuntimeError(f"{provider} network error: {last_exc}")
+    else:
+        if not resp.ok:
+            if (
+                provider == "openai"
+                and "gpt.fengxiaole.top" in str(config.get("base_url", ""))
+                and resp.status_code >= 500
+                and "Upstream access forbidden" in resp.text
+            ):
+                raw = call_gateway_via_browser(config, body)
+            else:
+                raise RuntimeError(f"{provider} HTTP {resp.status_code}: {resp.text}")
+        if raw is None:
+            try:
+                raw = resp.json()
+            except Exception as exc:
+                raise RuntimeError(f"{provider} returned invalid json: {resp.text[:1000]}") from exc
 
     choices = raw.get("choices") or []
     if not choices:

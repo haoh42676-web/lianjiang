@@ -6161,6 +6161,62 @@ window.startAIAnalysis = async function(provider){
     }
 };
 
+function forceStableSubPageState(id){
+    var main = document.getElementById('mainPage');
+    if(main)main.style.display = 'none';
+    document.querySelectorAll('.sub-page').forEach(function(page){
+        page.classList.remove('active');
+        page.style.display = 'none';
+    });
+    var target = document.getElementById('page-' + id);
+    if(target){
+        target.classList.add('active');
+        target.style.display = 'block';
+    }
+}
+function forceStableAiPanel(provider){
+    var key = provider || 'mimo';
+    document.querySelectorAll('.ai-tab').forEach(function(tab){
+        var onclick = String(tab.getAttribute('onclick') || '');
+        var active = onclick.indexOf("'" + key + "'") >= 0;
+        tab.classList.toggle('active', active);
+    });
+    document.querySelectorAll('.ai-panel').forEach(function(panel){
+        var active = panel.id === ('aiPanel-' + key);
+        panel.classList.toggle('active', active);
+        panel.style.display = active ? 'block' : 'none';
+    });
+}
+var _stableShowSubPage = window.showSubPage;
+window.showSubPage = function(id){
+    if(_stableShowSubPage)_stableShowSubPage(id);
+    forceStableSubPageState(id);
+    if(id === 'aiAnalysis'){
+        forceStableAiPanel((typeof window.getActiveAIProvider === 'function' && window.getActiveAIProvider()) || 'mimo');
+        if(typeof window.ensureAiPanelsUpgraded === 'function')window.ensureAiPanelsUpgraded();
+        if(typeof window.syncAiCompanyOptions === 'function')window.syncAiCompanyOptions();
+    }
+    if(id === 'evaluation' && typeof window.ensureEvaluationWorkbench === 'function')window.ensureEvaluationWorkbench();
+    if(id === 'solution' && typeof window.ensureSolutionWorkbench === 'function')window.ensureSolutionWorkbench();
+    if(id === 'warning' && typeof window.ensureWarningWorkbench === 'function')window.ensureWarningWorkbench();
+};
+var _stableSelectAI = window.selectAI;
+window.selectAI = function(provider, btn){
+    if(_stableSelectAI)_stableSelectAI(provider, btn);
+    forceStableAiPanel(provider || 'mimo');
+};
+var _stableRenderIndependentModule = window.renderIndependentModule;
+window.renderIndependentModule = function(moduleKey, report){
+    if(_stableRenderIndependentModule)_stableRenderIndependentModule(moduleKey, report);
+    if(moduleKey === 'evaluation')forceStableSubPageState('evaluation');
+    if(moduleKey === 'solution')forceStableSubPageState('solution');
+    if(moduleKey === 'warning'){
+        forceStableSubPageState('warning');
+        var warningResult = document.getElementById('warningResult');
+        if(warningResult)warningResult.style.display = 'block';
+    }
+};
+
 var originalRequestModuleAi = window.requestModuleAi;
 window.requestModuleAi = async function(moduleKey, provider, company, localReport, extraInput){
     var cfg = window.getProviderConfig ? window.getProviderConfig(provider) : { base_url:'', model:'', api_key:'', endpoint:'/chat/completions' };

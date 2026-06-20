@@ -5917,5 +5917,289 @@ if(document.readyState !== 'loading'){
 }
 })();
 </script>
+<script>
+(function(){
+'use strict';
+
+var REMOTE_API_BASE_DEFAULT = 'https://lianjiang-ai-api.onrender.com';
+
+function remoteApiBase(){
+    var configured = '';
+    try{ configured = String(localStorage.getItem('lj_remote_api_base') || '').trim(); }catch(e){}
+    var envValue = String(window.LJ_REMOTE_API_BASE || '').trim();
+    var base = configured || envValue || REMOTE_API_BASE_DEFAULT;
+    return base.replace(/\/+$/,'');
+}
+function currentProxyUrl(){
+    return remoteApiBase() + '/api/ai/analyze';
+}
+function currentStatusUrl(){
+    return remoteApiBase() + '/api/status';
+}
+function currentIntakeUrl(){
+    return remoteApiBase() + '/api/intake/parse';
+}
+function runtimeUsesRemoteProxy(){
+    return /^https?:\/\//i.test(remoteApiBase());
+}
+function getEphemeralAiConfig(provider){
+    try{
+        return JSON.parse(sessionStorage.getItem('lj_ai_runtime_' + provider) || '{}');
+    }catch(e){
+        return {};
+    }
+}
+function setEphemeralAiConfig(provider,cfg){
+    try{
+        sessionStorage.setItem('lj_ai_runtime_' + provider, JSON.stringify({
+            base_url:String(cfg.base_url||'').trim(),
+            model:String(cfg.model||'').trim(),
+            api_key:String(cfg.api_key||'').trim(),
+            endpoint:String(cfg.endpoint||'/chat/completions').trim() || '/chat/completions'
+        }));
+    }catch(e){}
+}
+function mergeStoredAndSessionConfig(provider){
+    var persistent = {};
+    var transientCfg = {};
+    try{ persistent = JSON.parse(localStorage.getItem('lj_ai_config_' + provider) || '{}'); }catch(e){}
+    transientCfg = getEphemeralAiConfig(provider);
+    return {
+        base_url: transientCfg.base_url || persistent.base_url || '',
+        model: transientCfg.model || persistent.model || '',
+        api_key: transientCfg.api_key || '',
+        endpoint: transientCfg.endpoint || persistent.endpoint || '/chat/completions'
+    };
+}
+function fileSignatureLooksSafe(file, bytes){
+    var ext = '';
+    var name = String((file && file.name) || '').toLowerCase();
+    var dot = name.lastIndexOf('.');
+    if(dot >= 0)ext = name.slice(dot);
+    var arr = new Uint8Array(bytes || []);
+    if(ext === '.docx')return arr[0] === 0x50 && arr[1] === 0x4b;
+    if(ext === '.pdf')return arr[0] === 0x25 && arr[1] === 0x50 && arr[2] === 0x44 && arr[3] === 0x46;
+    if(ext === '.doc')return arr[0] === 0xd0 && arr[1] === 0xcf && arr[2] === 0x11 && arr[3] === 0xe0;
+    return true;
+}
+function statusTextForProvider(provider){
+    var proxy = currentProxyUrl();
+    return '远端代理：' + proxy;
+}
+
+window.LJ_REMOTE_API_BASE = remoteApiBase();
+window.AI_PROXY_URL = currentProxyUrl();
+window.AI_STATUS_URL = currentStatusUrl();
+window.INTAKE_PARSE_URL = currentIntakeUrl();
+
+var originalGetProviderConfig = window.getProviderConfig;
+window.getProviderConfig = function(provider){
+    var base = originalGetProviderConfig ? originalGetProviderConfig(provider) : { base_url:'', model:'', api_key:'', endpoint:'/chat/completions' };
+    var merged = mergeStoredAndSessionConfig(provider);
+    return {
+        base_url: merged.base_url || base.base_url || '',
+        model: merged.model || base.model || '',
+        api_key: merged.api_key || '',
+        endpoint: merged.endpoint || base.endpoint || '/chat/completions'
+    };
+};
+
+var originalSaveProviderConfig = window.saveProviderConfig;
+window.saveProviderConfig = function(provider,cfg){
+    var persistentCfg = {
+        base_url:String(cfg.base_url||'').trim(),
+        model:String(cfg.model||'').trim(),
+        endpoint:String(cfg.endpoint||'/chat/completions').trim() || '/chat/completions',
+        api_key:''
+    };
+    try{ localStorage.setItem('lj_ai_config_' + provider, JSON.stringify(persistentCfg)); }catch(e){}
+    setEphemeralAiConfig(provider,cfg||{});
+    if(typeof originalSaveProviderConfig === 'function'){
+        try{ originalSaveProviderConfig(provider,persistentCfg); }catch(e){}
+    }
+};
+
+window.formatAiServerHint = function(){
+    return '当前页面默认连接 Render 远端代理服务。其他用户打开 GitHub Pages 后，只需填写自己的 Base URL、模型名、API Key 即可调用；API Key 仅保存在当前浏览器会话，不做长期落盘。';
+};
+
+window.checkAIServer = async function(){
+    var statusUrl = currentStatusUrl();
+    try{
+        var res = await fetch(statusUrl,{ method:'GET' });
+        var data = await res.json();
+        if(!res.ok || !data.ok)throw new Error(data.error || '远端代理不可用');
+        window.aiServerStatusCache = data;
+        ['mimo','deepseek','chatgpt'].forEach(function(provider){
+            var statusEl = document.getElementById('apiStatus-' + provider);
+            if(statusEl)statusEl.textContent = statusTextForProvider(provider) + '，服务在线';
+            if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'远端代理连接正常，现在可以开始分析。',true);
+        });
+        if(window.showToast)window.showToast('Render 代理连接正常');
+    }catch(err){
+        ['mimo','deepseek','chatgpt'].forEach(function(provider){
+            var statusEl = document.getElementById('apiStatus-' + provider);
+            if(statusEl)statusEl.textContent = statusTextForProvider(provider) + '，当前不可达';
+            if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'当前无法连接远端代理：' + err.message + '。如果刚部署到 Render，免费实例可能还在冷启动。');
+        });
+        if(window.showToast)window.showToast('远端代理暂不可用');
+    }
+};
+
+window.parseIntakeDocument = async function(){
+    var input = document.getElementById('intakeDocFile');
+    var status = document.getElementById('intakeDocStatus');
+    if(!input || !input.files || !input.files.length){
+        if(window.showToast)window.showToast('请先选择要识别的文档');
+        return;
+    }
+    var file = input.files[0];
+    var ext = ((file.name || '').match(/\.[^.]+$/) || [''])[0].toLowerCase();
+    if(['.doc','.docx','.pdf','.txt','.md','.json'].indexOf(ext) < 0){
+        if(window.showToast)window.showToast('仅支持 .doc/.docx/.pdf/.txt/.md/.json');
+        return;
+    }
+    if(file.size > 6 * 1024 * 1024){
+        if(window.showToast)window.showToast('上传文件不能超过 6MB');
+        return;
+    }
+    try{
+        var header = await file.slice(0,16).arrayBuffer();
+        if(!fileSignatureLooksSafe(file, header)){
+            throw new Error('文件头校验未通过，请确认文件格式正确');
+        }
+    }catch(signatureErr){
+        if(status)status.textContent = '识别失败：' + signatureErr.message;
+        if(window.showToast)window.showToast(signatureErr.message);
+        return;
+    }
+    if(status)status.textContent = '正在识别 ' + file.name + ' ...';
+    if(window.showLoading)window.showLoading('正在解析文档并提取企业信息...');
+    try{
+        var contentBase64 = await (window.readFileAsBase64 ? window.readFileAsBase64(file) : Promise.reject(new Error('文件读取器不可用')));
+        var res = await fetch(currentIntakeUrl(),{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body:JSON.stringify({ fileName:file.name, contentBase64:contentBase64 })
+        });
+        var data = await res.json();
+        if(!res.ok || !data.ok)throw new Error(data.error || '文档识别失败');
+        if(window.applyParsedFields)window.applyParsedFields(data.fields || {});
+        if(window.renderParsePreview)window.renderParsePreview(data);
+        if(status)status.textContent = '识别完成：已回填 ' + (((data.summary || []).length) || 0) + ' 个字段';
+        if(window.showToast)window.showToast('文档识别完成，已自动回填表单');
+    }catch(err){
+        if(status)status.textContent = '识别失败：' + err.message;
+        if(window.showToast)window.showToast('文档识别失败：' + err.message);
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+};
+
+window.startAIAnalysis = async function(provider){
+    provider = provider || (window.getActiveAIProvider ? window.getActiveAIProvider() : 'mimo');
+    var panel = document.getElementById('aiPanel-' + provider);
+    var select = panel ? panel.querySelector('.ai-company-select') : document.getElementById('selectCompany');
+    var fallback = document.getElementById('selectCompany');
+    var name = (select && select.value) || (fallback && fallback.value) || '';
+    if(!name){ if(window.showToast)window.showToast('请先选择企业'); return; }
+    if(window.setAiCompanySelection)window.setAiCompanySelection(name);
+    window.companyData = window.findCompanyBySelection ? window.findCompanyBySelection(name) : null;
+    if(!window.companyData){ if(window.showToast)window.showToast('未找到企业数据'); return; }
+    var cfg = {
+        base_url:(document.getElementById('apiBaseUrl-' + provider) || {}).value || '',
+        model:(document.getElementById('apiModel-' + provider) || {}).value || '',
+        api_key:(document.getElementById('apiKey-' + provider) || {}).value || '',
+        endpoint:(document.getElementById('apiEndpoint-' + provider) || {}).value || '/chat/completions'
+    };
+    window.saveProviderConfig(provider,cfg);
+    if(!cfg.base_url || !cfg.model || !cfg.api_key){
+        if(window.showToast)window.showToast('请先填写 ' + window.getProviderMeta(provider).label + ' 的 Base URL、Model 和 API Key');
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'当前缺少必要配置：Base URL、Model、API Key 必须全部填写。');
+        return;
+    }
+    if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'正在通过 Render 远端代理调用 ' + window.getProviderMeta(provider).label + ' ...',true);
+    if(window.showLoading)window.showLoading('正在调用 ' + window.getProviderMeta(provider).label + ' API 生成完整诊断方案...');
+    try{
+        var res = await fetch(currentProxyUrl(),{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body:JSON.stringify({
+                provider: window.getProviderKey(provider),
+                providerConfig: cfg,
+                analysis_input: window.getLocalAnalysisInput(window.companyData)
+            })
+        });
+        var data = await res.json();
+        if(!res.ok || !data.ok)throw new Error(data.error || 'API 请求失败');
+        window.diagnosisResult = window.normalizeAiReport(provider,data.report,window.companyData);
+        if(window.saveUserAnalysis)window.saveUserAnalysis({ c:name, s:window.diagnosisResult.totalScore, l:window.diagnosisResult.level.text, t:new Date().toLocaleString('zh-CN') });
+        window.showAIReport = function(){
+            if(!window.diagnosisResult)return;
+            document.getElementById('aiReportContent').innerHTML = window.buildApiReportHtml(window.diagnosisResult);
+            document.getElementById('aiAnalysisResult').style.display = 'block';
+            if(window.updateEvaluationPage)window.updateEvaluationPage();
+            setTimeout(function(){ if(window.openAiDimensionDetail)window.openAiDimensionDetail(window.RESEARCH_FUSION_MODEL.order[0]); },60);
+            setTimeout(function(){
+                if(window.openAiPhaseDetail && (window.diagnosisResult.apiReport || {}).phases && window.diagnosisResult.apiReport.phases.length){
+                    window.openAiPhaseDetail(0);
+                }
+            },90);
+        };
+        window.showAIReport();
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,window.getProviderMeta(provider).label + ' 已成功返回分析结果，报告已生成。',true);
+        if(window.showToast)window.showToast(window.getProviderMeta(provider).label + ' API 分析完成');
+    }catch(err){
+        var message = String(err && err.message || err || '分析失败');
+        var statusEl = document.getElementById('apiStatus-' + provider);
+        if(statusEl)statusEl.textContent = statusTextForProvider(provider) + '，分析失败：' + message;
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'远端代理调用失败：' + message + '。如果 Render 是免费实例，首次调用可能需要等待冷启动。');
+        if(window.showToast)window.showToast('分析失败：' + message);
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+};
+
+var originalRequestModuleAi = window.requestModuleAi;
+window.requestModuleAi = async function(moduleKey, provider, company, localReport, extraInput){
+    var cfg = window.getProviderConfig ? window.getProviderConfig(provider) : { base_url:'', model:'', api_key:'', endpoint:'/chat/completions' };
+    if(!cfg.base_url || !cfg.model || !cfg.api_key){
+        return { ok:false, error:'未配置 API，已使用本地研究引擎底稿。' };
+    }
+    try{
+        var response = await fetch(currentProxyUrl(),{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body:JSON.stringify({
+                provider: provider === 'chatgpt' ? 'openai' : provider,
+                providerConfig: cfg,
+                analysis_input: { company:company, module:moduleKey, localReport:localReport, extraInput:extraInput || null, prompt:window.buildModuleAiPrompt(moduleKey, provider, company, localReport, extraInput) }
+            })
+        });
+        var parsed = await response.json();
+        if(!response.ok || !parsed.ok){
+            return { ok:false, error:String((parsed && parsed.error) || ('HTTP ' + response.status)) };
+        }
+        return { ok:true, data:parsed.report || parsed };
+    }catch(err){
+        if(typeof originalRequestModuleAi === 'function'){
+            return originalRequestModuleAi(moduleKey, provider, company, localReport, extraInput);
+        }
+        return { ok:false, error:String(err && err.message || err || 'AI 请求失败') };
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function(){
+    window.AI_PROXY_URL = currentProxyUrl();
+    window.AI_STATUS_URL = currentStatusUrl();
+    window.INTAKE_PARSE_URL = currentIntakeUrl();
+    ['mimo','deepseek','chatgpt'].forEach(function(provider){
+        var statusEl = document.getElementById('apiStatus-' + provider);
+        if(statusEl)statusEl.textContent = statusTextForProvider(provider);
+    });
+    if(typeof window.checkAIServer === 'function')window.checkAIServer();
+});
+})();
+</script>
 </body>
 </html>

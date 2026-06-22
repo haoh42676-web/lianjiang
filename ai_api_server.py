@@ -11,8 +11,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import error, request
 from docx import Document
 from pypdf import PdfReader
-import requests
-from requests.adapters import HTTPAdapter
 
 
 HOST = os.environ.get("LJ_AI_API_HOST", "0.0.0.0")
@@ -38,9 +36,9 @@ REQUEST_BUCKETS = {}
 PROVIDER_DEFAULTS = {
     "openai": {
         "label": "OpenAI",
-        "base_url": "https://gpt.fengxiaole.top/v1",
+        "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         "endpoint": "/chat/completions",
-        "model": os.environ.get("OPENAI_MODEL", "gpt-5.4"),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
         "api_key": os.environ.get("OPENAI_API_KEY", ""),
     },
     "deepseek": {
@@ -52,9 +50,9 @@ PROVIDER_DEFAULTS = {
     },
     "mimo": {
         "label": "MiMo",
-        "base_url": os.environ.get("MIMO_BASE_URL", ""),
+        "base_url": os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1"),
         "endpoint": os.environ.get("MIMO_ENDPOINT", "/chat/completions"),
-        "model": os.environ.get("MIMO_MODEL", ""),
+        "model": os.environ.get("MIMO_MODEL", "mimo-v2.5-pro"),
         "api_key": os.environ.get("MIMO_API_KEY", ""),
     },
 }
@@ -176,12 +174,8 @@ def level_from_score(score):
     return "A级-差"
 
 
-def normalize_provider_config(provider, overrides):
+def normalize_provider_config(provider):
     base = dict(PROVIDER_DEFAULTS.get(provider, {}))
-    overrides = overrides or {}
-    for key in ("base_url", "endpoint", "model", "api_key"):
-        if overrides.get(key):
-            base[key] = overrides[key]
     if base.get("base_url"):
         base["base_url"] = base["base_url"].rstrip("/")
     if not base.get("endpoint"):
@@ -567,62 +561,59 @@ def call_openai_compatible(provider, config, payload):
     }
     if provider != "deepseek":
         body["response_format"] = {"type": "json_object"}
-    session = requests.Session()
-    session.trust_env = False
-    session.mount("https://", HTTPAdapter(pool_connections=4, pool_maxsize=4, max_retries=0))
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {config['api_key']}",
         "Connection": "close",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
-        "Referer": "https://gpt.fengxiaole.top/login",
-        "sec-ch-ua": '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
     }
-    last_exc = None
+    if provider == "mimo":
+        headers["api-key"] = config["api_key"]
+    if provider == "openai" and "gpt.fengxiaole.top" in str(config.get("base_url", "")):
+        headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+                "Referer": "https://gpt.fengxiaole.top/login",
+                "sec-ch-ua": '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Windows"',
+            }
+        )
     raw = None
+    url = config["base_url"] + config["endpoint"]
     for attempt in range(2):
         try:
             if attempt == 1:
                 body["temperature"] = 0.2
-            resp = session.post(
-                config["base_url"] + config["endpoint"],
+            req = request.Request(
+                url,
+                data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
                 headers=headers,
-                json=body,
-                timeout=120,
+                method="POST",
             )
+            with request.urlopen(req, timeout=120) as resp:
+                raw = json.loads(resp.read().decode("utf-8", errors="ignore"))
             break
-        except requests.exceptions.RequestException as exc:
-            last_exc = exc
-            resp = None
+        except error.HTTPError as exc:
+            response_text = exc.read().decode("utf-8", errors="ignore")
+            if (
+                provider == "openai"
+                and "gpt.fengxiaole.top" in str(config.get("base_url", ""))
+                and exc.code >= 500
+                and "Upstream access forbidden" in response_text
+            ):
+                raw = call_gateway_via_browser(config, body)
+                break
+            raise RuntimeError(f"{provider} HTTP {exc.code}: {response_text}") from exc
+        except Exception as exc:
             if attempt == 0:
                 time.sleep(1)
                 continue
             if provider == "openai" and "gpt.fengxiaole.top" in str(config.get("base_url", "")):
                 raw = call_gateway_via_browser(config, body)
-                resp = None
                 break
             raise RuntimeError(f"{provider} network error: {exc}") from exc
-    if resp is None:
-        if raw is None:
-            raise RuntimeError(f"{provider} network error: {last_exc}")
-    else:
-        if not resp.ok:
-            if (
-                provider == "openai"
-                and "gpt.fengxiaole.top" in str(config.get("base_url", ""))
-                and resp.status_code >= 500
-                and "Upstream access forbidden" in resp.text
-            ):
-                raw = call_gateway_via_browser(config, body)
-            else:
-                raise RuntimeError(f"{provider} HTTP {resp.status_code}: {resp.text}")
-        if raw is None:
-            try:
-                raw = resp.json()
-            except Exception as exc:
-                raise RuntimeError(f"{provider} returned invalid json: {resp.text[:1000]}") from exc
+    if raw is None:
+        raise RuntimeError(f"{provider} returned empty response")
 
     choices = raw.get("choices") or []
     if not choices:
@@ -679,8 +670,7 @@ class Handler(BaseHTTPRequestHandler):
                 providers[key] = {
                     "label": info["label"],
                     "configured": bool(info.get("api_key")),
-                    "base_url": info.get("base_url", ""),
-                    "model": info.get("model", ""),
+                    "server_managed": True,
                 }
             self._send(
                 200,
@@ -814,7 +804,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"ok": False, "error": "unsupported provider", "requestId": request_id})
             return
 
-        config = normalize_provider_config(provider, payload.get("providerConfig"))
+        config = normalize_provider_config(provider)
         if not config.get("base_url") or not config.get("model") or not config.get("api_key"):
             self._send(
                 400,

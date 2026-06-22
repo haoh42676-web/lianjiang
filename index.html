@@ -6769,5 +6769,158 @@ if(document.readyState !== 'loading'){
 }
 })();
 </script>
+<script>
+(function(){
+'use strict';
+
+function safeText(value){
+    if(value == null)return '';
+    return String(value)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+}
+
+function serverManagedStatusText(){
+    return '服务端托管配置：' + String(window.AI_PROXY_URL || 'https://lianjiang-ai-api.onrender.com/api/ai/analyze');
+}
+
+window.formatAiServerHint = function(){
+    return '当前版本已改为后端统一托管 AI 配置，三个模型的 Base URL、Model、Endpoint、API Key 全部只在服务端环境变量中维护，前端不再展示也不再保存密钥。';
+};
+
+window.getProviderConfig = function(){
+    return {
+        base_url: '',
+        model: '',
+        api_key: '',
+        endpoint: ''
+    };
+};
+
+window.saveProviderConfig = function(){
+    return true;
+};
+
+window.saveAIConfig = function(provider){
+    if(window.setApiInlineAlert){
+        window.setApiInlineAlert(provider,'当前版本无需前端保存配置，系统将直接使用后端已配置好的接口。',true);
+    }
+    if(window.showToast)window.showToast('当前版本由后端统一托管 AI 配置');
+};
+
+window.renderApiConfigPanel = function(provider){
+    var meta = window.getProviderMeta(provider);
+    var status = window.aiServerStatusCache && window.aiServerStatusCache.providers
+        ? window.aiServerStatusCache.providers[window.getProviderKey(provider)]
+        : null;
+    var serverBadge = window.aiServerStatusCache
+        ? '<span class="tag ' + (status && status.configured ? 'tag-success' : 'tag-warning') + '">' + (status && status.configured ? '服务端已配置' : '服务端未配置') + '</span>'
+        : '<span class="tag tag-info">等待检测</span>';
+    return ''+
+    '<div class="preset-info-box" style="margin-bottom:14px">'+
+        '<h4>' + safeText(meta.label) + ' 接口配置</h4>'+
+        '<p>当前版本使用后端统一托管配置。Base URL、Model、Endpoint、API Key 已在服务端设置，前端页面不再暴露密钥。</p>'+
+    '</div>'+
+    '<div class="content-card-footer" style="padding:0;margin-top:8px">'+
+        '<div id="apiStatus-' + provider + '" style="margin-right:auto;color:#a0a0cc;font-size:12px">' + safeText(serverManagedStatusText()) + ' ' + serverBadge + '</div>'+
+        '<button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button>'+
+        '<button class="btn btn-ai" type="button" onclick="startAIAnalysis(\'' + provider + '\')">' + safeText(meta.button) + '</button>'+
+    '</div>';
+};
+
+window.checkAIServer = async function(){
+    var statusUrl = window.AI_STATUS_URL || 'https://lianjiang-ai-api.onrender.com/api/status';
+    try{
+        var res = await fetch(statusUrl,{ method:'GET' });
+        var data = await res.json();
+        if(!res.ok || !data.ok)throw new Error(data.error || '代理不可用');
+        window.aiServerStatusCache = data;
+        ['mimo','deepseek','chatgpt'].forEach(function(provider){
+            var providerStatus = data.providers ? data.providers[window.getProviderKey(provider)] : null;
+            var statusEl = document.getElementById('apiStatus-' + provider);
+            if(statusEl){
+                statusEl.textContent = serverManagedStatusText() + (providerStatus && providerStatus.configured ? ' 服务端已配置' : ' 服务端未配置');
+            }
+            if(window.setApiInlineAlert){
+                window.setApiInlineAlert(provider, providerStatus && providerStatus.configured ? '后端配置检测正常，可以直接开始分析。' : '后端尚未完成该模型配置，请先补齐服务端环境变量。', !!(providerStatus && providerStatus.configured));
+            }
+        });
+        if(window.showToast)window.showToast('后端 AI 配置检测正常');
+    }catch(err){
+        ['mimo','deepseek','chatgpt'].forEach(function(provider){
+            var statusEl = document.getElementById('apiStatus-' + provider);
+            if(statusEl)statusEl.textContent = serverManagedStatusText() + ' 当前不可达';
+            if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'当前无法连接后端代理：' + err.message);
+        });
+        if(window.showToast)window.showToast('后端 AI 配置检测失败');
+    }
+};
+
+window.startAIAnalysis = async function(provider){
+    provider = provider || (window.getActiveAIProvider ? window.getActiveAIProvider() : 'mimo');
+    var panel = document.getElementById('aiPanel-' + provider);
+    var select = panel ? panel.querySelector('.ai-company-select') : document.getElementById('selectCompany');
+    var fallback = document.getElementById('selectCompany');
+    var name = (select && select.value) || (fallback && fallback.value) || '';
+    if(!name){
+        if(window.showToast)window.showToast('请先选择企业');
+        return;
+    }
+    if(window.setAiCompanySelection)window.setAiCompanySelection(name);
+    window.companyData = window.findCompanyBySelection ? window.findCompanyBySelection(name) : null;
+    if(!window.companyData){
+        if(window.showToast)window.showToast('未找到企业数据');
+        return;
+    }
+    if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'正在调用后端托管的 ' + window.getProviderMeta(provider).label + ' 分析接口...',true);
+    if(window.showLoading)window.showLoading('正在调用 ' + window.getProviderMeta(provider).label + ' API 生成完整诊断方案...');
+    try{
+        var res = await fetch(window.AI_PROXY_URL || 'https://lianjiang-ai-api.onrender.com/api/ai/analyze',{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body:JSON.stringify({
+                provider: window.getProviderKey(provider),
+                analysis_input: window.getLocalAnalysisInput(window.companyData)
+            })
+        });
+        var data = await res.json();
+        if(!res.ok || !data.ok)throw new Error(data.error || 'API 请求失败');
+        window.diagnosisResult = window.normalizeAiReport(provider,data.report,window.companyData);
+        if(window.saveUserAnalysis)window.saveUserAnalysis({ c:name, s:window.diagnosisResult.totalScore, l:window.diagnosisResult.level.text, t:new Date().toLocaleString('zh-CN') });
+        document.getElementById('aiReportContent').innerHTML = window.buildApiReportHtml(window.diagnosisResult);
+        document.getElementById('aiAnalysisResult').style.display = 'block';
+        if(window.updateEvaluationPage)window.updateEvaluationPage();
+        setTimeout(function(){
+            if(window.openAiDimensionDetail)window.openAiDimensionDetail(window.RESEARCH_FUSION_MODEL.order[0]);
+        },60);
+        setTimeout(function(){
+            if(window.openAiPhaseDetail && (window.diagnosisResult.apiReport || {}).phases && window.diagnosisResult.apiReport.phases.length){
+                window.openAiPhaseDetail(0);
+            }
+        },90);
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,window.getProviderMeta(provider).label + ' 已成功返回分析结果，报告已生成。',true);
+        if(window.showToast)window.showToast(window.getProviderMeta(provider).label + ' API 分析完成');
+    }catch(err){
+        var message = String(err && err.message || err || '分析失败');
+        var statusEl = document.getElementById('apiStatus-' + provider);
+        if(statusEl)statusEl.textContent = serverManagedStatusText() + ' 分析失败：' + message;
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'后端代理调用失败：' + message);
+        if(window.showToast)window.showToast('分析失败：' + message);
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+};
+
+if(typeof window.ensureAiPanelsUpgraded === 'function'){
+    setTimeout(function(){
+        window.ensureAiPanelsUpgraded();
+        if(typeof window.checkAIServer === 'function')window.checkAIServer();
+    }, 0);
+}
+})();
+</script>
 </body>
 </html>

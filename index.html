@@ -8191,5 +8191,111 @@ if(typeof window.setBrowserModeHint !== 'function'){
 }
 })();
 </script>
+<script>
+(function(){
+'use strict';
+
+function safeCompanyNameForExport(){
+    var company = (((window.diagnosisResult || {}).company || {}).name || ((window.companyData || {}).name) || '企业');
+    return String(company).replace(/[\\/:*?"<>|]/g, '').trim() || '企业';
+}
+
+window.formatAiServerHint = function(){
+    return '当前页面只使用后端统一托管的 AI 配置，前端不再保存或恢复 Base URL、Model、Endpoint、API Key。';
+};
+
+window.exportAiReportPdf = function(){
+    if(!window.diagnosisResult){
+        if(typeof window.showToast === 'function')window.showToast('请先生成 AI 分析报告');
+        return;
+    }
+    var oldTitle = document.title;
+    var now = new Date();
+    var exportTitle = safeCompanyNameForExport() + now.getFullYear() + '年' + String(now.getMonth() + 1).padStart(2, '0') + '月' + String(now.getDate()).padStart(2, '0') + '日AI分析报告';
+    document.title = exportTitle;
+    try{
+        if(typeof window.showToast === 'function')window.showToast('即将打开打印窗口，可另存为完整 PDF');
+        window.print();
+    }finally{
+        setTimeout(function(){ document.title = oldTitle; }, 800);
+    }
+};
+
+window.startAllAIAnalysis = async function(){
+    if(typeof window.showLoading === 'function'){
+        window.showLoading('三个 AI 正在并行分析，待全部完成后将由 ChatGPT 汇总最终报告，请稍候...');
+    }
+    var batchTasks = PROVIDERS.map(function(provider, index){
+        return (async function(){
+            if(index > 0)await sleepMs(index * 1200);
+            return runManagedAnalysisForBatch(provider);
+        })();
+    });
+    var results = await Promise.all(batchTasks);
+    if(results.some(function(item){ return !item || !item.ok; })){
+        results = await rerunFailedBatchProviders(results);
+    }
+    var summary = document.getElementById('allAiSummary');
+    if(summary){
+        summary.textContent = results.map(function(item){
+            return item.label + '：' + (item.ok ? ('完成，' + item.score + '分') : ('失败，' + item.error));
+        }).join(' | ');
+    }
+    var okResults = results.filter(function(item){ return item && item.ok && item.report; });
+    if(okResults.length === PROVIDERS.length){
+        try{
+            if(summary){
+                summary.textContent = '三个模型已全部完成，正在由 ChatGPT 汇总最终分析报告...';
+            }
+            setProviderProgress('chatgpt', 92, '综合汇总', '正在整合 DeepSeek、MiMo、ChatGPT 三份诊断结果');
+            var companyName = okResults[0].companyName || currentCompanyName('chatgpt') || currentCompanyName('mimo') || currentCompanyName('deepseek');
+            var synthesisCompany = window.companyData || (typeof window.findCompanyBySelection === 'function' ? window.findCompanyBySelection(companyName) : null);
+            var synthesisResponse = await fetch(window.AI_PROXY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: 'openai',
+                    analysis_input: {
+                        module: 'analysis',
+                        company: synthesisCompany || {},
+                        peerReports: okResults.map(function(item){
+                            return {
+                                provider: item.provider,
+                                label: item.label,
+                                report: item.report
+                            };
+                        })
+                    },
+                    async: true
+                })
+            });
+            var synthesisData = await synthesisResponse.json();
+            if(!synthesisResponse.ok || !synthesisData.ok)throw new Error(synthesisData.error || '综合汇总请求失败');
+            if(!synthesisData.jobId)throw new Error('综合汇总任务创建失败');
+            setProviderProgress('chatgpt', 94, '等待总报告', '综合结论正在生成中');
+            synthesisData = await pollManagedAnalysisJob('chatgpt', synthesisData.jobId, { timeoutMs: 480000 });
+            renderAnalysisResult('chatgpt', { report: synthesisData.report }, companyName);
+            if(summary){
+                summary.textContent = results.map(function(item){
+                    return item.label + '：完成，' + item.score + '分';
+                }).join(' | ') + ' | 最终报告：已由 ChatGPT 汇总输出';
+            }
+        }catch(error){
+            if(summary){
+                summary.textContent += ' | 综合汇总失败：' + error.message;
+            }
+            if(typeof window.showToast === 'function')window.showToast('三模型已完成，但最终汇总失败：' + error.message);
+        }
+    }
+    if(typeof window.hideLoading === 'function')window.hideLoading();
+    if(results.some(function(item){ return !item || !item.ok; })){
+        if(typeof window.showToast === 'function')window.showToast('并发分析已完成，但部分模型失败，请查看各自状态');
+    }else if(typeof window.showToast === 'function'){
+        window.showToast(okResults.length === PROVIDERS.length ? '三个 AI 并发分析及最终汇总已完成' : '三个 AI 并发分析已全部完成');
+    }
+    return results;
+};
+})();
+</script>
 </body>
 </html>

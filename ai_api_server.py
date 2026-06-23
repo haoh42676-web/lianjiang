@@ -563,11 +563,20 @@ def normalize_report(raw, provider, model, company_name):
                 "score": score,
                 "level": item.get("level") or level_from_score(score),
                 "gap": clamp_score(item.get("gap", 0)),
-                "diagnosis": item.get("diagnosis", ""),
-                "swotFocus": item.get("swotFocus", ""),
-                "actions": ensure_list(item.get("actions")),
-                "kpis": ensure_list(item.get("kpis")),
-                "risks": ensure_list(item.get("risks")),
+                "diagnosis": normalize_text_value(item.get("diagnosis")),
+                "scoreExplanation": normalize_text_value(item.get("scoreExplanation")),
+                "benchmarkComparison": normalize_text_value(item.get("benchmarkComparison")),
+                "rootCauses": normalize_text_list(item.get("rootCauses")),
+                "evidenceFromInput": normalize_text_list(item.get("evidenceFromInput")),
+                "swotFocus": normalize_text_value(item.get("swotFocus")),
+                "actions": normalize_text_list(item.get("actions")),
+                "kpis": normalize_text_list(item.get("kpis")),
+                "risks": normalize_text_list(item.get("risks")),
+                "owner": normalize_text_value(item.get("owner")),
+                "resources": normalize_text_list(item.get("resources")),
+                "milestones": normalize_text_list(item.get("milestones")),
+                "expectedImpact": normalize_text_value(item.get("expectedImpact")),
+                "paperMethodMapping": normalize_text_value(item.get("paperMethodMapping")),
             }
         )
 
@@ -629,14 +638,110 @@ def normalize_report(raw, provider, model, company_name):
     }
 
 
+def enrich_dimension_details(report):
+    dimensions = ensure_list(report.get("dimensionAnalysis"))
+    enriched = []
+    for item in dimensions:
+        if not isinstance(item, dict):
+            continue
+        diagnosis = normalize_text_value(item.get("diagnosis"))
+        score_explanation = normalize_text_value(item.get("scoreExplanation"))
+        benchmark = normalize_text_value(item.get("benchmarkComparison"))
+        root_causes = normalize_text_list(item.get("rootCauses"))
+        evidence = normalize_text_list(item.get("evidenceFromInput"))
+        actions = normalize_text_list(item.get("actions"))
+        kpis = normalize_text_list(item.get("kpis"))
+        risks = normalize_text_list(item.get("risks"))
+        owner = normalize_text_value(item.get("owner"))
+        resources = normalize_text_list(item.get("resources"))
+        milestones = normalize_text_list(item.get("milestones"))
+        expected_impact = normalize_text_value(item.get("expectedImpact"))
+        paper_method_mapping = normalize_text_value(item.get("paperMethodMapping"))
+        swot_focus = normalize_text_value(item.get("swotFocus"))
+
+        score = clamp_score(item.get("score"))
+        gap = clamp_score(item.get("gap"))
+        dim_name = normalize_text_value(item.get("name")) or DIMENSION_LABELS.get(item.get("key"), "关键维度")
+
+        if not diagnosis:
+            diagnosis = f"{dim_name}当前得分{score}分，与标杆差距{gap}分，说明该维度仍存在明显短板，需围绕关键环节补强执行能力。"
+        if not score_explanation:
+            score_explanation = f"该维度按当前企业数据与行业标杆对比后形成{score}分判断，分数反映的是现状成熟度而不是单项能力上限。"
+        if not benchmark:
+            benchmark = f"当前得分{score}分；标杆差距{gap}分，说明该维度仍需通过连续动作缩小与头部企业的经营差距。"
+        if not root_causes:
+            root_causes = [f"{dim_name}缺少稳定的执行机制", f"{dim_name}相关资源投入不足", f"{dim_name}与市场/订单反馈联动不够"]
+        if not evidence:
+            evidence = [diagnosis, score_explanation, benchmark]
+        if not actions:
+            actions = [f"围绕{dim_name}建立专项台账与责任分工", f"按月复盘{dim_name}关键指标并纠偏", f"针对{dim_name}短板启动专项改进项目"]
+        if not kpis:
+            kpis = [f"3个月内完成{dim_name}专项台账", f"6个月内{dim_name}关键指标形成月度达标机制", f"12个月内{dim_name}得分提升5-10分"]
+        if not risks:
+            risks = [f"{dim_name}改进可能出现资源不足，需要预算锁定", f"{dim_name}跨部门协同不足会拖慢项目节奏"]
+        if not owner:
+            owner = "建议由企业负责人牵头"
+        if not resources:
+            resources = [f"{dim_name}专项预算", "跨部门协同资源"]
+        if not milestones:
+            milestones = [f"30天内明确{dim_name}责任人与计划", f"90天内完成阶段性动作闭环", f"180天内完成阶段复盘并升级方案"]
+        if not expected_impact:
+            expected_impact = f"若完成上述动作，可优先缩小{dim_name}维度差距，并带动综合评分持续提升。"
+        if not paper_method_mapping:
+            paper_method_mapping = "按八要素评分、产业集群对标、SWOT与阶段跃迁逻辑综合判断。"
+        if not swot_focus:
+            swot_focus = f"{dim_name}既有基础能力，也存在组织与市场衔接短板，需要把优势转成可复制经营动作。"
+
+        enriched.append(
+            {
+                **item,
+                "diagnosis": diagnosis,
+                "scoreExplanation": score_explanation,
+                "benchmarkComparison": benchmark,
+                "rootCauses": root_causes[:4],
+                "evidenceFromInput": evidence[:6],
+                "swotFocus": swot_focus,
+                "actions": actions[:5],
+                "kpis": kpis[:4],
+                "risks": risks[:3],
+                "owner": owner,
+                "resources": resources[:3],
+                "milestones": milestones[:4],
+                "expectedImpact": expected_impact,
+                "paperMethodMapping": paper_method_mapping,
+            }
+        )
+    report["dimensionAnalysis"] = enriched
+    return report
+
+
 def build_peer_consensus(peer_reports):
     reports = [item for item in ensure_list(peer_reports) if isinstance(item, dict)]
-    dim_buckets = {key: {"scores": [], "gaps": [], "diagnosis": [], "actions": [], "kpis": [], "risks": []} for key in DIMENSION_ORDER}
+    dim_buckets = {
+        key: {
+            "scores": [],
+            "gaps": [],
+            "diagnosis": [],
+            "score_explanations": [],
+            "benchmarks": [],
+            "root_causes": [],
+            "evidence": [],
+            "actions": [],
+            "kpis": [],
+            "risks": [],
+            "owners": [],
+            "resources": [],
+            "milestones": [],
+            "expected_impacts": [],
+        }
+        for key in DIMENSION_ORDER
+    }
     overall_scores = []
     levels = []
     findings = []
     phase_names = []
     solution_titles = []
+    solution_reasons = []
 
     for item in reports:
         report = item.get("report") if isinstance(item.get("report"), dict) else {}
@@ -657,6 +762,11 @@ def build_peer_consensus(peer_reports):
                 title = normalize_text_value(solution.get("title"))
                 if title:
                     solution_titles.append(title)
+                solution_reasons.extend(normalize_text_list(solution.get("content"), limit=3))
+                solution_reasons.extend(normalize_text_list(solution.get("steps"), limit=2))
+                reason = normalize_text_value(solution.get("whyNow"))
+                if reason:
+                    solution_reasons.append(reason)
         for dim in ensure_list(report.get("dimensionAnalysis")):
             if not isinstance(dim, dict):
                 continue
@@ -669,9 +779,17 @@ def build_peer_consensus(peer_reports):
             if dim.get("gap") is not None:
                 bucket["gaps"].append(clamp_score(dim.get("gap")))
             bucket["diagnosis"].append(normalize_text_value(dim.get("diagnosis"))[:120])
+            bucket["score_explanations"].append(normalize_text_value(dim.get("scoreExplanation"))[:120])
+            bucket["benchmarks"].append(normalize_text_value(dim.get("benchmarkComparison"))[:120])
+            bucket["root_causes"].extend(normalize_text_list(dim.get("rootCauses"), limit=3))
+            bucket["evidence"].extend(normalize_text_list(dim.get("evidenceFromInput"), limit=4))
             bucket["actions"].extend(normalize_text_list(dim.get("actions"), limit=3))
             bucket["kpis"].extend(normalize_text_list(dim.get("kpis"), limit=3))
             bucket["risks"].extend(normalize_text_list(dim.get("risks"), limit=2))
+            bucket["owners"].append(normalize_text_value(dim.get("owner")))
+            bucket["resources"].extend(normalize_text_list(dim.get("resources"), limit=2))
+            bucket["milestones"].extend(normalize_text_list(dim.get("milestones"), limit=3))
+            bucket["expected_impacts"].append(normalize_text_value(dim.get("expectedImpact"))[:120])
 
     dim_consensus = []
     for key in DIMENSION_ORDER:
@@ -686,9 +804,17 @@ def build_peer_consensus(peer_reports):
                 "avgGap": avg_gap,
                 "level": level_from_score(avg_score),
                 "diagnosisHints": normalize_text_list(bucket["diagnosis"], limit=3),
+                "scoreExplanationHints": normalize_text_list(bucket["score_explanations"], limit=3),
+                "benchmarkHints": normalize_text_list(bucket["benchmarks"], limit=3),
+                "rootCauseHints": normalize_text_list(bucket["root_causes"], limit=4),
+                "evidenceHints": normalize_text_list(bucket["evidence"], limit=5),
                 "priorityActions": normalize_text_list(bucket["actions"], limit=4),
                 "priorityKpis": normalize_text_list(bucket["kpis"], limit=4),
                 "priorityRisks": normalize_text_list(bucket["risks"], limit=3),
+                "ownerHints": normalize_text_list(bucket["owners"], limit=3),
+                "resourceHints": normalize_text_list(bucket["resources"], limit=3),
+                "milestoneHints": normalize_text_list(bucket["milestones"], limit=4),
+                "expectedImpactHints": normalize_text_list(bucket["expected_impacts"], limit=3),
             }
         )
 
@@ -708,6 +834,7 @@ def build_peer_consensus(peer_reports):
         "coreFindings": normalize_text_list(findings, limit=8),
         "phaseHints": normalize_text_list(phase_names, limit=6),
         "solutionHints": normalize_text_list(solution_titles, limit=6),
+        "solutionReasonHints": normalize_text_list(solution_reasons, limit=12),
         "dimensionConsensus": dim_consensus,
     }
 
@@ -1198,7 +1325,8 @@ def call_openai_compatible(provider, config, payload):
             parsed["model"] = config["model"]
         return parsed
     company_name = payload["analysis_input"]["company"].get("name", "")
-    return normalize_report(parsed, provider, config["model"], company_name)
+    report = normalize_report(parsed, provider, config["model"], company_name)
+    return enrich_dimension_details(report)
 
 
 def run_ai_job(job_id, provider, payload, config, request_id, client_ip):

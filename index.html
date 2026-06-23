@@ -8110,20 +8110,49 @@ window.startAIAnalysis = async function(provider){
     return runManagedAnalysis(provider, { silent: false });
 };
 
+function sleepMs(ms){
+    return new Promise(function(resolve){ setTimeout(resolve, ms || 0); });
+}
+
+async function runManagedAnalysisForBatch(provider, extraOptions){
+    var options = Object.assign({ silent: true, deferRender: true, batchSource: true }, extraOptions || {});
+    return runManagedAnalysis(provider, options).catch(function(error){
+        return {
+            provider: provider,
+            label: window.getProviderMeta(provider).label,
+            ok: false,
+            error: error && error.message ? error.message : String(error || 'unknown error')
+        };
+    });
+}
+
+async function rerunFailedBatchProviders(results){
+    var failed = (results || []).filter(function(item){ return !item || !item.ok; });
+    for(var i = 0; i < failed.length; i++){
+        var failedItem = failed[i];
+        var provider = failedItem.provider;
+        if(!provider)continue;
+        setProviderProgress(provider, 18, '重新尝试', '批量阶段失败，正在单独重试 ' + window.getProviderMeta(provider).label);
+        await sleepMs(1200);
+        results[PROVIDERS.indexOf(provider)] = await runManagedAnalysisForBatch(provider, { retryPhase: 'single-retry' });
+    }
+    return results;
+}
+
 window.startAllAIAnalysis = async function(){
     if(typeof window.showLoading === 'function'){
         window.showLoading('三个 AI 正在并发分析并准备统一总报告，请稍候...');
     }
-    var results = await Promise.all(PROVIDERS.map(function(provider){
-        return runManagedAnalysis(provider, { silent: true, deferRender: true, batchSource: true }).catch(function(error){
-            return {
-                provider: provider,
-                label: window.getProviderMeta(provider).label,
-                ok: false,
-                error: error.message
-            };
-        });
-    }));
+    var batchTasks = PROVIDERS.map(function(provider, index){
+        return (async function(){
+            if(index > 0)await sleepMs(index * 1200);
+            return runManagedAnalysisForBatch(provider);
+        })();
+    });
+    var results = await Promise.all(batchTasks);
+    if(results.some(function(item){ return !item || !item.ok; })){
+        results = await rerunFailedBatchProviders(results);
+    }
     var summary = document.getElementById('allAiSummary');
     if(summary){
         summary.textContent = results.map(function(item){
@@ -8194,6 +8223,9 @@ if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', bootManagedMode);
 }else{
     setTimeout(bootManagedMode, 0);
+}
+if(typeof window.setBrowserModeHint !== 'function'){
+    window.setBrowserModeHint = function(){};
 }
 })();
 </script>

@@ -144,10 +144,12 @@ def get_ai_job(job_id):
         job = AI_JOBS.get(job_id)
         return build_job_snapshot(job) if job else None
 
+BACKEND_SECRETS = load_backend_secrets()
+
 PROVIDER_DEFAULTS = {
     "openai": {
         "label": "OpenAI",
-        "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        "base_url": os.environ.get("OPENAI_BASE_URL", "https://gpt.fengxiaole.top/v1"),
         "endpoint": "/chat/completions",
         "model": os.environ.get("OPENAI_MODEL", "gpt-5.4"),
         "api_key": BACKEND_SECRETS.get("OPENAI_API_KEY", ""),
@@ -167,7 +169,7 @@ PROVIDER_DEFAULTS = {
         "endpoint": os.environ.get("MIMO_ENDPOINT", "/chat/completions"),
         "model": os.environ.get("MIMO_MODEL", "mimo-v2.5-pro"),
         "api_key": BACKEND_SECRETS.get("MIMO_API_KEY", ""),
-        "request_timeout_seconds": int(os.environ.get("MIMO_REQUEST_TIMEOUT_SECONDS", "300")),
+        "request_timeout_seconds": int(os.environ.get("MIMO_REQUEST_TIMEOUT_SECONDS", "360")),
     },
 }
 
@@ -245,9 +247,6 @@ def json_log(event, **fields):
     print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
-BACKEND_SECRETS = load_backend_secrets()
-
-
 def get_bucket_key(handler, scope):
     basis = f"{scope}:{client_ip_from_headers(handler)}"
     return hashlib.sha256(basis.encode("utf-8")).hexdigest()
@@ -303,7 +302,61 @@ def normalize_provider_config(provider):
         base["request_timeout_seconds"] = max(60, int(base.get("request_timeout_seconds") or 120))
     except Exception:
         base["request_timeout_seconds"] = 120
+    if provider == "mimo":
+        base["request_timeout_seconds"] = max(180, base["request_timeout_seconds"])
     return base
+
+
+def provider_attempt_count(provider):
+    if provider == "mimo":
+        return 3
+    return 2
+
+
+def is_timeout_error(exc):
+    text = str(exc or "").lower()
+    return "timed out" in text or "timeout" in text
+
+
+def extract_message_content(raw, provider, stage="response"):
+    if isinstance(raw, list):
+        if len(raw) == 1:
+            raw = raw[0]
+        else:
+            raise RuntimeError(f"{provider} {stage} returned list payload")
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"{provider} {stage} returned invalid payload type: {type(raw).__name__}")
+
+    choices = raw.get("choices") or []
+    if not isinstance(choices, list) or not choices:
+        raise RuntimeError(f"{provider} {stage} returned no choices")
+
+    first = choices[0]
+    if isinstance(first, str):
+        return first
+    if not isinstance(first, dict):
+        raise RuntimeError(f"{provider} {stage} returned invalid choice type: {type(first).__name__}")
+
+    message = first.get("message")
+    if isinstance(message, str):
+        return message
+    if isinstance(message, list):
+        return "\n".join(normalize_text_value(item) for item in message if normalize_text_value(item))
+    if isinstance(message, dict):
+        content = message.get("content")
+    else:
+        content = first.get("text", "")
+
+    if isinstance(content, list):
+        text_parts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                text_parts.append(item.get("text", ""))
+            elif isinstance(item, str):
+                text_parts.append(item)
+        content = "\n".join(part for part in text_parts if part)
+
+    return normalize_text_value(content)
 
 
 def validate_upload(file_name, data):
@@ -712,15 +765,7 @@ def repair_json_via_model(provider, config, broken_text):
     repair_timeout = repair_config.get("request_timeout_seconds", config.get("request_timeout_seconds", 120))
     with request.urlopen(req, timeout=repair_timeout) as resp:
         raw = json.loads(resp.read().decode("utf-8", errors="ignore"))
-    choices = raw.get("choices") or []
-    if not choices:
-        raise RuntimeError(f"{repair_provider} repair returned no choices")
-    message = choices[0].get("message") or {}
-    content = message.get("content")
-    if isinstance(content, list):
-        content = "\n".join(
-            item.get("text", "") for item in content if isinstance(item, dict) and item.get("type") == "text"
-        )
+    content = extract_message_content(raw, repair_provider, "repair response")
     return extract_json_object(content or "")
 
 
@@ -1104,9 +1149,10 @@ def call_openai_compatible(provider, config, payload):
         )
     raw = None
     url = config["base_url"] + config["endpoint"]
-    for attempt in range(2):
+    attempt_count = provider_attempt_count(provider)
+    for attempt in range(attempt_count):
         try:
-            if attempt == 1:
+            if attempt >= 1:
                 body["temperature"] = 0.2
             req = request.Request(
                 url,
@@ -1129,8 +1175,9 @@ def call_openai_compatible(provider, config, payload):
                 break
             raise RuntimeError(f"{provider} HTTP {exc.code}: {response_text}") from exc
         except Exception as exc:
-            if attempt == 0:
-                time.sleep(1)
+            is_last_attempt = attempt >= attempt_count - 1
+            if not is_last_attempt and (provider != "mimo" or is_timeout_error(exc)):
+                time.sleep(1 + attempt)
                 continue
             if provider == "openai" and "gpt.fengxiaole.top" in str(config.get("base_url", "")):
                 raw = call_gateway_via_browser(config, body)
@@ -1139,17 +1186,7 @@ def call_openai_compatible(provider, config, payload):
     if raw is None:
         raise RuntimeError(f"{provider} returned empty response")
 
-    choices = raw.get("choices") or []
-    if not choices:
-        raise RuntimeError(f"{provider} returned no choices")
-    message = choices[0].get("message") or {}
-    content = message.get("content")
-    if isinstance(content, list):
-        text_parts = []
-        for item in content:
-            if isinstance(item, dict) and item.get("type") == "text":
-                text_parts.append(item.get("text", ""))
-        content = "\n".join(text_parts)
+    content = extract_message_content(raw, provider)
     try:
         parsed = extract_json_object(content or "")
     except Exception:

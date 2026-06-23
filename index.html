@@ -6893,14 +6893,14 @@ window.saveProviderConfig = function(){
     return true;
 };
 
-window.saveAIConfig = function(provider){
+window.saveAIConfigLegacyManaged = function(provider){
     if(window.setApiInlineAlert){
         window.setApiInlineAlert(provider,'当前版本无需前端保存配置，系统将直接使用后端已配置好的接口。',true);
     }
     if(window.showToast)window.showToast('当前版本由后端统一托管 AI 配置');
 };
 
-window.renderApiConfigPanel = function(provider){
+window.renderApiConfigPanelLegacyManaged = function(provider){
     var meta = window.getProviderMeta(provider);
     var status = window.aiServerStatusCache && window.aiServerStatusCache.providers
         ? window.aiServerStatusCache.providers[window.getProviderKey(provider)]
@@ -6920,7 +6920,7 @@ window.renderApiConfigPanel = function(provider){
     '</div>';
 };
 
-window.checkAIServer = async function(){
+window.checkAIServerLegacyManaged = async function(){
     var statusUrl = window.AI_STATUS_URL || 'https://lianjiang-ai-api.onrender.com/api/status';
     try{
         var res = await fetch(statusUrl,{ method:'GET' });
@@ -7829,7 +7829,7 @@ function getAiReportExportName(){
     return company + yyyy + '年' + mm + '月' + dd + '日AI分析报告';
 }
 
-window.exportAiReportPdf = function(){
+window.exportAiReportPdfLegacyManaged = function(){
     if(!window.diagnosisResult){
         if(typeof window.showToast === 'function')window.showToast('请先生成 AI 分析报告');
         return;
@@ -8397,7 +8397,7 @@ window.exportAiReportPdf = function(){
     }
 };
 
-window.startAllAIAnalysisFallback = async function(){
+window.startAllAIAnalysisLegacyFallback = async function(){
     var providers = ['mimo', 'deepseek', 'chatgpt'];
     if(typeof window.showLoading === 'function'){
         window.showLoading('三个 AI 正在并行分析，待全部完成后将由 ChatGPT 汇总最终报告，请稍候...');

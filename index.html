@@ -7286,6 +7286,68 @@ window.buildSolutionDetailSections = function(report){
     return html;
 };
 
+function derivePriorityDimensions(report){
+    return safeArray(report.dimensionAnalysis).slice().sort(function(a, b){
+        var gapA = Number(a && a.gap != null ? a.gap : 0);
+        var gapB = Number(b && b.gap != null ? b.gap : 0);
+        var scoreA = Number(a && a.score != null ? a.score : 0);
+        var scoreB = Number(b && b.score != null ? b.score : 0);
+        if(gapB !== gapA)return gapB - gapA;
+        return scoreA - scoreB;
+    });
+}
+
+function buildExecutiveDigestItems(report, mode){
+    var dims = derivePriorityDimensions(report).slice(0, 3);
+    if(mode === 'milestone'){
+        return safeArray(report.phases).slice(0, 3).map(function(phase, index){
+            return {
+                title: textify(phase && phase.name) || ('阶段' + (index + 1)),
+                text: listify((phase && phase.milestones) || (phase && phase.goals) || []).slice(0, 2).join('；') || '形成阶段目标、里程碑和复盘节点。',
+                meta: listify((phase && phase.focusDimensions) || []).slice(0, 2).join('、')
+            };
+        });
+    }
+    return dims.map(function(item){
+        if(mode === 'action'){
+            return {
+                title: textify(item && item.name) || '立即动作',
+                text: listify((item && item.actions) || []).slice(0, 2).join('；') || safeTextify((item && item.expectedImpact) || (item && item.benchmarkComparison) || '') || '建议立即建立专项推进任务并明确负责人。',
+                meta: [safeTextify(item && item.owner) ? ('负责人：' + safeTextify(item && item.owner)) : '', listify((item && item.resources) || []).slice(0, 2).join('、') ? ('资源：' + listify((item && item.resources) || []).slice(0, 2).join('、')) : ''].filter(Boolean).join(' / ')
+            };
+        }
+        return {
+            title: textify(item && item.name) || '关键矛盾',
+            text: safeTextify((item && item.scoreExplanation) || (item && item.diagnosis) || '') || ((textify(item && item.name) || '关键维度') + '当前 ' + Number(item && item.score != null ? item.score : 0) + ' 分，距标杆 ' + Number(item && item.gap != null ? item.gap : 0) + ' 分。'),
+            meta: '当前 ' + Number(item && item.score != null ? item.score : 0) + ' 分 / 差距 ' + Number(item && item.gap != null ? item.gap : 0) + ' 分'
+        };
+    });
+}
+
+function buildExecutiveActionBoard(report){
+    function renderItems(items, emptyText){
+        if(!items.length)return '<div class="ai-digest-empty">' + window.esc(emptyText) + '</div>';
+        return '<div class="ai-digest-list">' + items.map(function(item){
+            return '<article class="ai-digest-item">' +
+                '<div class="ai-digest-item-title">' + window.esc(item.title || '') + '</div>' +
+                '<div class="ai-digest-item-text">' + window.esc(item.text || '') + '</div>' +
+                (item.meta ? '<div class="ai-digest-item-meta">' + window.esc(item.meta) + '</div>' : '') +
+            '</article>';
+        }).join('') + '</div>';
+    }
+    return '' +
+        '<div class="content-card ai-digest-board">' +
+            '<div class="content-card-header"><h3>经营执行摘要</h3><span class="tag tag-info">先看矛盾，再定动作，再看里程碑</span></div>' +
+            '<div class="content-card-body">' +
+                '<div class="ai-digest-grid">' +
+                    '<section class="ai-digest-panel"><div class="ai-digest-panel-title">3个关键矛盾</div>' + renderItems(buildExecutiveDigestItems(report, 'issue'), '当前报告未返回足够的矛盾诊断。') + '</section>' +
+                    '<section class="ai-digest-panel"><div class="ai-digest-panel-title">3个立即动作</div>' + renderItems(buildExecutiveDigestItems(report, 'action'), '当前报告未返回足够的动作建议。') + '</section>' +
+                    '<section class="ai-digest-panel"><div class="ai-digest-panel-title">90天里程碑</div>' + renderItems(buildExecutiveDigestItems(report, 'milestone'), '当前报告未返回足够的里程碑安排。') + '</section>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+}
+
 window.buildApiReportHtml = function(r){
     var report = r.apiReport || {};
     var providerLabel = r.providerLabel || window.getProviderMeta(r.provider || 'mimo').label;
@@ -7299,6 +7361,7 @@ window.buildApiReportHtml = function(r){
         html += '<br><p><strong>核心发现：</strong></p><ul>' + report.coreFindings.map(function(item){ return '<li>' + window.esc(safeTextify(item)) + '</li>'; }).join('') + '</ul>';
     }
     html += '</div></div>';
+    html += buildExecutiveActionBoard(report);
     html += window.buildClickableDimCards(r, report);
     html += window.buildDimensionDetailSections(r, report);
     if(Array.isArray(report.phases) && report.phases.length){
@@ -7559,6 +7622,15 @@ function ensureProgressStyle(){
     var style = document.createElement('style');
     style.id = 'ai-progress-style';
     style.textContent = [
+        '.ai-digest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}',
+        '.ai-digest-panel{border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.03);padding:14px}',
+        '.ai-digest-panel-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:10px}',
+        '.ai-digest-list{display:grid;gap:10px}',
+        '.ai-digest-item{padding:10px 12px;border-radius:10px;background:rgba(13,20,18,.68);border:1px solid rgba(255,255,255,.06)}',
+        '.ai-digest-item-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}',
+        '.ai-digest-item-text{font-size:12px;line-height:1.7;color:#d8e3df}',
+        '.ai-digest-item-meta{margin-top:6px;font-size:11px;color:#91a7a1}',
+        '.ai-digest-empty{font-size:12px;color:#91a7a1;line-height:1.7}',
         '.ai-progress-box{margin-top:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03)}',
         '.ai-progress-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#d7e3df;margin-bottom:8px}',
         '.ai-progress-track{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}',
@@ -7972,6 +8044,21 @@ function renderAnalysisResult(provider, data, companyName){
         content.innerHTML = '<div id="aiReportExportBar" style="display:flex;justify-content:flex-end;gap:10px;margin:0 0 12px"><button class="btn btn-outline" type="button" onclick="exportAiReportPdf()">导出完整版PDF</button></div>' + window.buildApiReportHtml(window.diagnosisResult);
     }
     if(wrap)wrap.style.display = 'block';
+    var firstDimKey = window.RESEARCH_FUSION_MODEL && Array.isArray(window.RESEARCH_FUSION_MODEL.order) ? window.RESEARCH_FUSION_MODEL.order[0] : '';
+    if(firstDimKey){
+        document.querySelectorAll('[data-dim-card]').forEach(function(el){
+            el.classList.toggle('active', el.getAttribute('data-dim-card') === firstDimKey);
+        });
+        document.querySelectorAll('[data-dim-section]').forEach(function(el){
+            el.classList.toggle('active', el.getAttribute('data-dim-section') === firstDimKey);
+        });
+    }
+    document.querySelectorAll('[data-phase-card]').forEach(function(el, index){
+        el.classList.toggle('active', index === 0);
+    });
+    document.querySelectorAll('[data-phase-section]').forEach(function(el, index){
+        el.classList.toggle('active', index === 0);
+    });
     if(typeof window.updateEvaluationPage === 'function')window.updateEvaluationPage();
 }
 
@@ -8108,7 +8195,6 @@ async function rerunFailedBatchProviders(results){
 }
 
 window.startAllAIAnalysis = window.startAllAIAnalysis || async function(){
-    var providers = ['mimo', 'deepseek', 'chatgpt'];
     var providers = ['mimo', 'deepseek', 'chatgpt'];
     if(typeof window.showLoading === 'function'){
         window.showLoading('三个 AI 正在并发分析并准备统一总报告，请稍候...');

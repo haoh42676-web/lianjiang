@@ -5957,12 +5957,6 @@ function remoteApiBase(){
     var isPublishedGithubPage = /(?:^|\.)github\.io$/.test(currentHost);
     if(isPublishedGithubPage)return REMOTE_API_BASE_DEFAULT;
 
-    var configured = '';
-    try{
-        configured = cleanRemoteApiBase(localStorage.getItem('lj_remote_api_base') || '');
-    }catch(e){}
-    if(configured && !isPreviewOnlyOrigin(configured))return configured;
-
     var sameOrigin = '';
     try{
         if(window.location && /^https?:$/i.test(window.location.protocol) && window.location.origin){
@@ -5983,35 +5977,6 @@ function currentIntakeUrl(){
 }
 function runtimeUsesRemoteProxy(){
     return /^https?:\/\//i.test(remoteApiBase());
-}
-function getEphemeralAiConfig(provider){
-    try{
-        return JSON.parse(sessionStorage.getItem('lj_ai_runtime_' + provider) || '{}');
-    }catch(e){
-        return {};
-    }
-}
-function setEphemeralAiConfig(provider,cfg){
-    try{
-        sessionStorage.setItem('lj_ai_runtime_' + provider, JSON.stringify({
-            base_url:String(cfg.base_url||'').trim(),
-            model:String(cfg.model||'').trim(),
-            api_key:String(cfg.api_key||'').trim(),
-            endpoint:String(cfg.endpoint||'/chat/completions').trim() || '/chat/completions'
-        }));
-    }catch(e){}
-}
-function mergeStoredAndSessionConfig(provider){
-    var persistent = {};
-    var transientCfg = {};
-    try{ persistent = JSON.parse(localStorage.getItem('lj_ai_config_' + provider) || '{}'); }catch(e){}
-    transientCfg = getEphemeralAiConfig(provider);
-    return {
-        base_url: transientCfg.base_url || persistent.base_url || '',
-        model: transientCfg.model || persistent.model || '',
-        api_key: transientCfg.api_key || '',
-        endpoint: transientCfg.endpoint || persistent.endpoint || '/chat/completions'
-    };
 }
 function fileSignatureLooksSafe(file, bytes){
     var ext = '';
@@ -6036,26 +6001,23 @@ window.INTAKE_PARSE_URL = currentIntakeUrl();
 
 var originalGetProviderConfig = window.getProviderConfig;
 window.getProviderConfig = function(provider){
-    var base = originalGetProviderConfig ? originalGetProviderConfig(provider) : { base_url:'', model:'', api_key:'', endpoint:'/chat/completions' };
-    var merged = mergeStoredAndSessionConfig(provider);
+    var base = originalGetProviderConfig ? originalGetProviderConfig(provider) : { endpoint:'/chat/completions' };
     return {
-        base_url: merged.base_url || base.base_url || '',
-        model: merged.model || base.model || '',
-        api_key: merged.api_key || '',
-        endpoint: merged.endpoint || base.endpoint || '/chat/completions'
+        base_url: '',
+        model: '',
+        api_key: '',
+        endpoint: (base && base.endpoint) || '/chat/completions'
     };
 };
 
 var originalSaveProviderConfig = window.saveProviderConfig;
 window.saveProviderConfig = function(provider,cfg){
     var persistentCfg = {
-        base_url:String(cfg.base_url||'').trim(),
-        model:String(cfg.model||'').trim(),
-        endpoint:String(cfg.endpoint||'/chat/completions').trim() || '/chat/completions',
+        base_url:'',
+        model:'',
+        endpoint:String((cfg && cfg.endpoint)||'/chat/completions').trim() || '/chat/completions',
         api_key:''
     };
-    try{ localStorage.setItem('lj_ai_config_' + provider, JSON.stringify(persistentCfg)); }catch(e){}
-    setEphemeralAiConfig(provider,cfg||{});
     if(typeof originalSaveProviderConfig === 'function'){
         try{ originalSaveProviderConfig(provider,persistentCfg); }catch(e){}
     }

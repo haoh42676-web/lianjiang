@@ -6774,6 +6774,12 @@ if(document.readyState !== 'loading'){
 (function(){
 'use strict';
 
+var FINAL_BATCH_PROVIDERS = ['mimo', 'deepseek', 'chatgpt'];
+
+var FINAL_BATCH_PROVIDERS = ['mimo', 'deepseek', 'chatgpt'];
+
+var MANAGED_PROVIDERS = ['mimo', 'deepseek', 'chatgpt'];
+
 function safeText(value){
     if(value == null)return '';
     return String(value)
@@ -8101,11 +8107,13 @@ async function rerunFailedBatchProviders(results){
     return results;
 }
 
-window.startAllAIAnalysis = async function(){
+window.startAllAIAnalysis = window.startAllAIAnalysis || async function(){
+    var providers = ['mimo', 'deepseek', 'chatgpt'];
+    var providers = ['mimo', 'deepseek', 'chatgpt'];
     if(typeof window.showLoading === 'function'){
         window.showLoading('三个 AI 正在并发分析并准备统一总报告，请稍候...');
     }
-    var batchTasks = PROVIDERS.map(function(provider, index){
+    var batchTasks = providers.map(function(provider, index){
         return (async function(){
             if(index > 0)await sleepMs(index * 1200);
             return runManagedAnalysisForBatch(provider);
@@ -8122,7 +8130,7 @@ window.startAllAIAnalysis = async function(){
         }).join(' | ');
     }
     var okResults = results.filter(function(item){ return item && item.ok && item.report; });
-    if(okResults.length === PROVIDERS.length){
+    if(okResults.length === providers.length){
         try{
             if(summary){
                 summary.textContent = '三个模型已全部完成，正在由 ChatGPT 汇总最终分析报告...';
@@ -8171,7 +8179,7 @@ window.startAllAIAnalysis = async function(){
     if(results.some(function(item){ return !item.ok; })){
         if(typeof window.showToast === 'function')window.showToast('并发分析已完成，部分模型失败，请查看各自状态');
     }else if(typeof window.showToast === 'function'){
-        window.showToast(okResults.length === PROVIDERS.length ? '三个 AI 并发分析及最终汇总已完成' : '三个 AI 并发分析已全部完成');
+        window.showToast(okResults.length === providers.length ? '三个 AI 并发分析及最终汇总已完成' : '三个 AI 并发分析已全部完成');
     }
     return results;
 };
@@ -8221,11 +8229,12 @@ window.exportAiReportPdf = function(){
     }
 };
 
-window.startAllAIAnalysis = async function(){
+window.startAllAIAnalysisFallback = async function(){
+    var providers = ['mimo', 'deepseek', 'chatgpt'];
     if(typeof window.showLoading === 'function'){
         window.showLoading('三个 AI 正在并行分析，待全部完成后将由 ChatGPT 汇总最终报告，请稍候...');
     }
-    var batchTasks = PROVIDERS.map(function(provider, index){
+    var batchTasks = providers.map(function(provider, index){
         return (async function(){
             if(index > 0)await sleepMs(index * 1200);
             return runManagedAnalysisForBatch(provider);
@@ -8242,7 +8251,7 @@ window.startAllAIAnalysis = async function(){
         }).join(' | ');
     }
     var okResults = results.filter(function(item){ return item && item.ok && item.report; });
-    if(okResults.length === PROVIDERS.length){
+    if(okResults.length === providers.length){
         try{
             if(summary){
                 summary.textContent = '三个模型已全部完成，正在由 ChatGPT 汇总最终分析报告...';
@@ -8291,7 +8300,7 @@ window.startAllAIAnalysis = async function(){
     if(results.some(function(item){ return !item || !item.ok; })){
         if(typeof window.showToast === 'function')window.showToast('并发分析已完成，但部分模型失败，请查看各自状态');
     }else if(typeof window.showToast === 'function'){
-        window.showToast(okResults.length === PROVIDERS.length ? '三个 AI 并发分析及最终汇总已完成' : '三个 AI 并发分析已全部完成');
+        window.showToast(okResults.length === providers.length ? '三个 AI 并发分析及最终汇总已完成' : '三个 AI 并发分析已全部完成');
     }
     return results;
 };

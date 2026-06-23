@@ -5949,6 +5949,14 @@ function remoteApiBase(){
     var envValue = cleanRemoteApiBase(window.LJ_REMOTE_API_BASE || '');
     if(envValue)return envValue;
 
+    var currentHost = '';
+    try{
+        currentHost = String((window.location && window.location.hostname) || '').toLowerCase();
+    }catch(e){}
+
+    var isPublishedGithubPage = /(?:^|\.)github\.io$/.test(currentHost);
+    if(isPublishedGithubPage)return REMOTE_API_BASE_DEFAULT;
+
     var configured = '';
     try{
         configured = cleanRemoteApiBase(localStorage.getItem('lj_remote_api_base') || '');

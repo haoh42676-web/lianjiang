@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>廉江小家电集群分析综合平台</title>
-<!-- Copyright starry: Lianjiang platform source annotations -->
-<!-- Copyright starry: legacy browser compatibility instruction completed -->
 <script>
 (function(){
     var ok=false;
@@ -33,7 +31,6 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .navbar{background:rgba(15,15,35,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100;height:56px}
 @media(min-width:769px){.navbar{height:64px}}
 .nav-container{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;justify-content:space-between;align-items:center;height:100%}
-/* Copyright starry: logo and main dashboard visual upgrade completed */
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
 .logo-icon{width:44px;height:44px;background:linear-gradient(145deg,rgba(255,107,53,.22),rgba(0,212,255,.18)),#111b19;border:1px solid rgba(255,255,255,.16);border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 1px rgba(255,107,53,.12),0 12px 30px rgba(0,0,0,.35),0 0 22px rgba(0,212,255,.16);overflow:hidden}
 @keyframes logoGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -48,7 +45,6 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .logo-cooker::after{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:#00a6a6;border-radius:50%;animation:blink 1.5s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .nav-right{display:flex;align-items:center;gap:8px}
-/* Copyright starry: multilingual selector style completed */
 .lang-select{height:32px;padding:0 28px 0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(15,15,35,.86);color:#e8edf0;font-size:12px;font-weight:600;outline:none;cursor:pointer}
 .lang-select:focus{border-color:#00d4ff;box-shadow:0 0 0 3px rgba(0,212,255,.12)}
 .lang-select option{background:#111614;color:#e8edf0}
@@ -182,7 +178,6 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .empty-state .empty-icon{font-size:40px;margin-bottom:14px}
 .empty-state p{font-size:14px;color:#8888bb;margin-bottom:14px}
 .footer{background:rgba(15,15,35,.95);border-top:1px solid rgba(255,255,255,.06);padding:14px 20px;margin-top:24px}
-/* Copyright starry: footer copyright visibility update completed */
 .footer-content{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:12px;color:#b8c7c3;text-align:center}
 .footer-brand{color:#dce8e4;font-weight:700;text-shadow:0 0 12px rgba(0,212,255,.22)}
 @media(min-width:769px){.footer-content{flex-direction:row;justify-content:space-between;text-align:left}}
@@ -556,7 +551,6 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 <div class="logo-brand"><span class="logo-text">廉江小家电集群分析</span><span class="logo-sub">AI·CLUSTER PLATFORM</span></div>
 </a>
 <div class="nav-right">
-<!-- Copyright starry: language switch instruction completed -->
 <select class="lang-select" id="languageSelect" onchange="setLanguage(this.value)" aria-label="语言选择">
 <option value="zh-CN">简体中文</option>
 <option value="zh-TW">繁體中文</option>
@@ -726,24 +720,18 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 </div>
 <div class="ai-panel active" id="aiPanel-mimo">
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select" id="selectCompany"><option value="">请选择企业</option></select></div>
-<div class="preset-info-box" style="margin-bottom:14px"><h4>MiMo API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 MiMo 的 Base URL、模型名和 API Key。如果你的 MiMo 服务不是 OpenAI 兼容接口，还需要填写对应 Endpoint。</p></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-mimo" placeholder="请输入 MiMo API Base URL"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-mimo" placeholder="请输入 MiMo 模型名"></div></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-mimo" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-mimo" placeholder="输入 MiMo API Key"></div></div>
-<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-mimo" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('mimo')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('mimo')">调用 MiMo 深度分析</button></div>
+<div class="preset-info-box" style="margin-bottom:14px"><h4>MiMo API 配置</h4><p>当前版本使用后端统一托管配置，前端不再显示 Base URL、Model、Endpoint 或 API Key 输入项。</p></div>
+<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-mimo" style="margin-right:auto;color:#a0a0cc;font-size:12px">服务端托管状态将在页面加载后自动检测</div><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测后端</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('mimo')">调用 MiMo 深度分析</button></div>
 </div>
 <div class="ai-panel" id="aiPanel-deepseek">
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="deepseek"><option value="">请选择企业</option></select></div>
-<div class="preset-info-box" style="margin-bottom:14px"><h4>DeepSeek API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 DeepSeek 的 Base URL、模型名和 API Key。</p></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-deepseek" placeholder="https://api.deepseek.com" value="https://api.deepseek.com"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-deepseek" placeholder="如：deepseek-chat" value="deepseek-chat"></div></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-deepseek" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-deepseek" placeholder="输入 DeepSeek API Key"></div></div>
-<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-deepseek" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('deepseek')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('deepseek')">调用 DeepSeek 深度分析</button></div>
+<div class="preset-info-box" style="margin-bottom:14px"><h4>DeepSeek API 配置</h4><p>当前版本使用后端统一托管配置，前端不再显示 Base URL、Model、Endpoint 或 API Key 输入项。</p></div>
+<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-deepseek" style="margin-right:auto;color:#a0a0cc;font-size:12px">服务端托管状态将在页面加载后自动检测</div><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测后端</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('deepseek')">调用 DeepSeek 深度分析</button></div>
 </div>
 <div class="ai-panel" id="aiPanel-chatgpt">
 <div class="form-group"><label class="form-label">选择企业</label><select class="form-select ai-company-select" data-provider="chatgpt"><option value="">请选择企业</option></select></div>
-<div class="preset-info-box" style="margin-bottom:14px"><h4>OpenAI API 配置</h4><p>请先启动本地代理服务 `ai_api_server.py`，再填写 OpenAI 的 Base URL、模型名和 API Key。</p></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Base URL</label><input class="form-input" id="apiBaseUrl-chatgpt" placeholder="https://gpt.fengxiaole.top/v1" value="https://gpt.fengxiaole.top/v1"></div><div class="form-group"><label class="form-label">模型名</label><input class="form-input" id="apiModel-chatgpt" placeholder="固定使用：gpt-5.4" value="gpt-5.4"></div></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div class="form-group"><label class="form-label">Endpoint</label><input class="form-input" id="apiEndpoint-chatgpt" placeholder="/chat/completions" value="/chat/completions"></div><div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-chatgpt" placeholder="输入 OpenAI API Key"></div></div>
-<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-chatgpt" style="margin-right:auto;color:#a0a0cc;font-size:12px">本地代理地址：http://127.0.0.1:8765/api/ai/analyze</div><button class="btn btn-outline" type="button" onclick="saveAIConfig('chatgpt')">保存配置</button><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('chatgpt')">调用 OpenAI 深度分析</button></div>
+<div class="preset-info-box" style="margin-bottom:14px"><h4>OpenAI API 配置</h4><p>当前版本使用后端统一托管配置，前端不再显示 Base URL、Model、Endpoint 或 API Key 输入项。</p></div>
+<div class="content-card-footer" style="padding:0;margin-top:8px"><div id="apiStatus-chatgpt" style="margin-right:auto;color:#a0a0cc;font-size:12px">服务端托管状态将在页面加载后自动检测</div><button class="btn btn-primary" type="button" onclick="checkAIServer()">检测后端</button><button class="btn btn-ai" type="button" onclick="startAIAnalysis('chatgpt')">调用 OpenAI 深度分析</button></div>
 </div>
 </div></div>
 <div id="aiAnalysisResult" style="display:none"><div class="content-card"><div class="content-card-header"><h3>📊 AI分析报告</h3><span class="tag tag-success">MiMo生成</span></div><div class="content-card-body"><div id="aiReportContent"></div></div></div></div>
@@ -871,7 +859,6 @@ border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,47,60,.88)
 </div>
 </div>
 
-<!-- Copyright starry: footer text instruction completed -->
 <div class="footer"><div class="footer-content"><span class="footer-brand" id="footerText">© 2026 产业集群分析平台-湛江科技学院</span><div class="footer-links"><a onclick="openModal('about')">关于系统</a><a onclick="openModal('contact')">联系我们</a></div></div></div>
 
 <div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingText">处理中...</div></div>
@@ -951,7 +938,6 @@ return d})();
 // ====== 用户系统 ======
 var SESSION_KEY='lj_session',LOG_KEY='lj_logs';
 var redirectAfterLogin=null;
-// Copyright starry: login and verification anti-bruteforce instruction completed
 var SECURITY_WINDOW=10*60*1000,SECURITY_LOCK=10*60*1000,SECURITY_MAX_FAILS=5;
 
 function getSecuritySubject(){return String(window.LJ_CLIENT_IP||'local-browser')}
@@ -974,7 +960,6 @@ function recordSecurityFailure(type,label){
     writeSecurity(type,d);return{locked:false,error:label+'错误，还可尝试'+(SECURITY_MAX_FAILS-d.fails)+'次'}
 }
 
-// Copyright starry: multilingual switching instruction completed
 var currentLang=localStorage.getItem('lj_lang')||'zh-CN';
 var I18N={
 'zh-CN':{
@@ -2487,6 +2472,7 @@ function findCompanyBySelection(name){
     return null
 }
 window.findCompanyBySelection=findCompanyBySelection;
+/*
 function isGitHubPagesRuntime(){
     return /\.github\.io$/i.test(window.location.hostname||'')
 }
@@ -2594,10 +2580,11 @@ async function callProviderDirect(provider,cfg,company){
             return part&&part.text?part.text:JSON.stringify(part);
         }).join('\n');
     }
-    var report=extractJsonObjectClient(content);
+var report=extractJsonObjectClient(content);
     if(!report.model)report.model=String(cfg.model||'').trim();
     return report
-}
+*/
+if(false){/*
 var originalSaveAIConfig=window.saveAIConfig;
 window.saveAIConfig=function(provider){
     if(originalSaveAIConfig)originalSaveAIConfig(provider);
@@ -2702,6 +2689,7 @@ window.startAIAnalysis=async function(provider){
         if(window.hideLoading)window.hideLoading();
     }
 };
+*/}
 document.addEventListener('DOMContentLoaded',function(){
     setTimeout(setBrowserModeHint,80);
 });
@@ -2854,7 +2842,7 @@ window.renderApiConfigPanel=function(provider){
         '<div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-'+provider+'" placeholder="输入 '+escCompat(meta.label)+' API Key" value="'+escCompat(cfg.api_key)+'"></div>'+
     '</div>'+
     '<div class="content-card-footer" style="padding:0;margin-top:8px">'+
-        '<div id="apiStatus-'+provider+'" style="margin-right:auto;color:#a0a0cc;font-size:12px">'+(shouldPreferDirectApi()?'浏览器直连模式：填写 Base URL、Model、API Key 后可直接分析。':'本地代理地址：'+escCompat(window.AI_PROXY_URL||'http://127.0.0.1:8765/api/ai/analyze'))+' '+serverBadge+'</div>'+
+        '<div id="apiStatus-'+provider+'" style="margin-right:auto;color:#a0a0cc;font-size:12px">'+(shouldPreferDirectApi()?'浏览器直连模式：填写 Base URL、Model、API Key 后可直接分析。':'服务端托管地址：'+escCompat(window.AI_PROXY_URL||'https://lianjiang-ai-api.onrender.com/api/ai/analyze'))+' '+serverBadge+'</div>'+
         '<button class="btn btn-outline" type="button" onclick="saveAIConfig(\''+provider+'\')">保存配置</button>'+
         '<button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button>'+
         '<button class="btn btn-ai" type="button" onclick="startAIAnalysis(\''+provider+'\')">'+escCompat(meta.button)+'</button>'+
@@ -3195,7 +3183,7 @@ window.renderApiConfigPanel=function(provider){
         '<div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey-'+provider+'" placeholder="输入 '+escCompat(meta.label)+' API Key" value="'+escCompat(cfg.api_key)+'"></div>'+
     '</div>'+
     '<div class="content-card-footer" style="padding:0;margin-top:8px">'+
-        '<div id="apiStatus-'+provider+'" style="margin-right:auto;color:#a0a0cc;font-size:12px">'+(shouldPreferDirectApi()?'浏览器直连模式可用：无需本地代理，填写 Base URL、Model、API Key 即可。':'本地代理地址：'+escCompat(window.AI_PROXY_URL||'http://127.0.0.1:8765/api/ai/analyze'))+' '+serverBadge+'</div>'+
+        '<div id="apiStatus-'+provider+'" style="margin-right:auto;color:#a0a0cc;font-size:12px">'+(shouldPreferDirectApi()?'浏览器直连模式可用：无需本地代理，填写 Base URL、Model、API Key 即可。':'服务端托管地址：'+escCompat(window.AI_PROXY_URL||'https://lianjiang-ai-api.onrender.com/api/ai/analyze'))+' '+serverBadge+'</div>'+
         '<button class="btn btn-outline" type="button" onclick="saveAIConfig(\''+provider+'\')">保存配置</button>'+
         '<button class="btn btn-primary" type="button" onclick="checkAIServer()">检测代理</button>'+
         '<button class="btn btn-ai" type="button" onclick="startAIAnalysis(\''+provider+'\')">'+escCompat(meta.button)+'</button>'+
@@ -3218,6 +3206,7 @@ window.upgradeAiPanels=function(){
 window.ensureAiPanelsUpgraded=function(){
     try{window.upgradeAiPanels()}catch(e){console.error('upgradeAiPanels failed',e)}
 };
+if(false){/*
 var originalSaveAIConfig=window.saveAIConfig;
 window.saveAIConfig=function(provider){
     if(originalSaveAIConfig)originalSaveAIConfig(provider);
@@ -3322,6 +3311,7 @@ window.startAIAnalysis=async function(provider){
         if(window.hideLoading)window.hideLoading();
     }
 };
+*/}
 var originalSelectAI=window.selectAI;
 window.selectAI=function(ai,btn){
     if(originalSelectAI)originalSelectAI(ai,btn);
@@ -5926,12 +5916,53 @@ if(document.readyState !== 'loading'){
 
 var REMOTE_API_BASE_DEFAULT = 'https://lianjiang-ai-api.onrender.com';
 
+function cleanRemoteApiBase(value){
+    return String(value || '').trim().replace(/\/+$/,'');
+}
+function parseRemoteApiUrl(value){
+    try{
+        return new URL(cleanRemoteApiBase(value));
+    }catch(e){
+        return null;
+    }
+}
+function isPreviewOnlyOrigin(value){
+    var parsed = parseRemoteApiUrl(value);
+    var host = parsed && parsed.hostname ? String(parsed.hostname).toLowerCase() : '';
+    return !!host && (
+        /(?:^|\.)github\.io$/.test(host) ||
+        /(?:^|\.)trycloudflare\.com$/.test(host) ||
+        /(?:^|\.)pages\.dev$/.test(host) ||
+        /(?:^|\.)workers\.dev$/.test(host)
+    );
+}
+function isBackendHostOrigin(value){
+    var parsed = parseRemoteApiUrl(value);
+    var host = parsed && parsed.hostname ? String(parsed.hostname).toLowerCase() : '';
+    return !!host && (
+        host === '127.0.0.1' ||
+        host === 'localhost' ||
+        /(?:^|\.)onrender\.com$/.test(host)
+    );
+}
 function remoteApiBase(){
+    var envValue = cleanRemoteApiBase(window.LJ_REMOTE_API_BASE || '');
+    if(envValue)return envValue;
+
     var configured = '';
-    try{ configured = String(localStorage.getItem('lj_remote_api_base') || '').trim(); }catch(e){}
-    var envValue = String(window.LJ_REMOTE_API_BASE || '').trim();
-    var base = configured || envValue || REMOTE_API_BASE_DEFAULT;
-    return base.replace(/\/+$/,'');
+    try{
+        configured = cleanRemoteApiBase(localStorage.getItem('lj_remote_api_base') || '');
+    }catch(e){}
+    if(configured && !isPreviewOnlyOrigin(configured))return configured;
+
+    var sameOrigin = '';
+    try{
+        if(window.location && /^https?:$/i.test(window.location.protocol) && window.location.origin){
+            sameOrigin = cleanRemoteApiBase(window.location.origin || '');
+        }
+    }catch(e){}
+    if(isBackendHostOrigin(sameOrigin))return sameOrigin;
+    return REMOTE_API_BASE_DEFAULT;
 }
 function currentProxyUrl(){
     return remoteApiBase() + '/api/ai/analyze';
@@ -6769,7 +6800,7 @@ if(document.readyState !== 'loading'){
 }
 })();
 </script>
-<script>
+<!--<script>
 (function(){
 'use strict';
 
@@ -6913,12 +6944,1248 @@ window.startAIAnalysis = async function(provider){
         if(window.hideLoading)window.hideLoading();
     }
 };
+if(false){/*
+window.startAIAnalysis = async function(provider){
+    provider = provider || (window.getActiveAIProvider ? window.getActiveAIProvider() : 'mimo');
+    var panel = document.getElementById('aiPanel-' + provider);
+    var select = panel ? panel.querySelector('.ai-company-select') : document.getElementById('selectCompany');
+    var fallback = document.getElementById('selectCompany');
+    var name = (select && select.value) || (fallback && fallback.value) || '';
+    if(!name){
+        if(window.showToast)window.showToast('璇峰厛閫夋嫨浼佷笟');
+        return;
+    }
+    if(window.setAiCompanySelection)window.setAiCompanySelection(name);
+    window.companyData = window.findCompanyBySelection ? window.findCompanyBySelection(name) : null;
+    if(!window.companyData){
+        if(window.showToast)window.showToast('鏈壘鍒颁紒涓氭暟鎹?);
+        return;
+    }
+    if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'姝ｅ湪璋冪敤鍚庣鎵樼鐨?' + window.getProviderMeta(provider).label + ' 鍒嗘瀽鎺ュ彛...',true);
+    if(window.showLoading)window.showLoading('姝ｅ湪璋冪敤 ' + window.getProviderMeta(provider).label + ' API 鐢熸垚瀹屾暣璇婃柇鏂规...');
+    try{
+        var res = await fetch(window.AI_PROXY_URL || 'https://lianjiang-ai-api.onrender.com/api/ai/analyze',{
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body:JSON.stringify({
+                provider: window.getProviderKey(provider),
+                analysis_input: window.getLocalAnalysisInput(window.companyData)
+            })
+        });
+        var data = await res.json();
+        if(!res.ok || !data.ok)throw new Error(data.error || 'API 璇锋眰澶辫触');
+        window.diagnosisResult = window.normalizeAiReport(provider,data.report,window.companyData);
+        if(window.saveUserAnalysis)window.saveUserAnalysis({ c:name, s:window.diagnosisResult.totalScore, l:window.diagnosisResult.level.text, t:new Date().toLocaleString('zh-CN') });
+        document.getElementById('aiReportContent').innerHTML = window.buildApiReportHtml(window.diagnosisResult);
+        document.getElementById('aiAnalysisResult').style.display = 'block';
+        if(window.updateEvaluationPage)window.updateEvaluationPage();
+        setTimeout(function(){
+            if(window.openAiDimensionDetail)window.openAiDimensionDetail(window.RESEARCH_FUSION_MODEL.order[0]);
+        },60);
+        setTimeout(function(){
+            if(window.openAiPhaseDetail && (window.diagnosisResult.apiReport || {}).phases && window.diagnosisResult.apiReport.phases.length){
+                window.openAiPhaseDetail(0);
+            }
+        },90);
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,window.getProviderMeta(provider).label + ' 宸叉垚鍔熻繑鍥炲垎鏋愮粨鏋滐紝鎶ュ憡宸茬敓鎴愩€?,true);
+        if(window.showToast)window.showToast(window.getProviderMeta(provider).label + ' API 鍒嗘瀽瀹屾垚');
+    }catch(err){
+        var message = String(err && err.message || err || '鍒嗘瀽澶辫触');
+        var statusEl = document.getElementById('apiStatus-' + provider);
+        if(statusEl)statusEl.textContent = serverManagedStatusText() + ' 鍒嗘瀽澶辫触锛? + message;
+        if(window.setApiInlineAlert)window.setApiInlineAlert(provider,'鍚庣浠ｇ悊璋冪敤澶辫触锛? + message);
+        if(window.showToast)window.showToast('鍒嗘瀽澶辫触锛? + message);
+    }finally{
+        if(window.hideLoading)window.hideLoading();
+    }
+};
+*/}
 
 if(typeof window.ensureAiPanelsUpgraded === 'function'){
     setTimeout(function(){
         window.ensureAiPanelsUpgraded();
         if(typeof window.checkAIServer === 'function')window.checkAIServer();
     }, 0);
+}
+})();
+</script>
+<script>
+(function(){
+'use strict';
+
+function textify(value){
+    if(value == null)return '';
+    if(typeof value === 'string')return value.trim();
+    if(typeof value === 'number' || typeof value === 'boolean')return String(value).trim();
+    if(Array.isArray(value))return value.map(textify).filter(Boolean).join('；');
+    if(typeof value === 'object'){
+        var parts = [];
+        ['title','name','label','metric','detail','description','content','diagnosis','summary','timeline','expectedResult','whyNow','value'].forEach(function(key){
+            var text = textify(value[key]);
+            if(!text)return;
+            parts.push((key === 'timeline' || key === 'expectedResult' || key === 'whyNow') ? (key + '：' + text) : text);
+        });
+        if(parts.length)return parts.slice(0,4).join('；');
+        try{return JSON.stringify(value);}catch(e){return String(value)}
+    }
+    return String(value).trim();
+}
+
+function listify(value){
+    var list = Array.isArray(value) ? value : (value == null || value === '' ? [] : [value]);
+    var seen = {};
+    return list.map(textify).filter(function(item){
+        if(!item || seen[item])return false;
+        seen[item] = true;
+        return true;
+    });
+}
+
+function providerStatusState(){
+    if(!window.aiRunState)window.aiRunState = {};
+    return window.aiRunState;
+}
+
+function ensureProgressStyle(){
+    if(document.getElementById('ai-progress-style'))return;
+    var style = document.createElement('style');
+    style.id = 'ai-progress-style';
+    style.textContent = '.ai-progress-box{margin-top:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03)}.ai-progress-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#d7e3df;margin-bottom:8px}.ai-progress-track{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.ai-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#00d4ff,#ff6b35);transition:width .35s ease}.ai-progress-meta{margin-top:8px;font-size:12px;color:#9db2ac}';
+    document.head.appendChild(style);
+}
+
+function ensureProviderProgress(provider){
+    ensureProgressStyle();
+    var statusEl = document.getElementById('apiStatus-' + provider);
+    if(!statusEl || !statusEl.parentNode)return null;
+    var id = 'aiProgressBox-' + provider;
+    var box = document.getElementById(id);
+    if(box)return box;
+    box = document.createElement('div');
+    box.className = 'ai-progress-box';
+    box.id = id;
+    box.innerHTML = '<div class="ai-progress-head"><span id="aiProgressLabel-' + provider + '">等待启动</span><span id="aiProgressPct-' + provider + '">0%</span></div><div class="ai-progress-track"><div class="ai-progress-fill" id="aiProgressFill-' + provider + '" style="width:0%"></div></div><div class="ai-progress-meta" id="aiProgressMeta-' + provider + '">服务端托管模式待命</div>';
+    statusEl.parentNode.appendChild(box);
+    return box;
+}
+
+function setProviderProgress(provider, percent, label, meta){
+    ensureProviderProgress(provider);
+    var pct = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    var fill = document.getElementById('aiProgressFill-' + provider);
+    var pctEl = document.getElementById('aiProgressPct-' + provider);
+    var labelEl = document.getElementById('aiProgressLabel-' + provider);
+    var metaEl = document.getElementById('aiProgressMeta-' + provider);
+    if(fill)fill.style.width = pct + '%';
+    if(pctEl)pctEl.textContent = pct + '%';
+    if(labelEl && label)labelEl.textContent = label;
+    if(metaEl && meta)metaEl.textContent = meta;
+}
+
+function startProviderProgress(provider){
+    var state = providerStatusState();
+    stopProviderProgress(provider);
+    setProviderProgress(provider, 8, '准备请求', '正在整理企业数据并提交到后端');
+    var current = 8;
+    state[provider] = {
+        timer: setInterval(function(){
+            current = Math.min(current + (current < 35 ? 9 : current < 60 ? 5 : current < 82 ? 3 : 1), 92);
+            setProviderProgress(provider, current, current < 35 ? '发送请求' : current < 60 ? '模型分析中' : current < 82 ? '生成卡片结构' : '整理最终报告', '服务端正在调用 ' + window.getProviderMeta(provider).label + ' 并等待响应');
+        }, 1600)
+    };
+}
+
+function stopProviderProgress(provider){
+    var state = providerStatusState();
+    if(state[provider] && state[provider].timer){
+        clearInterval(state[provider].timer);
+    }
+    delete state[provider];
+}
+
+function localDimMeta(key){
+    return (window.EIGHT_ELEMENTS && window.EIGHT_ELEMENTS[key]) || { icon:'*', name:key };
+}
+
+function localResearchModel(){
+    var model = window.RESEARCH_FUSION_MODEL || {};
+    return {
+        order: Array.isArray(model.order) && model.order.length ? model.order.slice() : ['brand','marketing','rd','production','standard','logistics','capital','finance'],
+        lianjiang: Object.assign({brand:49,marketing:45,rd:42,production:55,standard:46,logistics:43,capital:38,finance:44}, model.lianjiang || {}),
+        cixi: Object.assign({brand:82,marketing:78,rd:86,production:84,standard:80,logistics:76,capital:88,finance:82}, model.cixi || {})
+    };
+}
+
+function safeGap(key, score){
+    var model = localResearchModel();
+    return Math.max(0, (model.cixi[key] || 0) - (score || 0));
+}
+
+function fallbackPlan(scores, company){
+    if(typeof window.buildCompletePlan === 'function')return window.buildCompletePlan(scores, company);
+    return { dims: [], urgent: [], phases: [] };
+}
+
+function normalizeDimension(key, rawDim, score, company){
+    var planFn = typeof window.getDimensionDeepPlan === 'function' ? window.getDimensionDeepPlan : null;
+    var swotFn = typeof window.getSwotSentence === 'function' ? window.getSwotSentence : null;
+    var scoreReasonFn = typeof window.scoreReasonFromData === 'function' ? window.scoreReasonFromData : null;
+    var dim = rawDim || {};
+    var gap = dim.gap != null ? Math.max(0, Number(dim.gap) || 0) : safeGap(key, score);
+    var deepPlan = planFn ? planFn(key, score, gap) : { objective:'', diagnosis:'', actions:[], kpis:[], owner:'', resource:'', risk:'', swot:{} };
+    var reason = scoreReasonFn ? scoreReasonFn(key, company || {}, score) : { summary:'', items:[] };
+    var model = localResearchModel();
+    return {
+        key: key,
+        name: textify(dim.name) || localDimMeta(key).name || key,
+        score: score,
+        level: textify(dim.level) || ((typeof window.getDimLevel === 'function' ? window.getDimLevel(score).text : '')),
+        gap: gap,
+        objective: textify(dim.objective) || textify(deepPlan.objective),
+        diagnosis: textify(dim.diagnosis) || textify(deepPlan.diagnosis) || textify(reason.summary),
+        scoreExplanation: textify(dim.scoreExplanation) || textify(reason.summary),
+        benchmarkComparison: textify(dim.benchmarkComparison) || ('当前得分 ' + score + ' 分；廉江研究基准 ' + (model.lianjiang[key] || 0) + ' 分；慈溪标杆 ' + (model.cixi[key] || 0) + ' 分；标杆差距 ' + gap + ' 分。'),
+        rootCauses: listify((dim.rootCauses || []).concat((((deepPlan.swot || {}).w) || []).slice(0,2))),
+        evidenceFromInput: listify((dim.evidenceFromInput || []).concat((reason.items || []))).slice(0,8),
+        swotFocus: textify(dim.swotFocus) || (swotFn ? textify(swotFn(key, scoresFromCurrent())) : ''),
+        actions: listify((dim.actions || []).concat(deepPlan.actions || [])).slice(0,6),
+        kpis: listify((dim.kpis || []).concat(deepPlan.kpis || [])).slice(0,6),
+        risks: listify((dim.risks || []).concat(dim.riskControls || []).concat(deepPlan.risk ? [deepPlan.risk] : [])).slice(0,5),
+        owner: textify(dim.owner) || textify(deepPlan.owner) || '建议由企业负责人牵头',
+        resources: listify((dim.resources || []).concat(deepPlan.resource ? [deepPlan.resource] : [])),
+        milestones: listify((dim.milestones || []).concat(dim.timeline || [])).slice(0,6),
+        expectedImpact: textify(dim.expectedImpact) || ('若完成上述动作，可优先缩小' + (localDimMeta(key).name || key) + '维度与慈溪标杆的差距，并带动综合评分提升。'),
+        paperMethodMapping: textify(dim.paperMethodMapping) || '本维度按八要素五层级计点、廉江/慈溪 SWOT 对比、头雁效应跃迁路径联合解释。'
+    };
+}
+
+function scoresFromCurrent(){
+    try{
+        return (window.diagnosisResult && window.diagnosisResult.scores) || {};
+    }catch(e){
+        return {};
+    }
+}
+
+function buildPhasesStable(report, scores, company){
+    var plan = fallbackPlan(scores, company);
+    var source = Array.isArray(report.phases) && report.phases.length ? report.phases : (plan.phases || []);
+    var phases = source.map(function(phase, index){
+        var fallback = (plan.phases || [])[index] || {};
+        return {
+            name: textify(phase.name) || textify(fallback.name) || ('阶段' + (index + 1)),
+            goals: listify((phase.goals || []).concat(fallback.items || [])),
+            milestones: listify((phase.milestones || []).concat(fallback.items || [])),
+            focusDimensions: listify((phase.focusDimensions || []).concat((plan.urgent || []).slice(0,3).map(function(item){ return item.name; }))),
+            explanation: textify(phase.explanation) || (typeof window.phaseDescription === 'function' ? window.phaseDescription(textify(phase.name) || textify(fallback.name) || '', index) : '')
+        };
+    });
+    while(phases.length < 4){
+        var fallbackPhase = (plan.phases || [])[phases.length] || {};
+        phases.push({
+            name: textify(fallbackPhase.name) || ('阶段' + (phases.length + 1)),
+            goals: listify(fallbackPhase.items || []),
+            milestones: listify(fallbackPhase.items || []),
+            focusDimensions: listify((plan.urgent || []).slice(0,3).map(function(item){ return item.name; })),
+            explanation: typeof window.phaseDescription === 'function' ? window.phaseDescription(textify(fallbackPhase.name) || '', phases.length) : ''
+        });
+    }
+    return phases.slice(0,4);
+}
+
+function buildSolutionsStable(report, scores, company){
+    var plan = fallbackPlan(scores, company);
+    var apiSolutions = Array.isArray(report.solutions) ? report.solutions : [];
+    var generated = (plan.dims || []).slice(0,8).map(function(item){
+        return {
+            title: item.name + '完整解决方案',
+            priority: item.score < 40 || item.gap > 30 ? 'high' : item.score < 60 || item.gap > 18 ? 'medium' : 'low',
+            targetDimensions: [item.key || item.name],
+            content: listify((item.plan && item.plan.actions) || []).slice(0,4),
+            steps: listify((item.plan && item.plan.kpis) || []).slice(0,4),
+            expectedResult: item.name + '维度优先缩小与慈溪标杆差距 ' + item.gap + ' 分。',
+            whyNow: '当前得分 ' + item.score + ' 分，属于优先补强维度。'
+        };
+    });
+    var normalized = apiSolutions.concat(generated).map(function(solution){
+        return {
+            title: textify(solution.title) || '完整解决方案',
+            priority: solution.priority === 'high' || solution.priority === 'low' ? solution.priority : 'medium',
+            targetDimensions: listify(solution.targetDimensions || []),
+            content: listify(solution.content || []),
+            steps: listify(solution.steps || []),
+            expectedResult: textify(solution.expectedResult),
+            whyNow: textify(solution.whyNow)
+        };
+    });
+    var seen = {};
+    normalized = normalized.filter(function(item){
+        var key = item.title;
+        if(!key || seen[key])return false;
+        seen[key] = true;
+        return true;
+    });
+    while(normalized.length < 6 && generated[normalized.length]){
+        normalized.push(generated[normalized.length]);
+    }
+    return normalized.slice(0,8);
+}
+
+window.normalizeAiReport = function(provider, report, company){
+    report = report || {};
+    var order = localResearchModel().order.slice();
+    var localInput = window.getLocalAnalysisInput ? window.getLocalAnalysisInput(company) : null;
+    var scores = {};
+    order.forEach(function(key){
+        var localScore = localInput && localInput.localScoring && localInput.localScoring.scores ? localInput.localScoring.scores[key] : 0;
+        var apiScore = report && report.scores && report.scores[key] != null ? parseInt(report.scores[key], 10) : NaN;
+        scores[key] = Math.max(0, Math.min(100, isNaN(apiScore) ? (localScore || 0) : apiScore));
+    });
+    var totalScore = Math.max(0, Math.min(100, parseInt(report.overallScore, 10) || (typeof window.calcTotalScore === 'function' ? window.calcTotalScore(scores) : Math.round(order.reduce(function(sum, key){ return sum + scores[key]; }, 0) / order.length))));
+    var level = typeof window.getLevel === 'function' ? window.getLevel(totalScore) : { text: textify(report.overallLevel) || 'C级', cls: 'level-c' };
+    var rawDimensions = {};
+    (Array.isArray(report.dimensionAnalysis) ? report.dimensionAnalysis : []).forEach(function(item){
+        if(item && item.key)rawDimensions[item.key] = item;
+    });
+    var dimensions = order.map(function(key){
+        return normalizeDimension(key, rawDimensions[key], scores[key], company);
+    });
+    report.scores = scores;
+    report.dimensionAnalysis = dimensions;
+    report.coreFindings = listify(report.coreFindings);
+    if(report.coreFindings.length < 6){
+        report.coreFindings = dimensions.slice(0,6).map(function(item){
+            return item.name + '维度当前 ' + item.score + ' 分，' + item.benchmarkComparison;
+        });
+    }
+    report.phases = buildPhasesStable(report, scores, company);
+    report.solutions = buildSolutionsStable(report, scores, company);
+    return {
+        provider: provider,
+        providerLabel: window.getProviderMeta(provider).label,
+        model: report.model || '',
+        scores: scores,
+        totalScore: totalScore,
+        level: { text: textify(report.overallLevel) || level.text, cls: level.cls },
+        company: company,
+        solutions: report.solutions,
+        research: typeof window.buildResearchMeta === 'function' ? window.buildResearchMeta(scores) : { method:'五维融合八要素模型', source:'平台内置研究口径' },
+        apiReport: report
+    };
+};
+
+window.buildPhaseDetailSections = function(report){
+    if(!Array.isArray(report.phases) || !report.phases.length)return '';
+    var html = '<div class="content-card"><div class="content-card-header"><h3>阶段详细方案</h3><span class="tag tag-success">点击上方阶段卡可直达</span></div><div class="content-card-body">';
+    report.phases.forEach(function(phase, index){
+        html += '<section class="plan-detail-section" id="phase-detail-' + index + '" data-phase-section="' + index + '">' +
+            '<div class="plan-detail-title">阶段 ' + (index + 1) + ' · ' + window.esc(textify(phase.name) || ('阶段' + (index + 1))) + '</div>' +
+            '<div class="plan-detail-desc">' + window.esc(textify(phase.explanation) || '') + '</div>' +
+            '<div class="ai-detail-block"><h4>阶段目标</h4><ul class="plan-detail-list">' + listify(phase.goals || []).map(function(item){ return '<li>' + window.esc(item) + '</li>'; }).join('') + '</ul></div>' +
+            '<div class="ai-detail-block"><h4>里程碑</h4><ul class="plan-detail-list">' + listify(phase.milestones || []).map(function(item){ return '<li>' + window.esc(item) + '</li>'; }).join('') + '</ul></div>' +
+            '<div class="ai-detail-block"><h4>重点维度</h4><p>' + window.esc(listify(phase.focusDimensions || []).join('、') || '围绕高差距维度推进') + '</p></div>' +
+        '</section>';
+    });
+    html += '</div></div>';
+    return html;
+};
+
+window.buildSolutionDetailSections = function(report){
+    if(!Array.isArray(report.solutions) || !report.solutions.length)return '';
+    var model = localResearchModel();
+    var html = '<div class="content-card"><div class="content-card-header"><h3>完整方案索引</h3><span class="tag tag-warning">点击跳到对应维度</span></div><div class="content-card-body">';
+    report.solutions.forEach(function(solution, index){
+        var firstTarget = listify(solution.targetDimensions || [])[0] || '';
+        var dimKey = model.order.find(function(key){
+            var meta = localDimMeta(key);
+            return firstTarget === key || firstTarget === meta.name;
+        }) || ((report.dimensionAnalysis || [])[index] || {}).key || 'brand';
+        var priority = solution.priority === 'high' || solution.priority === 'low' ? solution.priority : 'medium';
+        html += '<button type="button" class="solution-item ' + priority + ' clickable-step" data-solution-card="' + dimKey + '" onclick="openAiSolutionDetail(\'' + dimKey + '\')">' +
+            '<div class="solution-header"><div class="solution-title">' + (index + 1) + '. ' + window.esc(textify(solution.title) || '完整解决方案') + '</div><span class="tag tag-' + (priority === 'high' ? 'danger' : priority === 'medium' ? 'warning' : 'success') + '">' + (priority === 'high' ? '高优先级' : priority === 'medium' ? '中优先级' : '稳步推进') + '</span></div>' +
+            '<div class="solution-content"><p style="color:#a0c0c7;line-height:1.8;margin-bottom:8px">' + window.esc(textify(solution.whyNow) || '') + '</p><ul>' + listify(solution.content || []).slice(0,3).map(function(item){ return '<li>' + window.esc(item) + '</li>'; }).join('') + '</ul><div class="solution-jump-note">' + window.esc(textify(solution.expectedResult) || '点击查看该维度的完整评分解释与实施路径。') + '</div></div>' +
+            '</button>';
+    });
+    html += '</div></div>';
+    return html;
+};
+
+window.buildApiReportHtml = function(r){
+    var report = r.apiReport || {};
+    var providerLabel = r.providerLabel || window.getProviderMeta(r.provider || 'mimo').label;
+    var html = '<div class="score-display"><div class="score-label">多模型 API 深度融合评分</div><div class="score-value">' + r.totalScore + '</div><div class="score-level ' + r.level.cls + '">' + r.level.text + '</div></div>';
+    html += '<div class="ai-result-box"><div class="ai-result-header"><span>🤖</span><span class="ai-result-title">' + window.esc(providerLabel) + ' 深度诊断与完整解决方案</span></div><div class="ai-result-content">';
+    html += '<p><strong>企业：</strong>' + window.esc((r.company && r.company.name) || '') + '</p>';
+    html += '<p><strong>综合结论：</strong>' + window.esc(safeTextify(report.executiveSummary) || '') + '</p>';
+    html += '<p><strong>方法口径：</strong>' + window.esc(safeTextify(report.methodology) || ((r.research || {}).method || '')) + '</p>';
+    html += '<p><strong>研究依据：</strong>' + window.esc(safeTextify(report.researchBasis) || ((r.research || {}).source || '')) + '</p>';
+    if(Array.isArray(report.coreFindings) && report.coreFindings.length){
+        html += '<br><p><strong>核心发现：</strong></p><ul>' + report.coreFindings.map(function(item){ return '<li>' + window.esc(safeTextify(item)) + '</li>'; }).join('') + '</ul>';
+    }
+    html += '</div></div>';
+    html += window.buildClickableDimCards(r, report);
+    html += window.buildDimensionDetailSections(r, report);
+    if(Array.isArray(report.phases) && report.phases.length){
+        html += '<div class="content-card"><div class="content-card-header"><h3>实施路线</h3><span class="tag tag-success">按阶段推进</span></div><div class="content-card-body">';
+        report.phases.forEach(function(phase, index){
+            html += '<button type="button" class="step-item clickable-step" data-phase-card="' + index + '" onclick="openAiPhaseDetail(' + index + ')"><div class="step-num">' + (index + 1) + '</div><div class="step-content"><div class="step-title">' + window.esc(textify(phase.name) || ('阶段' + (index + 1))) + '</div><div class="step-desc"><ul>' + listify(phase.goals || []).slice(0, 3).map(function(item){ return '<li>' + window.esc(item) + '</li>'; }).join('') + '</ul><div class="solution-jump-note">点击查看该阶段详细方案、里程碑与算法解释</div></div></div></button>';
+        });
+        html += '</div></div>';
+    }
+    html += window.buildPhaseDetailSections(report);
+    html += window.buildSolutionDetailSections(report);
+    return html;
+};
+})();
+</script>-->
+<script>
+(function(){
+'use strict';
+
+function safeList(value){
+    if(Array.isArray(value))return value;
+    if(value == null || value === '')return [];
+    return [value];
+}
+
+function uniqueTextList(items){
+    var seen = {};
+    return safeList(items).map(function(item){
+        if(typeof window.dedupeTextList === 'function'){
+            return window.dedupeTextList([item])[0] || '';
+        }
+        return String(item == null ? '' : item).trim();
+    }).filter(function(item){
+        if(!item || seen[item])return false;
+        seen[item] = true;
+        return true;
+    });
+}
+
+window.buildEnhancedPhases = function(report, scores, company){
+    var plan = typeof window.buildCompletePlan === 'function'
+        ? window.buildCompletePlan(scores, company)
+        : { phases: [], urgent: [] };
+    var source = Array.isArray(report && report.phases) && report.phases.length ? report.phases : (plan.phases || []);
+    var phases = source.map(function(phase, index){
+        var fallback = (plan.phases || [])[index] || {};
+        return {
+            name: phase.name || fallback.name || ('阶段' + (index + 1)),
+            goals: uniqueTextList(safeList(phase.goals).concat(fallback.items || [])),
+            milestones: uniqueTextList(safeList(phase.milestones).concat(fallback.items || [])),
+            focusDimensions: uniqueTextList(safeList(phase.focusDimensions).concat((plan.urgent || []).slice(0, 3).map(function(item){ return item.name; }))),
+            explanation: phase.explanation || (typeof window.phaseDescription === 'function' ? window.phaseDescription(phase.name || fallback.name || '', index) : '')
+        };
+    });
+    while(phases.length < 4){
+        var fillIndex = phases.length;
+        var fillFallback = (plan.phases || [])[fillIndex] || {};
+        phases.push({
+            name: fillFallback.name || ('阶段' + (fillIndex + 1)),
+            goals: uniqueTextList(fillFallback.items || []),
+            milestones: uniqueTextList(fillFallback.items || []),
+            focusDimensions: uniqueTextList((plan.urgent || []).slice(0, 3).map(function(item){ return item.name; })),
+            explanation: typeof window.phaseDescription === 'function' ? window.phaseDescription(fillFallback.name || '', fillIndex) : ''
+        });
+    }
+    return phases.slice(0, 4);
+};
+
+window.buildEnhancedSolutions = function(report, scores, company){
+    var plan = typeof window.buildCompletePlan === 'function'
+        ? window.buildCompletePlan(scores, company)
+        : { dims: [] };
+    var apiSolutions = Array.isArray(report && report.solutions) ? report.solutions : [];
+    var generated = (plan.dims || []).slice(0, 8).map(function(item){
+        return {
+            title: (item.name || '维度') + '完整解决方案',
+            priority: item.score < 40 || item.gap > 30 ? 'high' : (item.score < 60 || item.gap > 18 ? 'medium' : 'low'),
+            targetDimensions: [item.key || item.name],
+            content: uniqueTextList((item.plan && item.plan.actions) || []).slice(0, 4),
+            steps: uniqueTextList((item.plan && item.plan.kpis) || []).slice(0, 4),
+            expectedResult: (item.name || '该维度') + '优先缩小与标杆差距 ' + (item.gap || 0) + ' 分。',
+            whyNow: '当前得分 ' + (item.score || 0) + ' 分，属于优先补强维度。'
+        };
+    });
+    var normalized = apiSolutions.concat(generated).map(function(solution){
+        return {
+            title: solution.title || '完整解决方案',
+            priority: solution.priority === 'high' || solution.priority === 'low' ? solution.priority : 'medium',
+            targetDimensions: uniqueTextList(solution.targetDimensions || []),
+            content: uniqueTextList(solution.content || []),
+            steps: uniqueTextList(solution.steps || []),
+            expectedResult: solution.expectedResult || '',
+            whyNow: solution.whyNow || ''
+        };
+    });
+    var seen = {};
+    normalized = normalized.filter(function(solution){
+        var key = (solution.title || '') + '::' + (solution.targetDimensions || []).join('|');
+        if(!solution.title || seen[key])return false;
+        seen[key] = true;
+        return true;
+    });
+    while(normalized.length < 6 && generated[normalized.length]){
+        normalized.push(generated[normalized.length]);
+    }
+    return normalized.slice(0, 8);
+};
+})();
+</script>
+<script>
+(function(){
+'use strict';
+
+var originalNormalizeAiReport = window.normalizeAiReport;
+
+function arrayify(value){
+    return Array.isArray(value) ? value : [];
+}
+
+function uniq(items){
+    var seen = {};
+    return arrayify(items).map(function(item){
+        return String(item == null ? '' : item).trim();
+    }).filter(function(item){
+        if(!item || seen[item])return false;
+        seen[item] = true;
+        return true;
+    });
+}
+
+function ensureRichPhases(report, result){
+    var scores = (result && result.scores) || {};
+    var company = (result && result.company) || null;
+    var phases = arrayify(report.phases).map(function(phase){
+        return {
+            name: phase && phase.name ? phase.name : '阶段',
+            goals: uniq((phase && phase.goals) || []),
+            milestones: uniq((phase && phase.milestones) || []),
+            focusDimensions: uniq((phase && phase.focusDimensions) || []),
+            explanation: phase && phase.explanation ? phase.explanation : ''
+        };
+    });
+    if(phases.length >= 4)return phases;
+    var fallback = [];
+    if(typeof window.buildCompletePlan === 'function'){
+        try{
+            fallback = (((window.buildCompletePlan(scores, company) || {}).phases) || []);
+        }catch(e){}
+    }
+    while(phases.length < 4){
+        var index = phases.length;
+        var source = fallback[index] || {};
+        phases.push({
+            name: source.name || ('阶段' + (index + 1)),
+            goals: uniq(source.items || []),
+            milestones: uniq(source.items || []),
+            focusDimensions: uniq([]),
+            explanation: typeof window.phaseDescription === 'function' ? window.phaseDescription(source.name || '', index) : ''
+        });
+    }
+    return phases.slice(0, 4);
+}
+
+function ensureRichSolutions(report, result){
+    var scores = (result && result.scores) || {};
+    var company = (result && result.company) || null;
+    var solutions = arrayify(report.solutions).map(function(item){
+        return {
+            title: item && item.title ? item.title : '完整解决方案',
+            priority: item && (item.priority === 'high' || item.priority === 'low') ? item.priority : 'medium',
+            targetDimensions: uniq((item && item.targetDimensions) || []),
+            content: uniq((item && item.content) || []),
+            steps: arrayify(item && item.steps),
+            expectedResult: item && item.expectedResult ? item.expectedResult : '',
+            whyNow: item && item.whyNow ? item.whyNow : ''
+        };
+    });
+    if(solutions.length >= 6)return solutions;
+    var fallbackDims = [];
+    if(typeof window.buildCompletePlan === 'function'){
+        try{
+            fallbackDims = (((window.buildCompletePlan(scores, company) || {}).dims) || []);
+        }catch(e){}
+    }
+    fallbackDims.forEach(function(item){
+        if(solutions.length >= 6)return;
+        solutions.push({
+            title: (item.name || '维度') + '完整解决方案',
+            priority: item.score < 40 || item.gap > 30 ? 'high' : (item.score < 60 || item.gap > 18 ? 'medium' : 'low'),
+            targetDimensions: uniq([item.key || item.name]),
+            content: uniq((item.plan && item.plan.actions) || []).slice(0, 4),
+            steps: uniq((item.plan && item.plan.kpis) || []).slice(0, 4),
+            expectedResult: (item.name || '该维度') + '优先缩小与标杆差距 ' + (item.gap || 0) + ' 分。',
+            whyNow: '当前得分 ' + (item.score || 0) + ' 分，属于优先补强维度。'
+        });
+    });
+    return solutions.slice(0, 8);
+}
+
+if(typeof originalNormalizeAiReport === 'function'){
+    window.normalizeAiReport = function(provider, report, company){
+        var result = originalNormalizeAiReport(provider, report, company);
+        if(!result || !result.apiReport)return result;
+        result.apiReport.phases = ensureRichPhases(result.apiReport, result);
+        result.apiReport.solutions = ensureRichSolutions(result.apiReport, result);
+        result.solutions = result.apiReport.solutions;
+        return result;
+    };
+}
+})();
+</script>
+<script>
+(function(){
+'use strict';
+
+var PROVIDERS = ['mimo', 'deepseek', 'chatgpt'];
+var progressTimers = Object.create(null);
+var previousNormalizeAiReport = window.normalizeAiReport;
+
+function escHtml(value){
+    if(typeof window.esc === 'function')return window.esc(value == null ? '' : String(value));
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function safeArray(value){
+    return Array.isArray(value) ? value : [];
+}
+
+function uniqText(items){
+    var seen = Object.create(null);
+    return safeArray(items).map(function(item){
+        if(item == null)return '';
+        if(typeof item === 'string')return item.trim();
+        if(typeof item === 'number' || typeof item === 'boolean')return String(item).trim();
+        if(typeof item === 'object'){
+            if(item.t || item.title || item.name)return String(item.t || item.title || item.name).trim();
+            try{return JSON.stringify(item)}catch(e){return ''}
+        }
+        return String(item).trim();
+    }).filter(function(item){
+        if(!item || seen[item])return false;
+        seen[item] = true;
+        return true;
+    });
+}
+
+function backendStatusText(){
+    return '服务端托管：' + String(window.AI_PROXY_URL || '');
+}
+
+function ensureProgressStyle(){
+    if(document.getElementById('ai-progress-style'))return;
+    var style = document.createElement('style');
+    style.id = 'ai-progress-style';
+    style.textContent = [
+        '.ai-progress-box{margin-top:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03)}',
+        '.ai-progress-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#d7e3df;margin-bottom:8px}',
+        '.ai-progress-track{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}',
+        '.ai-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#00d4ff,#ff6b35);transition:width .35s ease}',
+        '.ai-progress-meta{margin-top:8px;font-size:12px;color:#9db2ac;line-height:1.6}',
+        '.ai-batch-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}',
+        '.ai-batch-summary{flex:1 1 260px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03);font-size:12px;color:#cfe0dc;line-height:1.6;min-height:42px}'
+    ].join('');
+    document.head.appendChild(style);
+}
+
+function ensureProviderProgress(provider){
+    ensureProgressStyle();
+    var host = document.getElementById('apiStatus-' + provider);
+    if(!host || !host.parentNode)return null;
+    var box = document.getElementById('aiProgressBox-' + provider);
+    if(box)return box;
+    box = document.createElement('div');
+    box.className = 'ai-progress-box';
+    box.id = 'aiProgressBox-' + provider;
+    box.innerHTML =
+        '<div class="ai-progress-head">' +
+            '<span id="aiProgressLabel-' + provider + '">等待启动</span>' +
+            '<span id="aiProgressPct-' + provider + '">0%</span>' +
+        '</div>' +
+        '<div class="ai-progress-track"><div class="ai-progress-fill" id="aiProgressFill-' + provider + '" style="width:0%"></div></div>' +
+        '<div class="ai-progress-meta" id="aiProgressMeta-' + provider + '">服务端托管模式待命</div>';
+    host.parentNode.appendChild(box);
+    return box;
+}
+
+function setProviderProgress(provider, percent, label, meta){
+    ensureProviderProgress(provider);
+    var value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    var fill = document.getElementById('aiProgressFill-' + provider);
+    var pct = document.getElementById('aiProgressPct-' + provider);
+    var labelEl = document.getElementById('aiProgressLabel-' + provider);
+    var metaEl = document.getElementById('aiProgressMeta-' + provider);
+    if(fill)fill.style.width = value + '%';
+    if(pct)pct.textContent = value + '%';
+    if(labelEl)labelEl.textContent = label || '';
+    if(metaEl)metaEl.textContent = meta || '';
+}
+
+function stopProviderProgress(provider){
+    if(progressTimers[provider]){
+        clearInterval(progressTimers[provider]);
+        delete progressTimers[provider];
+    }
+}
+
+function startProviderProgress(provider){
+    stopProviderProgress(provider);
+    var current = 6;
+    setProviderProgress(provider, current, '准备请求', '正在整理企业数据并发送到后端');
+    progressTimers[provider] = setInterval(function(){
+        if(current < 28){
+            current += 8;
+            setProviderProgress(provider, current, '发送请求', '请求已发出，等待 ' + window.getProviderMeta(provider).label + ' 响应');
+        }else if(current < 60){
+            current += 5;
+            setProviderProgress(provider, current, '模型分析中', '模型正在生成结构化诊断内容');
+        }else if(current < 82){
+            current += 3;
+            setProviderProgress(provider, current, '解析与校验', '正在解析响应并校验结果结构');
+        }else if(current < 92){
+            current += 1;
+            setProviderProgress(provider, current, '渲染卡片', '正在生成评分卡、阶段卡和方案卡');
+        }
+    }, 1400);
+}
+
+function currentCompanyName(provider){
+    var panel = document.getElementById('aiPanel-' + provider);
+    var panelSelect = panel ? panel.querySelector('.ai-company-select') : null;
+    var mainSelect = document.getElementById('selectCompany');
+    return (panelSelect && panelSelect.value) || (mainSelect && mainSelect.value) || '';
+}
+
+function renderManagedApiConfigPanel(provider){
+    var meta = window.getProviderMeta(provider);
+    var providerStatus = window.aiServerStatusCache && window.aiServerStatusCache.providers
+        ? window.aiServerStatusCache.providers[window.getProviderKey(provider)]
+        : null;
+    var badge = providerStatus
+        ? '<span class="tag ' + (providerStatus.configured ? 'tag-success' : 'tag-warning') + '">' + (providerStatus.configured ? '后端已配置' : '后端未配置') + '</span>'
+        : '<span class="tag tag-info">等待检测</span>';
+    var html =
+        '<div class="preset-info-box" style="margin-bottom:14px">' +
+            '<h4>' + escHtml(meta.label) + ' 接口配置</h4>' +
+            '<p>当前版本已切换为后端统一托管模式。Base URL、Model、Endpoint 与 API Key 全部只保存在后端环境变量中，前端不再显示密钥输入框。</p>' +
+        '</div>' +
+        '<div class="content-card-footer" style="padding:0;margin-top:8px">' +
+            '<div id="apiStatus-' + provider + '" style="margin-right:auto;color:#a0a0cc;font-size:12px">' + escHtml(backendStatusText()) + ' ' + badge + '</div>' +
+            '<button class="btn btn-primary" type="button" onclick="checkAIServer()">检测后端</button>' +
+            '<button class="btn btn-ai" type="button" onclick="startAIAnalysis(\'' + provider + '\')">' + escHtml(meta.button) + '</button>' +
+        '</div>';
+    if(provider === 'mimo'){
+        html +=
+            '<div class="ai-batch-actions">' +
+                '<button class="btn btn-outline" type="button" onclick="startAllAIAnalysis()">三个AI同时分析</button>' +
+                '<div class="ai-batch-summary" id="allAiSummary">点击后三个模型会并发分析，并分别显示状态与进度。</div>' +
+            '</div>';
+    }
+    return html;
+}
+
+function getAiReportExportName(){
+    var company = (((window.diagnosisResult || {}).company || {}).name || ((window.companyData || {}).name) || '企业').replace(/[\\\\/:*?\"<>|]/g, '').trim() || '企业';
+    var d = new Date();
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return company + yyyy + '年' + mm + '月' + dd + '日AI分析报告';
+}
+
+window.exportAiReportPdf = function(){
+    if(!window.diagnosisResult){
+        if(typeof window.showToast === 'function')window.showToast('请先生成 AI 分析报告');
+        return;
+    }
+    var oldTitle = document.title;
+    var exportTitle = getAiReportExportName();
+    document.title = exportTitle;
+    try{
+        if(typeof window.showToast === 'function')window.showToast('即将打开打印窗口，可选择另存为 PDF');
+        window.print();
+    }finally{
+        setTimeout(function(){ document.title = oldTitle; }, 800);
+    }
+};
+
+function rebuildManagedPanels(){
+    PROVIDERS.forEach(function(provider){
+        var panel = document.getElementById('aiPanel-' + provider);
+        if(!panel)return;
+        panel.innerHTML =
+            '<div class="form-group">' +
+                '<label class="form-label">选择企业</label>' +
+                '<select class="form-select ai-company-select" data-provider="' + provider + '">' +
+                    '<option value="">请选择企业</option>' +
+                '</select>' +
+            '</div>' +
+            renderManagedApiConfigPanel(provider);
+        panel.setAttribute('data-api-ready', '1');
+    });
+    if(typeof window.syncAiCompanyOptions === 'function')window.syncAiCompanyOptions();
+}
+
+window.renderApiConfigPanel = renderManagedApiConfigPanel;
+window.saveAIConfig = function(provider){
+    if(typeof window.setApiInlineAlert === 'function'){
+        window.setApiInlineAlert(provider, '当前版本无需前端保存密钥，系统将直接使用后端已配置接口。', true);
+    }
+    if(typeof window.showToast === 'function')window.showToast('当前版本由后端统一托管 AI 配置');
+};
+window.upgradeAiPanels = rebuildManagedPanels;
+window.ensureAiPanelsUpgraded = function(){
+    try{
+        rebuildManagedPanels();
+    }catch(error){
+        console.error('rebuildManagedPanels failed', error);
+    }
+};
+
+window.checkAIServer = async function(){
+    try{
+        var response = await fetch(window.AI_STATUS_URL, { method: 'GET' });
+        var data = await response.json();
+        if(!response.ok || !data.ok)throw new Error(data.error || '后端服务不可用');
+        window.aiServerStatusCache = data;
+        PROVIDERS.forEach(function(provider){
+            var providerStatus = data.providers ? data.providers[window.getProviderKey(provider)] : null;
+            var statusEl = document.getElementById('apiStatus-' + provider);
+            if(statusEl)statusEl.textContent = backendStatusText() + (providerStatus && providerStatus.configured ? ' 后端已配置' : ' 后端未配置');
+            ensureProviderProgress(provider);
+            setProviderProgress(provider, 0, '等待启动', providerStatus && providerStatus.configured ? '后端检测通过，可直接开始分析' : '该模型后端尚未完成配置');
+            if(typeof window.setApiInlineAlert === 'function'){
+                window.setApiInlineAlert(provider, providerStatus && providerStatus.configured ? '后端检测正常，可以直接开始分析。' : '该模型后端尚未完成配置。', !!(providerStatus && providerStatus.configured));
+            }
+        });
+        if(typeof window.showToast === 'function')window.showToast('后端 AI 配置检测正常');
+    }catch(error){
+        PROVIDERS.forEach(function(provider){
+            var statusEl = document.getElementById('apiStatus-' + provider);
+            if(statusEl)statusEl.textContent = backendStatusText() + ' 当前不可达';
+            ensureProviderProgress(provider);
+            setProviderProgress(provider, 0, '连接失败', '当前无法连接后端代理：' + error.message);
+            if(typeof window.setApiInlineAlert === 'function'){
+                window.setApiInlineAlert(provider, '当前无法连接后端代理：' + error.message);
+            }
+        });
+        if(typeof window.showToast === 'function')window.showToast('后端 AI 配置检测失败');
+    }
+};
+
+function getFallbackPlan(scores, company){
+    if(typeof window.buildCompletePlan === 'function'){
+        try{return window.buildCompletePlan(scores || {}, company || {}) || { dims: [], phases: [] }}catch(error){}
+    }
+    return { dims: [], phases: [] };
+}
+
+function safeTextify(value){
+    if(value == null)return '';
+    if(typeof value === 'string'){
+        var rawText = String(value).trim();
+        if(rawText){
+            var firstChar = rawText.charAt(0);
+            var lastChar = rawText.charAt(rawText.length - 1);
+            if((firstChar === '{' && lastChar === '}') || (firstChar === '[' && lastChar === ']')){
+                try{
+                    return safeTextify(JSON.parse(rawText));
+                }catch(error){}
+            }
+        }
+        return typeof textify === 'function' ? textify(rawText) : rawText;
+    }
+    if(typeof value === 'number' || typeof value === 'boolean'){
+        return typeof textify === 'function' ? textify(value) : String(value).trim();
+    }
+    if(Array.isArray(value))return value.map(safeTextify).filter(Boolean).join('；');
+    if(typeof value === 'object'){
+        var finding = safeTextify(value.finding || value.conclusion || value.judgement || value.judgment);
+        var basis = safeTextify(value.basis || value.evidence || value.reason || value.support);
+        if(finding && basis)return finding + '（依据：' + basis + '）';
+        if(finding)return finding;
+        if(basis)return basis;
+        if(Array.isArray(value.evidenceSources) && value.evidenceSources.length){
+            var sourceSummary = value.evidenceSources.map(safeTextify).filter(Boolean).slice(0, 5).join('；');
+            var ruleSummary = Array.isArray(value.decisionRules) && value.decisionRules.length
+                ? '取舍规则：' + value.decisionRules.map(safeTextify).filter(Boolean).slice(0, 4).join('；')
+                : '';
+            var limitSummary = value.limitations ? '限制：' + safeTextify(value.limitations) : '';
+            return [sourceSummary, ruleSummary, limitSummary].filter(Boolean).join('。');
+        }
+        if(Array.isArray(value.keyEvidence) && value.keyEvidence.length){
+            var evidenceSummary = value.keyEvidence.map(safeTextify).filter(Boolean).slice(0, 6).join('；');
+            var consensusSummary = Array.isArray(value.consensusSources) && value.consensusSources.length
+                ? '来源：' + value.consensusSources.map(safeTextify).filter(Boolean).slice(0, 3).join('、')
+                : '';
+            if(evidenceSummary && consensusSummary)return evidenceSummary + '。' + consensusSummary;
+            if(evidenceSummary)return evidenceSummary;
+            if(consensusSummary)return consensusSummary;
+        }
+        if(value.companyProfile && typeof value.companyProfile === 'object'){
+            var profile = value.companyProfile;
+            var profileParts = [
+                profile.name ? String(profile.name).trim() : '',
+                profile.industry ? String(profile.industry).trim() : '',
+                profile.exportRatio ? '出口占比' + String(profile.exportRatio).trim() : '',
+                profile.oemRatio ? 'OEM占比' + String(profile.oemRatio).trim() : '',
+                profile.brandRatio ? '品牌收入占比' + String(profile.brandRatio).trim() : '',
+                profile.ecommerceRatio ? '电商占比' + String(profile.ecommerceRatio).trim() : '',
+                profile.rdRatio ? '研发投入占比' + String(profile.rdRatio).trim() : '',
+                profile.deliveryDays ? '交付周期' + String(profile.deliveryDays).trim() + '天' : ''
+            ].filter(Boolean);
+            if(profileParts.length)return profileParts.slice(0, 6).join('；');
+        }
+        var parts = [];
+        ['title','name','label','metric','detail','description','content','diagnosis','summary','timeline','expectedResult','whyNow','value','approach','conflictResolution','logic','action','impact','risk','target','owner'].forEach(function(key){
+            var text = safeTextify(value[key]);
+            if(text)parts.push(text);
+        });
+        if(parts.length)return parts.slice(0,4).join('；');
+        try{return JSON.stringify(value);}catch(error){ return String(value || '').trim(); }
+    }
+    return typeof textify === 'function' ? textify(value) : String(value).trim();
+}
+
+function ensureRichPhases(report, result){
+    var phases = safeArray(report.phases).map(function(item){
+        var goals = uniqText((item && item.goals) || []);
+        var milestones = uniqText((item && item.milestones) || []);
+        var focusDimensions = uniqText((item && item.focusDimensions) || []);
+        return {
+            name: item && item.name ? item.name : '阶段',
+            goals: goals.length ? goals : ['明确本阶段经营目标与牵头负责人', '形成跨部门协同清单并锁定资源', '将关键任务拆解到周/月推进节奏'],
+            milestones: milestones.length ? milestones : ['完成阶段任务分解与责任确认', '完成重点项目启动与资源配置', '完成阶段复盘并进入下一阶段'],
+            focusDimensions: focusDimensions.length ? focusDimensions : ['国际化品牌', '国际化营销', '国际化制成'],
+            explanation: item && item.explanation ? item.explanation : '该阶段以补齐关键短板、建立推进机制和形成量化阶段成果为主，确保后续升级动作有组织、有节奏、有结果。'
+        };
+    });
+    var fallbackPlan = getFallbackPlan((result && result.scores) || {}, (result && result.company) || {});
+    while(phases.length < 4){
+        var index = phases.length;
+        var source = (fallbackPlan.phases || [])[index] || {};
+        phases.push({
+            name: source.name || ('阶段' + (index + 1)),
+            goals: uniqText(source.items || []).slice(0, 4),
+            milestones: uniqText(source.items || []).slice(0, 4),
+            focusDimensions: uniqText([]),
+            explanation: typeof window.phaseDescription === 'function' ? window.phaseDescription(source.name || '', index) : '该阶段围绕关键短板优先突破，并为下一阶段能力跃迁打基础。'
+        });
+    }
+    phases = phases.map(function(item){
+        return {
+            name: item.name,
+            goals: uniqText(item.goals).slice(0, 4),
+            milestones: uniqText(item.milestones).slice(0, 4),
+            focusDimensions: uniqText(item.focusDimensions).slice(0, 4),
+            explanation: item.explanation
+        };
+    });
+    return phases.slice(0, 4);
+}
+
+function ensureRichSolutions(report, result){
+    var solutions = safeArray(report.solutions).map(function(item){
+        var content = uniqText((item && item.content) || []);
+        var steps = safeArray(item && item.steps);
+        return {
+            title: item && item.title ? item.title : '完整解决方案',
+            priority: item && (item.priority === 'high' || item.priority === 'low') ? item.priority : 'medium',
+            targetDimensions: uniqText((item && item.targetDimensions) || []),
+            content: content.length ? content : ['明确项目负责人和业务目标', '按季度拆分执行动作与预算资源', '建立经营数据看板持续跟踪', '将关键动作纳入月度复盘机制'],
+            steps: steps.length ? steps : ['建立项目台账并明确责任分工', '围绕重点维度启动专项行动', '按月检查 KPI 达成情况并纠偏', '形成阶段复盘并固化标准动作'],
+            expectedResult: item && item.expectedResult ? item.expectedResult : '形成阶段性可量化改进，推动该维度能力从诊断建议转化为经营结果。',
+            whyNow: item && item.whyNow ? item.whyNow : '该问题如果不尽快处理，会持续拖累企业升级节奏、资源使用效率与市场竞争力。'
+        };
+    });
+    var fallbackPlan = getFallbackPlan((result && result.scores) || {}, (result && result.company) || {});
+    safeArray(fallbackPlan.dims).forEach(function(item){
+        if(solutions.length >= 6)return;
+        solutions.push({
+            title: (item.name || '维度') + '完整解决方案',
+            priority: item.score < 40 || item.gap > 30 ? 'high' : (item.score < 60 || item.gap > 18 ? 'medium' : 'low'),
+            targetDimensions: uniqText([item.key || item.name]),
+            content: uniqText((item.plan && item.plan.actions) || []).slice(0, 4),
+            steps: uniqText((item.plan && item.plan.kpis) || []).slice(0, 4),
+            expectedResult: (item.name || '该维度') + '优先缩小与标杆差距 ' + (item.gap || 0) + ' 分。',
+            whyNow: '当前得分 ' + (item.score || 0) + ' 分，属于优先补强维度。'
+        });
+    });
+    while(solutions.length < 6 && result && safeArray(result.apiReport && result.apiReport.dimensionAnalysis).length){
+        var dim = result.apiReport.dimensionAnalysis[solutions.length % result.apiReport.dimensionAnalysis.length];
+        solutions.push({
+            title: (dim.name || '维度') + '完整解决方案',
+            priority: dim.score < 40 || dim.gap > 30 ? 'high' : (dim.score < 60 || dim.gap > 18 ? 'medium' : 'low'),
+            targetDimensions: uniqText([dim.key || dim.name]),
+            content: uniqText(dim.actions || []).slice(0, 4),
+            steps: uniqText((dim.kpis || []).concat(dim.milestones || [])).slice(0, 4),
+            expectedResult: dim.expectedImpact || ((dim.name || '该维度') + '形成可量化改进。'),
+            whyNow: '当前得分 ' + (dim.score || 0) + ' 分，需优先推进。'
+        });
+    }
+    var seen = Object.create(null);
+    return solutions.filter(function(item){
+        var key = (item.title || '') + '::' + (item.targetDimensions || []).join('|');
+        if(!item.title || seen[key])return false;
+        seen[key] = true;
+        return true;
+    }).map(function(item){
+        item.content = uniqText(item.content || []).slice(0, 5);
+        item.steps = safeArray(item.steps || []).map(function(step){
+            if(step && typeof step === 'object' && !Array.isArray(step)){
+                var title = safeTextify(step.t || step.title || step.name);
+                var detail = safeTextify(step.d || step.detail || step.description);
+                var timeline = safeTextify(step.tm || step.timeline);
+                if(!title && detail)title = detail.slice(0, 24);
+                return { t: title, d: detail, tm: timeline };
+            }
+            var txt = safeTextify(step);
+            return { t: txt, d: '', tm: '' };
+        }).filter(function(step){
+            return step && (step.t || step.d || step.tm);
+        }).slice(0, 5);
+        if(!item.expectedResult)item.expectedResult = '形成清晰的经营改善结果，并转化为可跟踪的阶段成果。';
+        if(!item.whyNow)item.whyNow = '当前已经具备启动条件，应尽快在升级窗口期完成组织推动与资源落地。';
+        if(!item.steps.length){
+            item.steps = [
+                { t:'明确牵头负责人', d:'由经营负责人牵头建立专项推进机制。', tm:'第1周' },
+                { t:'拆解执行任务', d:'按产品、渠道、供应链和财务分成明确任务包。', tm:'第2-3周' },
+                { t:'建立月度复盘', d:'围绕KPI、进度、问题和纠偏动作固定复盘。', tm:'每月' }
+            ];
+        }
+        return item;
+    }).slice(0, 8);
+}
+
+if(typeof previousNormalizeAiReport === 'function'){
+    window.normalizeAiReport = function(provider, report, company){
+        var result = previousNormalizeAiReport(provider, report, company);
+        if(!result || !result.apiReport)return result;
+        result.apiReport.methodology = safeTextify(result.apiReport.methodology);
+        result.apiReport.researchBasis = safeTextify(result.apiReport.researchBasis);
+        result.apiReport.executiveSummary = safeTextify(result.apiReport.executiveSummary);
+        result.apiReport.coreFindings = safeArray(result.apiReport.coreFindings).map(function(item){
+            return safeTextify(item);
+        }).filter(Boolean);
+        result.apiReport.phases = ensureRichPhases(result.apiReport, result);
+        result.apiReport.solutions = ensureRichSolutions(result.apiReport, result);
+        result.solutions = result.apiReport.solutions;
+        return result;
+    };
+}
+
+function renderAnalysisResult(provider, data, companyName){
+    window.diagnosisResult = window.normalizeAiReport(provider, data.report, window.companyData);
+    if(typeof window.saveUserAnalysis === 'function'){
+        window.saveUserAnalysis({
+            c: companyName,
+            s: window.diagnosisResult.totalScore,
+            l: window.diagnosisResult.level.text,
+            t: new Date().toLocaleString('zh-CN')
+        });
+    }
+    var wrap = document.getElementById('aiAnalysisResult');
+    var content = document.getElementById('aiReportContent');
+    if(content){
+        content.innerHTML = '<div id="aiReportExportBar" style="display:flex;justify-content:flex-end;gap:10px;margin:0 0 12px"><button class="btn btn-outline" type="button" onclick="exportAiReportPdf()">导出完整版PDF</button></div>' + window.buildApiReportHtml(window.diagnosisResult);
+    }
+    if(wrap)wrap.style.display = 'block';
+    if(typeof window.updateEvaluationPage === 'function')window.updateEvaluationPage();
+}
+
+async function pollManagedAnalysisJob(provider, jobId, options){
+    options = options || {};
+    var timeoutMs = options.timeoutMs || 360000;
+    var deadline = Date.now() + timeoutMs;
+    while(Date.now() < deadline){
+        var response = await fetch((window.AI_STATUS_URL || '').replace('/status', '/ai/jobs/' + encodeURIComponent(jobId)), { method: 'GET' });
+        var data = await response.json();
+        if(!response.ok || !data.ok)throw new Error(data.error || ('任务查询失败: HTTP ' + response.status));
+        var progress = data.progress || {};
+        setProviderProgress(provider, progress.percent || 0, progress.label || '处理中', progress.meta || '后端任务运行中');
+        if(data.status === 'completed')return data;
+        if(data.status === 'failed')throw new Error(data.error || '分析任务失败');
+        await new Promise(function(resolve){ setTimeout(resolve, 1800); });
+    }
+    throw new Error('分析任务超时');
+}
+
+async function runManagedAnalysis(provider, options){
+    options = options || {};
+    var companyName = currentCompanyName(provider);
+    if(!companyName){
+        if(typeof window.showToast === 'function')window.showToast('请先选择企业');
+        throw new Error('请先选择企业');
+    }
+    if(typeof window.setAiCompanySelection === 'function')window.setAiCompanySelection(companyName);
+    window.companyData = typeof window.findCompanyBySelection === 'function' ? window.findCompanyBySelection(companyName) : null;
+    if(!window.companyData){
+        if(typeof window.showToast === 'function')window.showToast('未找到企业数据');
+        throw new Error('未找到企业数据');
+    }
+    startProviderProgress(provider);
+    setProviderProgress(provider, 12, '发送请求', '正在调用后端托管的 ' + window.getProviderMeta(provider).label + ' 接口');
+    if(typeof window.setApiInlineAlert === 'function'){
+        window.setApiInlineAlert(provider, '正在调用后端托管的 ' + window.getProviderMeta(provider).label + ' 分析接口...', true);
+    }
+    if(!options.silent && typeof window.showLoading === 'function'){
+        window.showLoading('正在调用 ' + window.getProviderMeta(provider).label + ' API 生成完整诊断方案...');
+    }
+    try{
+        var response = await fetch(window.AI_PROXY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                provider: window.getProviderKey(provider),
+                analysis_input: (function(){
+                    var input = window.getLocalAnalysisInput(window.companyData);
+                    if(options.batchSource){
+                        input.batchSource = true;
+                    }
+                    return input;
+                })(),
+                async: true
+            })
+        });
+        var data = await response.json();
+        if(!response.ok || !data.ok)throw new Error(data.error || 'API 请求失败');
+        if(!data.jobId)throw new Error('后端未返回任务编号');
+        setProviderProgress(provider, (data.progress && data.progress.percent) || 8, (data.progress && data.progress.label) || '任务已创建', (data.progress && data.progress.meta) || '后端已接受任务，正在排队执行');
+        data = await pollManagedAnalysisJob(provider, data.jobId, { timeoutMs: 480000 });
+        setProviderProgress(provider, 90, '渲染报告', '正在生成评分卡、阶段卡和方案卡');
+        if(!options.deferRender){
+            renderAnalysisResult(provider, { report: data.report }, companyName);
+        }
+        stopProviderProgress(provider);
+        setProviderProgress(provider, 100, '分析完成', window.getProviderMeta(provider).label + ' 已生成完整报告');
+        if(typeof window.setApiInlineAlert === 'function'){
+            window.setApiInlineAlert(provider, window.getProviderMeta(provider).label + ' 已成功返回分析结果，报告已生成。', true);
+        }
+        if(!options.silent && typeof window.showToast === 'function'){
+            window.showToast(window.getProviderMeta(provider).label + ' API 分析完成');
+        }
+        return {
+            provider: provider,
+            label: window.getProviderMeta(provider).label,
+            ok: true,
+            score: data && data.report ? data.report.overallScore : ((window.diagnosisResult || {}).totalScore || 0),
+            report: data.report,
+            companyName: companyName
+        };
+    }catch(error){
+        stopProviderProgress(provider);
+        setProviderProgress(provider, 100, '分析失败', error.message);
+        var statusEl = document.getElementById('apiStatus-' + provider);
+        if(statusEl)statusEl.textContent = backendStatusText() + ' 分析失败：' + error.message;
+        if(typeof window.setApiInlineAlert === 'function'){
+            window.setApiInlineAlert(provider, '后端代理调用失败：' + error.message);
+        }
+        if(!options.silent && typeof window.showToast === 'function'){
+            window.showToast('分析失败：' + error.message);
+        }
+        throw error;
+    }finally{
+        if(!options.silent && typeof window.hideLoading === 'function'){
+            window.hideLoading();
+        }
+    }
+}
+
+window.startAIAnalysis = async function(provider){
+    provider = provider || (typeof window.getActiveAIProvider === 'function' ? window.getActiveAIProvider() : 'mimo');
+    return runManagedAnalysis(provider, { silent: false });
+};
+
+window.startAllAIAnalysis = async function(){
+    if(typeof window.showLoading === 'function'){
+        window.showLoading('三个 AI 正在并发分析并准备统一总报告，请稍候...');
+    }
+    var results = await Promise.all(PROVIDERS.map(function(provider){
+        return runManagedAnalysis(provider, { silent: true, deferRender: true, batchSource: true }).catch(function(error){
+            return {
+                provider: provider,
+                label: window.getProviderMeta(provider).label,
+                ok: false,
+                error: error.message
+            };
+        });
+    }));
+    var summary = document.getElementById('allAiSummary');
+    if(summary){
+        summary.textContent = results.map(function(item){
+            return item.label + '：' + (item.ok ? ('成功，' + item.score + '分') : ('失败，' + item.error));
+        }).join(' | ');
+    }
+    var okResults = results.filter(function(item){ return item && item.ok && item.report; });
+    if(okResults.length === PROVIDERS.length){
+        try{
+            if(summary){
+                summary.textContent = '三个模型已全部完成，正在由 ChatGPT 汇总最终分析报告...';
+            }
+            setProviderProgress('chatgpt', 92, '综合汇总', '正在整合 DeepSeek、MiMo、ChatGPT 三份诊断结果');
+            var companyName = okResults[0].companyName || currentCompanyName('chatgpt') || currentCompanyName('mimo') || currentCompanyName('deepseek');
+            var synthesisCompany = window.companyData || (typeof window.findCompanyBySelection === 'function' ? window.findCompanyBySelection(companyName) : null);
+            var synthesisResponse = await fetch(window.AI_PROXY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: 'openai',
+                    analysis_input: {
+                        module: 'analysis',
+                        company: synthesisCompany || {},
+                        peerReports: okResults.map(function(item){
+                            return {
+                                provider: item.provider,
+                                label: item.label,
+                                report: item.report
+                            };
+                        })
+                    },
+                    async: true
+                })
+            });
+            var synthesisData = await synthesisResponse.json();
+            if(!synthesisResponse.ok || !synthesisData.ok)throw new Error(synthesisData.error || '综合汇总请求失败');
+            if(!synthesisData.jobId)throw new Error('综合汇总任务创建失败');
+            setProviderProgress('chatgpt', 94, '等待总报告', '综合结论正在生成中');
+            synthesisData = await pollManagedAnalysisJob('chatgpt', synthesisData.jobId, { timeoutMs: 480000 });
+            renderAnalysisResult('chatgpt', { report: synthesisData.report }, companyName);
+            if(summary){
+                summary.textContent = results.map(function(item){
+                    return item.label + '：成功，' + item.score + '分';
+                }).join(' | ') + ' | 最终报告：已由 ChatGPT 汇总输出';
+            }
+        }catch(error){
+            if(summary){
+                summary.textContent += ' | 综合汇总失败：' + error.message;
+            }
+            if(typeof window.showToast === 'function')window.showToast('三模型已完成，但最终汇总失败：' + error.message);
+        }
+    }
+    if(typeof window.hideLoading === 'function')window.hideLoading();
+    if(results.some(function(item){ return !item.ok; })){
+        if(typeof window.showToast === 'function')window.showToast('并发分析已完成，部分模型失败，请查看各自状态');
+    }else if(typeof window.showToast === 'function'){
+        window.showToast(okResults.length === PROVIDERS.length ? '三个 AI 并发分析及最终汇总已完成' : '三个 AI 并发分析已全部完成');
+    }
+    return results;
+};
+
+function bootManagedMode(){
+    if(typeof window.ensureAiPanelsUpgraded === 'function')window.ensureAiPanelsUpgraded();
+    if(typeof window.checkAIServer === 'function')window.checkAIServer();
+}
+
+if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bootManagedMode);
+}else{
+    setTimeout(bootManagedMode, 0);
 }
 })();
 </script>

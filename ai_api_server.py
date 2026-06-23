@@ -3,14 +3,20 @@ import os
 import re
 import base64
 import hashlib
+import mimetypes
 import time
 import subprocess
+import threading
+import uuid
 from io import BytesIO
+from pathlib import Path
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import error, request
+from urllib.parse import unquote, urlsplit
 from docx import Document
 from pypdf import PdfReader
+from backend_secret_store import DEFAULT_SECRET_FILE, PLAINTEXT_SECRET_FILE, load_secret_store
 
 
 HOST = os.environ.get("LJ_AI_API_HOST", "0.0.0.0")
@@ -32,28 +38,136 @@ UPLOAD_MAGIC_PREFIXES = {
     ".doc": [b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"],
 }
 REQUEST_BUCKETS = {}
+AI_JOBS = {}
+AI_JOBS_LOCK = threading.Lock()
+BASE_DIR = Path(__file__).resolve().parent
+INDEX_FILE = BASE_DIR / "index.html"
+SECRET_FILE = Path(
+    os.environ.get(
+        "LJ_SECRET_FILE",
+        str(DEFAULT_SECRET_FILE if os.name == "nt" else PLAINTEXT_SECRET_FILE),
+    )
+).resolve()
+AI_JOB_TTL_SECONDS = int(os.environ.get("LJ_AI_JOB_TTL_SECONDS", str(30 * 60)))
+
+
+def load_backend_secrets():
+    secrets = {}
+    try:
+        secrets = load_secret_store(SECRET_FILE)
+    except Exception as exc:
+        json_log("secret_store_load_failed", file=str(SECRET_FILE), error=str(exc))
+    for env_name in ("OPENAI_API_KEY", "DEEPSEEK_API_KEY", "MIMO_API_KEY"):
+        env_value = os.environ.get(env_name, "").strip()
+        if env_value:
+            secrets[env_name] = env_value
+    return secrets
+
+
+def cleanup_expired_jobs():
+    now = time.time()
+    expired = []
+    with AI_JOBS_LOCK:
+        for job_id, job in AI_JOBS.items():
+            updated_at_ts = float(job.get("updatedAtTs") or 0)
+            if updated_at_ts and now - updated_at_ts > AI_JOB_TTL_SECONDS:
+                expired.append(job_id)
+        for job_id in expired:
+            AI_JOBS.pop(job_id, None)
+
+
+def build_job_snapshot(job):
+    return {
+        "jobId": job["jobId"],
+        "provider": job["provider"],
+        "status": job["status"],
+        "progress": dict(job.get("progress") or {}),
+        "createdAt": job["createdAt"],
+        "updatedAt": job["updatedAt"],
+        "requestId": job["requestId"],
+        "report": job.get("report"),
+        "error": job.get("error", ""),
+    }
+
+
+def set_job_progress(job_id, *, status=None, percent=None, label=None, meta=None, report=None, error=None):
+    with AI_JOBS_LOCK:
+        job = AI_JOBS.get(job_id)
+        if not job:
+            return None
+        if status is not None:
+            job["status"] = status
+        progress = job.setdefault("progress", {})
+        if percent is not None:
+            progress["percent"] = max(0, min(100, int(percent)))
+        if label is not None:
+            progress["label"] = label
+        if meta is not None:
+            progress["meta"] = meta
+        if report is not None:
+            job["report"] = report
+        if error is not None:
+            job["error"] = str(error)
+        job["updatedAtTs"] = time.time()
+        job["updatedAt"] = now_iso()
+        return build_job_snapshot(job)
+
+
+def create_ai_job(provider, request_id):
+    cleanup_expired_jobs()
+    created_at = now_iso()
+    job_id = uuid.uuid4().hex
+    job = {
+        "jobId": job_id,
+        "provider": provider,
+        "status": "queued",
+        "progress": {
+            "percent": 4,
+            "label": "任务已创建",
+            "meta": "后端已接收任务，准备调用模型",
+        },
+        "createdAt": created_at,
+        "updatedAt": created_at,
+        "updatedAtTs": time.time(),
+        "requestId": request_id,
+        "report": None,
+        "error": "",
+    }
+    with AI_JOBS_LOCK:
+        AI_JOBS[job_id] = job
+    return build_job_snapshot(job)
+
+
+def get_ai_job(job_id):
+    cleanup_expired_jobs()
+    with AI_JOBS_LOCK:
+        job = AI_JOBS.get(job_id)
+        return build_job_snapshot(job) if job else None
 
 PROVIDER_DEFAULTS = {
     "openai": {
         "label": "OpenAI",
         "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         "endpoint": "/chat/completions",
-        "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-        "api_key": os.environ.get("OPENAI_API_KEY", ""),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-5.4"),
+        "api_key": BACKEND_SECRETS.get("OPENAI_API_KEY", ""),
+        "request_timeout_seconds": int(os.environ.get("OPENAI_REQUEST_TIMEOUT_SECONDS", "240")),
     },
     "deepseek": {
         "label": "DeepSeek",
         "base_url": "https://api.deepseek.com",
         "endpoint": "/chat/completions",
         "model": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
-        "api_key": os.environ.get("DEEPSEEK_API_KEY", ""),
+        "api_key": BACKEND_SECRETS.get("DEEPSEEK_API_KEY", ""),
+        "request_timeout_seconds": int(os.environ.get("DEEPSEEK_REQUEST_TIMEOUT_SECONDS", "180")),
     },
     "mimo": {
         "label": "MiMo",
         "base_url": os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1"),
         "endpoint": os.environ.get("MIMO_ENDPOINT", "/chat/completions"),
         "model": os.environ.get("MIMO_MODEL", "mimo-v2.5-pro"),
-        "api_key": os.environ.get("MIMO_API_KEY", ""),
+        "api_key": BACKEND_SECRETS.get("MIMO_API_KEY", ""),
+        "request_timeout_seconds": int(os.environ.get("MIMO_REQUEST_TIMEOUT_SECONDS", "300")),
     },
 }
 
@@ -131,6 +245,9 @@ def json_log(event, **fields):
     print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
+BACKEND_SECRETS = load_backend_secrets()
+
+
 def get_bucket_key(handler, scope):
     basis = f"{scope}:{client_ip_from_headers(handler)}"
     return hashlib.sha256(basis.encode("utf-8")).hexdigest()
@@ -182,6 +299,10 @@ def normalize_provider_config(provider):
         base["endpoint"] = "/chat/completions"
     if not str(base["endpoint"]).startswith("/"):
         base["endpoint"] = "/" + str(base["endpoint"])
+    try:
+        base["request_timeout_seconds"] = max(60, int(base.get("request_timeout_seconds") or 120))
+    except Exception:
+        base["request_timeout_seconds"] = 120
     return base
 
 
@@ -213,13 +334,146 @@ def extract_json_object(text):
     end = cleaned.rfind("}")
     if start < 0 or end < 0 or end <= start:
         raise ValueError("json object not found")
-    return json.loads(cleaned[start : end + 1])
+    candidate = cleaned[start : end + 1]
+    attempts = [candidate]
+    sanitized = (
+        candidate.replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+        .replace("\ufeff", "")
+    )
+    sanitized = re.sub(r",(\s*[}\]])", r"\1", sanitized)
+    sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", sanitized)
+    if sanitized != candidate:
+        attempts.append(sanitized)
+    last_error = None
+    for attempt in attempts:
+        try:
+            return json.loads(attempt)
+        except Exception as exc:
+            last_error = exc
+    raise ValueError(f"json parse failed: {last_error}")
 
 
 def ensure_list(value, fallback=None):
     if isinstance(value, list):
         return value
     return fallback or []
+
+
+def normalize_text_value(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, (int, float, bool)):
+        return str(value).strip()
+    if isinstance(value, list):
+        parts = [normalize_text_value(item) for item in value]
+        return "；".join(part for part in parts if part)
+    if isinstance(value, dict):
+        ordered_pairs = [
+            ("title", value.get("title")),
+            ("name", value.get("name")),
+            ("label", value.get("label")),
+            ("metric", value.get("metric")),
+            ("detail", value.get("detail")),
+            ("description", value.get("description")),
+            ("content", value.get("content")),
+            ("diagnosis", value.get("diagnosis")),
+            ("summary", value.get("summary")),
+            ("approach", value.get("approach")),
+            ("logic", value.get("logic")),
+            ("conflictResolution", value.get("conflictResolution")),
+            ("judgementPrinciple", value.get("judgementPrinciple")),
+            ("integrationRules", value.get("integrationRules")),
+            ("integrationLogic", value.get("integrationLogic")),
+            ("evidenceBase", value.get("evidenceBase")),
+            ("timeline", value.get("timeline")),
+            ("expectedResult", value.get("expectedResult")),
+            ("whyNow", value.get("whyNow")),
+            ("value", value.get("value")),
+        ]
+        primary = []
+        for key, raw in ordered_pairs:
+            text = normalize_text_value(raw)
+            if text:
+                primary.append(f"{key}: {text}" if key in {"timeline", "expectedResult", "whyNow"} else text)
+        if primary:
+            return "；".join(primary[:4])
+        try:
+            return json.dumps(value, ensure_ascii=False)
+        except Exception:
+            return str(value).strip()
+    return str(value).strip()
+
+
+def normalize_text_list(value, fallback=None, limit=None):
+    items = value if isinstance(value, list) else (fallback or [])
+    normalized = []
+    seen = set()
+    for item in items:
+        text = normalize_text_value(item)
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        normalized.append(text)
+        if limit and len(normalized) >= limit:
+            break
+    return normalized
+
+
+def normalize_phase_list(value):
+    phases = []
+    for item in ensure_list(value):
+        if not isinstance(item, dict):
+            continue
+        goals = normalize_text_list(item.get("goals"))
+        milestones = normalize_text_list(item.get("milestones"))
+        phases.append(
+            {
+                "name": normalize_text_value(item.get("name")) or "",
+                "goals": goals,
+                "milestones": milestones,
+                "focusDimensions": normalize_text_list(item.get("focusDimensions")),
+                "explanation": normalize_text_value(item.get("explanation")),
+            }
+        )
+    return phases
+
+
+def normalize_solution_list(value):
+    solutions = []
+    for item in ensure_list(value):
+        if not isinstance(item, dict):
+            continue
+        steps = []
+        for step in ensure_list(item.get("steps")):
+            if isinstance(step, dict):
+                steps.append(
+                    {
+                        "t": normalize_text_value(step.get("title") or step.get("name")),
+                        "d": normalize_text_value(step.get("detail") or step.get("description")),
+                        "tm": normalize_text_value(step.get("timeline")),
+                    }
+                )
+            else:
+                text = normalize_text_value(step)
+                if text:
+                    steps.append({"t": text, "d": "", "tm": ""})
+        solutions.append(
+            {
+                "title": normalize_text_value(item.get("title")) or "",
+                "priority": normalize_text_value(item.get("priority")) or "medium",
+                "targetDimensions": normalize_text_list(item.get("targetDimensions")),
+                "content": normalize_text_list(item.get("content")),
+                "steps": steps,
+                "expectedResult": normalize_text_value(item.get("expectedResult")),
+                "whyNow": normalize_text_value(item.get("whyNow")),
+            }
+        )
+    return solutions
 
 
 def maybe_decode_text(data):
@@ -271,7 +525,10 @@ def normalize_report(raw, provider, model, company_name):
         phases.append(
             {
                 "name": item.get("name", ""),
-                "goals": ensure_list(item.get("goals")),
+                "goals": item.get("goals"),
+                "milestones": item.get("milestones"),
+                "focusDimensions": item.get("focusDimensions"),
+                "explanation": item.get("explanation"),
             }
         )
 
@@ -294,8 +551,11 @@ def normalize_report(raw, provider, model, company_name):
             {
                 "title": item.get("title", ""),
                 "priority": item.get("priority", "medium"),
-                "content": ensure_list(item.get("content")),
+                "targetDimensions": item.get("targetDimensions"),
+                "content": item.get("content"),
                 "steps": steps,
+                "expectedResult": item.get("expectedResult"),
+                "whyNow": item.get("whyNow"),
             }
         )
 
@@ -306,28 +566,199 @@ def normalize_report(raw, provider, model, company_name):
         "companyName": company_name,
         "overallScore": total,
         "overallLevel": overall_level,
-        "executiveSummary": raw.get("executiveSummary", ""),
-        "methodology": raw.get("methodology", ""),
-        "researchBasis": raw.get("researchBasis", ""),
-        "coreFindings": ensure_list(raw.get("coreFindings")),
+        "executiveSummary": normalize_text_value(raw.get("executiveSummary")),
+        "methodology": normalize_text_value(raw.get("methodology")),
+        "researchBasis": normalize_text_value(raw.get("researchBasis")),
+        "coreFindings": normalize_text_list(raw.get("coreFindings")),
         "dimensionAnalysis": dims,
-        "phases": phases,
-        "solutions": solutions,
+        "phases": normalize_phase_list(phases),
+        "solutions": normalize_solution_list(solutions),
     }
+
+
+def build_peer_consensus(peer_reports):
+    reports = [item for item in ensure_list(peer_reports) if isinstance(item, dict)]
+    dim_buckets = {key: {"scores": [], "gaps": [], "diagnosis": [], "actions": [], "kpis": [], "risks": []} for key in DIMENSION_ORDER}
+    overall_scores = []
+    levels = []
+    findings = []
+    phase_names = []
+    solution_titles = []
+
+    for item in reports:
+        report = item.get("report") if isinstance(item.get("report"), dict) else {}
+        score = report.get("overallScore")
+        if score is not None:
+            overall_scores.append(clamp_score(score))
+        level = normalize_text_value(report.get("overallLevel"))
+        if level:
+            levels.append(level)
+        findings.extend(normalize_text_list(report.get("coreFindings"), limit=5))
+        for phase in ensure_list(report.get("phases"))[:4]:
+            if isinstance(phase, dict):
+                name = normalize_text_value(phase.get("name"))
+                if name:
+                    phase_names.append(name)
+        for solution in ensure_list(report.get("solutions"))[:6]:
+            if isinstance(solution, dict):
+                title = normalize_text_value(solution.get("title"))
+                if title:
+                    solution_titles.append(title)
+        for dim in ensure_list(report.get("dimensionAnalysis")):
+            if not isinstance(dim, dict):
+                continue
+            key = dim.get("key")
+            if key not in dim_buckets:
+                continue
+            bucket = dim_buckets[key]
+            if dim.get("score") is not None:
+                bucket["scores"].append(clamp_score(dim.get("score")))
+            if dim.get("gap") is not None:
+                bucket["gaps"].append(clamp_score(dim.get("gap")))
+            bucket["diagnosis"].append(normalize_text_value(dim.get("diagnosis"))[:120])
+            bucket["actions"].extend(normalize_text_list(dim.get("actions"), limit=3))
+            bucket["kpis"].extend(normalize_text_list(dim.get("kpis"), limit=3))
+            bucket["risks"].extend(normalize_text_list(dim.get("risks"), limit=2))
+
+    dim_consensus = []
+    for key in DIMENSION_ORDER:
+        bucket = dim_buckets[key]
+        avg_score = round(sum(bucket["scores"]) / len(bucket["scores"])) if bucket["scores"] else 0
+        avg_gap = round(sum(bucket["gaps"]) / len(bucket["gaps"])) if bucket["gaps"] else 0
+        dim_consensus.append(
+            {
+                "key": key,
+                "name": DIMENSION_LABELS[key],
+                "avgScore": avg_score,
+                "avgGap": avg_gap,
+                "level": level_from_score(avg_score),
+                "diagnosisHints": normalize_text_list(bucket["diagnosis"], limit=3),
+                "priorityActions": normalize_text_list(bucket["actions"], limit=4),
+                "priorityKpis": normalize_text_list(bucket["kpis"], limit=4),
+                "priorityRisks": normalize_text_list(bucket["risks"], limit=3),
+            }
+        )
+
+    return {
+        "providers": [
+            {
+                "provider": item.get("provider") or "",
+                "label": item.get("label") or item.get("provider") or "",
+                "overallScore": (item.get("report") or {}).get("overallScore"),
+                "overallLevel": (item.get("report") or {}).get("overallLevel"),
+                "executiveSummary": normalize_text_value((item.get("report") or {}).get("executiveSummary"))[:180],
+            }
+            for item in reports
+        ],
+        "avgOverallScore": round(sum(overall_scores) / len(overall_scores)) if overall_scores else 0,
+        "levelHints": normalize_text_list(levels, limit=3),
+        "coreFindings": normalize_text_list(findings, limit=8),
+        "phaseHints": normalize_text_list(phase_names, limit=6),
+        "solutionHints": normalize_text_list(solution_titles, limit=6),
+        "dimensionConsensus": dim_consensus,
+    }
+
+
+def repair_json_via_model(provider, config, broken_text):
+    snippet = str(broken_text or "").strip()
+    if not snippet:
+        raise ValueError("empty broken response")
+    repair_provider = provider
+    repair_config = config
+    openai_config = normalize_provider_config("openai")
+    if openai_config.get("api_key") and openai_config.get("base_url") and openai_config.get("model"):
+        repair_provider = "openai"
+        repair_config = openai_config
+    body = {
+        "model": repair_config["model"],
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是严格 JSON 修复器。保留原字段语义，只输出一个合法 JSON 对象，不要解释，不要省略字段。",
+            },
+            {
+                "role": "user",
+                "content": "把下面内容修复为严格合法 JSON。要求：1. 保持原字段含义不变；2. 不要删掉关键字段；3. 只返回 JSON 本身：\n" + snippet[:30000],
+            },
+        ],
+        "temperature": 0,
+    }
+    if repair_provider != "deepseek":
+        body["response_format"] = {"type": "json_object"}
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {repair_config['api_key']}",
+        "Connection": "close",
+    }
+    if repair_provider == "mimo":
+        headers["api-key"] = repair_config["api_key"]
+    if repair_provider == "openai" and "gpt.fengxiaole.top" in str(repair_config.get("base_url", "")):
+        headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+                "Referer": "https://gpt.fengxiaole.top/login",
+                "sec-ch-ua": '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Windows"',
+            }
+        )
+    url = repair_config["base_url"] + repair_config["endpoint"]
+    req = request.Request(
+        url,
+        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    repair_timeout = repair_config.get("request_timeout_seconds", config.get("request_timeout_seconds", 120))
+    with request.urlopen(req, timeout=repair_timeout) as resp:
+        raw = json.loads(resp.read().decode("utf-8", errors="ignore"))
+    choices = raw.get("choices") or []
+    if not choices:
+        raise RuntimeError(f"{repair_provider} repair returned no choices")
+    message = choices[0].get("message") or {}
+    content = message.get("content")
+    if isinstance(content, list):
+        content = "\n".join(
+            item.get("text", "") for item in content if isinstance(item, dict) and item.get("type") == "text"
+        )
+    return extract_json_object(content or "")
 
 
 def build_prompt(payload):
     provider_label = PROVIDER_DEFAULTS.get(payload["provider"], {}).get("label", payload["provider"])
     compact_input = payload["analysis_input"]
+    if compact_input.get("batchSource"):
+        return build_batch_source_prompt(payload)
     return f"""
 你是{provider_label}产业集群诊断引擎。请按“五维融合、八要素、SWOT、头雁企业带动、阶段跃迁”输出企业升级诊断。
 
 要求：
 1. 只输出合法 JSON，不要 Markdown。
 2. 评分范围 0-100，八要素都要给出分数与解释。
-3. 结论必须具体，给出评分依据、差距、行动、KPI、风险、阶段方案。
-4. 结论要能支撑网页中的卡片点击详情，因此各字段必须完整。
+3. 结论必须具体，给出评分依据、差距、行动、KPI、风险、阶段方案，不能只写“加强、提升、优化、完善”这类空话。
+4. 结论要能支撑网页中的卡片点击详情，因此各字段必须完整，不能留空，不能用“略”“同上”“待补充”。
 5. `researchBasis` 用一句话概括论文/研究方法，不要展开成长段。
+6. `executiveSummary` 必须写成可给企业管理层直接看的结论，至少包含：当前阶段判断、最关键的3个问题、未来12个月主线，总长度控制在 180-260 字。
+7. `coreFindings` 至少 6 条，每条都要带判断逻辑或证据，不要重复。
+8. `dimensionAnalysis` 的每个维度都必须写出：
+   - diagnosis：60-120字，说明“现状-成因-影响”
+   - swotFocus：40-90字，说明该维度最关键的强弱机会威胁
+   - actions：至少4条，每条都要写清动作对象、动作内容、责任主体/资源或应用场景
+   - kpis：至少4条，必须可量化，带时间或阈值
+   - risks：至少3条，写出风险和控制要点
+9. `phases` 必须严格输出 4 个阶段，每个阶段都要有：
+   - goals：至少3条
+   - milestones：至少3条
+   - focusDimensions：2-4个重点维度
+   - explanation：50-100字，说明为什么此阶段这样安排
+10. `solutions` 输出 6-8 个完整方案，每个方案都要有：
+   - content：至少4条，必须是具体动作包
+   - steps：至少4条，每条都包含 title、detail、timeline
+   - expectedResult：35-80字
+   - whyNow：35-80字
+11. 优先输出企业可以直接执行的建议，必须尽量给出负责人角色、周期、阶段目标、量化里程碑。
+12. 如果输入信息不足，可以做合理推断，但要基于制造业企业升级场景，不得编造明显不合理事实。
+13. 在保证完整性的前提下，避免冗长，每条 action、kpi、risk、goal、milestone、content、step 尽量控制在 18-50 字。
 
 JSON keys:
 generatedAt, overallScore, overallLevel, executiveSummary, methodology, researchBasis,
@@ -336,8 +767,8 @@ scores, coreFindings, dimensionAnalysis, phases, solutions
 其中：
 - scores 必须包含 brand, marketing, production, rd, standard, logistics, capital, finance
 - dimensionAnalysis 每项必须包含 key, level, gap, diagnosis, swotFocus, actions, kpis, risks
-- phases 每项包含 name, goals
-- solutions 每项包含 title, priority, content, steps
+- phases 每项包含 name, goals, milestones, focusDimensions, explanation
+- solutions 每项包含 title, priority, targetDimensions, content, steps, expectedResult, whyNow
 - steps 每项包含 title, detail, timeline
 
 输入数据：
@@ -345,8 +776,100 @@ scores, coreFindings, dimensionAnalysis, phases, solutions
 """.strip()
 
 
+def build_batch_source_prompt(payload):
+    provider_label = PROVIDER_DEFAULTS.get(payload["provider"], {}).get("label", payload["provider"])
+    compact_input = payload["analysis_input"]
+    return f"""
+你是{provider_label}企业升级分析引擎。当前任务是为“三模型联合会诊”提供一份高质量、但相对精简的结构化底稿，供后续 ChatGPT 生成最终完整版总报告。
+
+要求：
+1. 只输出合法 JSON，不要 Markdown。
+2. 结论必须具体，不允许泛泛而谈。
+3. 本次输出重点是“判断逻辑 + 关键动作 + 量化指标”，不要写冗长铺陈。
+4. 评分范围 0-100，八要素都要给出明确分数。
+5. `executiveSummary` 控制在 120-180 字，必须包含：发展阶段、核心瓶颈、未来12个月主线。
+6. `coreFindings` 输出 5-6 条，每条都要有判断依据。
+7. `dimensionAnalysis` 的每个维度都必须写出：
+   - diagnosis：45-90字
+   - swotFocus：25-60字
+   - actions：至少3条
+   - kpis：至少3条
+   - risks：至少2条
+8. `phases` 只需输出 3 个关键阶段，每阶段 goals 至少 2 条。
+9. `solutions` 只需输出 4 个高优先级方案，每个方案至少包含 3 条 content、3 个 steps。
+10. 内容务必能直接服务最终综合报告，不要留空，不要写“略”“同上”。
+
+JSON keys:
+generatedAt, overallScore, overallLevel, executiveSummary, methodology, researchBasis,
+scores, coreFindings, dimensionAnalysis, phases, solutions
+
+其中：
+- scores 必须包含 brand, marketing, production, rd, standard, logistics, capital, finance
+- dimensionAnalysis 每项必须包含 key, level, gap, diagnosis, swotFocus, actions, kpis, risks
+- phases 每项包含 name, goals, milestones, focusDimensions, explanation
+- solutions 每项包含 title, priority, targetDimensions, content, steps, expectedResult, whyNow
+- steps 每项包含 title, detail, timeline
+
+输入数据：
+{json.dumps(compact_input, ensure_ascii=False)}
+""".strip()
+
+
+def build_synthesis_prompt(payload):
+    analysis_input = payload.get("analysis_input") or {}
+    provider_label = PROVIDER_DEFAULTS.get(payload["provider"], {}).get("label", payload["provider"])
+    company = analysis_input.get("company") if isinstance(analysis_input.get("company"), dict) else {}
+    peer_reports = analysis_input.get("peerReports") or []
+    consensus = build_peer_consensus(peer_reports)
+    synthesis_input = {
+        "company": company,
+        "peerConsensus": consensus,
+        "module": analysis_input.get("module") or "analysis",
+    }
+    return f"""
+你是{provider_label}总报告整合引擎。你的任务不是重复三份报告，而是把 DeepSeek、MiMo、ChatGPT 三份企业诊断结果交叉验证后，整合成一份企业可以直接使用的最终分析报告。
+
+整合原则：
+1. 只输出合法 JSON，不要 Markdown。
+2. 先比对三份报告的一致结论，再处理冲突结论；不要简单平均，更不要把三份答案拼接。
+3. 最终报告要体现“结论-原因-动作-里程碑-KPI-风险控制”的完整逻辑链。
+4. 对空泛内容要主动压实成可执行动作；对冲突内容要选择更稳健、更适合制造业企业落地的方案。
+5. 报告应直接服务企业经营班子、招商主管理层或项目负责人，不能写成泛泛论文摘要。
+6. 评分范围 0-100，所有维度都要给出明确判断依据和差距。
+7. `executiveSummary` 控制在 180-260 字，必须说清当前发展阶段、主要瓶颈、未来 12 个月主线、优先顺序。
+8. `coreFindings` 输出 6-8 条，每条都要有逻辑依据，不要重复。
+9. `dimensionAnalysis` 每个维度必须包含：
+   - diagnosis：60-110字
+   - swotFocus：35-80字
+   - actions：至少4条，动作必须足够细
+   - kpis：至少4条，必须量化并带时间界限
+   - risks：至少3条，写出应对方式
+10. `phases` 必须严格输出 4 个阶段，每阶段 goals 和 milestones 都至少 3 条，且 explanation 必须说明阶段衔接逻辑。
+11. `solutions` 输出 6 个方案，每个方案都要覆盖 targetDimensions、content、steps、expectedResult、whyNow，并可被企业直接拆成项目。
+12. 若三份报告出现分歧，优先保留：更具体、可量化、可执行、与企业当前基础更匹配的方案。
+13. 在保证密度的前提下避免过长，单条 action、kpi、risk、step 尽量控制在 16-45 字。
+14. 输入中的 `peerConsensus` 已经是压缩后的三模型共识摘要，请直接基于这些摘要完成最终报告，不要要求更多原文。
+
+JSON keys:
+generatedAt, overallScore, overallLevel, executiveSummary, methodology, researchBasis,
+scores, coreFindings, dimensionAnalysis, phases, solutions
+
+输入数据：
+{json.dumps(synthesis_input, ensure_ascii=False)}
+""".strip()
+
+
 def build_messages(payload):
     analysis_input = payload.get("analysis_input") or {}
+    if analysis_input.get("peerReports"):
+        prompt = build_synthesis_prompt(payload)
+        return [
+            {
+                "role": "system",
+                "content": "你是严谨的产业集群综合诊断总控引擎。必须只输出合法 JSON，并把多模型意见整合成一份最终可执行报告。",
+            },
+            {"role": "user", "content": prompt},
+        ]
     custom_prompt = analysis_input.get("prompt")
     if custom_prompt:
         return [
@@ -553,7 +1076,8 @@ def build_parse_summary(fields):
 
 def call_openai_compatible(provider, config, payload):
     analysis_input = payload.get("analysis_input") or {}
-    is_independent_module = bool(analysis_input.get("module"))
+    module_name = normalize_text_value(analysis_input.get("module")).lower()
+    is_independent_module = bool(module_name and module_name != "analysis")
     body = {
         "model": config["model"],
         "messages": build_messages(payload),
@@ -590,7 +1114,7 @@ def call_openai_compatible(provider, config, payload):
                 headers=headers,
                 method="POST",
             )
-            with request.urlopen(req, timeout=120) as resp:
+            with request.urlopen(req, timeout=config.get("request_timeout_seconds", 120)) as resp:
                 raw = json.loads(resp.read().decode("utf-8", errors="ignore"))
             break
         except error.HTTPError as exc:
@@ -626,7 +1150,10 @@ def call_openai_compatible(provider, config, payload):
             if isinstance(item, dict) and item.get("type") == "text":
                 text_parts.append(item.get("text", ""))
         content = "\n".join(text_parts)
-    parsed = extract_json_object(content or "")
+    try:
+        parsed = extract_json_object(content or "")
+    except Exception:
+        parsed = repair_json_via_model(provider, config, content or "")
     if is_independent_module:
         if not isinstance(parsed, dict):
             raise RuntimeError(f"{provider} returned invalid module json")
@@ -635,6 +1162,49 @@ def call_openai_compatible(provider, config, payload):
         return parsed
     company_name = payload["analysis_input"]["company"].get("name", "")
     return normalize_report(parsed, provider, config["model"], company_name)
+
+
+def run_ai_job(job_id, provider, payload, config, request_id, client_ip):
+    analysis_input = payload.get("analysis_input") or {}
+    company_name = ((analysis_input.get("company") or {}).get("name") if isinstance(analysis_input.get("company"), dict) else "") or ""
+    module_key = analysis_input.get("module") or "analysis"
+    started_at = time.time()
+    set_job_progress(job_id, status="running", percent=12, label="准备请求", meta="正在整理企业资料与模型提示词")
+    try:
+        set_job_progress(job_id, status="running", percent=26, label="发送请求", meta=f"已向 {config.get('label') or provider} 发起分析请求")
+        set_job_progress(job_id, status="running", percent=64, label="模型分析中", meta="模型正在生成结构化诊断、阶段路径和解决方案")
+        report = call_openai_compatible(provider, config, payload)
+        set_job_progress(job_id, status="running", percent=88, label="结果校验", meta="正在校验 JSON 结构并整理卡片数据")
+        set_job_progress(job_id, status="completed", percent=100, label="分析完成", meta=f"{config.get('label') or provider} 已生成完整分析报告", report=report, error="")
+        json_log(
+            "ai_request_succeeded",
+            requestId=request_id,
+            ip=client_ip,
+            provider=provider,
+            model=config.get("model"),
+            baseUrl=config.get("base_url"),
+            apiKeyMasked=mask_secret(config.get("api_key")),
+            module=module_key,
+            companyName=company_name,
+            elapsedMs=int((time.time() - started_at) * 1000),
+            asyncJobId=job_id,
+        )
+    except Exception as exc:
+        set_job_progress(job_id, status="failed", percent=100, label="分析失败", meta=str(exc), error=str(exc))
+        json_log(
+            "ai_request_failed",
+            requestId=request_id,
+            ip=client_ip,
+            provider=provider,
+            model=config.get("model"),
+            baseUrl=config.get("base_url"),
+            apiKeyMasked=mask_secret(config.get("api_key")),
+            module=module_key,
+            companyName=company_name,
+            error=str(exc),
+            elapsedMs=int((time.time() - started_at) * 1000),
+            asyncJobId=job_id,
+        )
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -651,6 +1221,45 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_bytes(self, code, body, content_type, cache_control="no-store"):
+        self.send_response(code)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Cache-Control", cache_control)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_file(self, file_path, cache_control="no-store"):
+        try:
+            resolved = Path(file_path).resolve()
+        except Exception:
+            self._send(404, {"ok": False, "error": "not found"})
+            return
+        try:
+            resolved.relative_to(BASE_DIR)
+        except Exception:
+            self._send(403, {"ok": False, "error": "forbidden"})
+            return
+        if not resolved.is_file():
+            self._send(404, {"ok": False, "error": "not found"})
+            return
+        content_type = mimetypes.guess_type(str(resolved))[0] or "application/octet-stream"
+        body = resolved.read_bytes()
+        self._send_bytes(200, body, content_type, cache_control=cache_control)
+
+    def _serve_app_asset(self):
+        parsed = urlsplit(self.path)
+        request_path = unquote(parsed.path or "/")
+        if request_path in ("/", "/index.html"):
+            self._serve_file(INDEX_FILE)
+            return True
+        candidate = (BASE_DIR / request_path.lstrip("/")).resolve()
+        if candidate.is_file():
+            cache_control = "public, max-age=3600" if candidate.suffix.lower() not in {".html"} else "no-store"
+            self._serve_file(candidate, cache_control=cache_control)
+            return True
+        return False
+
     def log_message(self, format, *args):
         json_log(
             "http_access",
@@ -664,6 +1273,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(204, {})
 
     def do_GET(self):
+        parsed = urlsplit(self.path)
+        route_path = parsed.path or "/"
         if self.path.startswith("/api/status"):
             providers = {}
             for key, info in PROVIDER_DEFAULTS.items():
@@ -677,9 +1288,23 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "serverTime": now_iso(),
+                    "secretStore": {
+                        "file": str(SECRET_FILE),
+                        "configured": bool(BACKEND_SECRETS),
+                    },
                     "providers": providers,
                 },
             )
+            return
+        if route_path.startswith("/api/ai/jobs/"):
+            job_id = route_path.rsplit("/", 1)[-1].strip()
+            job = get_ai_job(job_id)
+            if not job:
+                self._send(404, {"ok": False, "error": "job not found", "jobId": job_id})
+                return
+            self._send(200, {"ok": True, **job})
+            return
+        if self._serve_app_asset():
             return
         self._send(404, {"ok": False, "error": "not found"})
 
@@ -824,14 +1449,36 @@ class Handler(BaseHTTPRequestHandler):
         analysis_input = payload.get("analysis_input") or {}
         company_name = ((analysis_input.get("company") or {}).get("name") if isinstance(analysis_input.get("company"), dict) else "") or ""
         module_key = analysis_input.get("module") or "analysis"
+        wants_async = bool(payload.get("async"))
+        client_ip = client_ip_from_headers(self)
         started_at = time.time()
+        if wants_async:
+            job = create_ai_job(provider, request_id)
+            worker = threading.Thread(
+                target=run_ai_job,
+                args=(job["jobId"], provider, payload, config, request_id, client_ip),
+                daemon=True,
+            )
+            worker.start()
+            self._send(
+                202,
+                {
+                    "ok": True,
+                    "accepted": True,
+                    "requestId": request_id,
+                    "jobId": job["jobId"],
+                    "status": job["status"],
+                    "progress": job["progress"],
+                },
+            )
+            return
         try:
             report = call_openai_compatible(provider, config, payload)
         except Exception as exc:
             json_log(
                 "ai_request_failed",
                 requestId=request_id,
-                ip=client_ip_from_headers(self),
+                ip=client_ip,
                 provider=provider,
                 model=config.get("model"),
                 baseUrl=config.get("base_url"),
@@ -847,7 +1494,7 @@ class Handler(BaseHTTPRequestHandler):
         json_log(
             "ai_request_succeeded",
             requestId=request_id,
-            ip=client_ip_from_headers(self),
+            ip=client_ip,
             provider=provider,
             model=config.get("model"),
             baseUrl=config.get("base_url"),

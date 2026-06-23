@@ -642,6 +642,7 @@ def maybe_decode_text(data):
 
 
 def normalize_report(raw, provider, model, company_name):
+    company_profile = raw.get("companyProfile") if isinstance(raw.get("companyProfile"), dict) else {}
     scores = raw.get("scores") or {}
     normalized_scores = {}
     for key in DIMENSION_ORDER:
@@ -729,6 +730,7 @@ def normalize_report(raw, provider, model, company_name):
         "model": model,
         "generatedAt": raw.get("generatedAt") or now_iso(),
         "companyName": company_name,
+        "companyProfile": company_profile,
         "overallScore": total,
         "overallLevel": overall_level,
         "executiveSummary": normalize_text_value(raw.get("executiveSummary")),
@@ -815,6 +817,179 @@ def enrich_dimension_details(report):
             }
         )
     report["dimensionAnalysis"] = enriched
+    return report
+
+
+def build_company_profile_snapshot(report):
+    company = report.get("companyProfile") if isinstance(report.get("companyProfile"), dict) else {}
+    return {
+        "name": normalize_text_value(company.get("name") or report.get("companyName")),
+        "industry": normalize_text_value(company.get("industry")),
+        "revenue": normalize_text_value(company.get("revenue")),
+        "employees": normalize_text_value(company.get("employees")),
+        "exportRatio": normalize_text_value(company.get("exportRatio")),
+        "brandRatio": normalize_text_value(company.get("brandRatio")),
+        "oemRatio": normalize_text_value(company.get("oemRatio")),
+        "ecommerceRatio": normalize_text_value(company.get("ecommerceRatio")),
+        "rdRatio": normalize_text_value(company.get("rdRatio")),
+        "deliveryDays": normalize_text_value(company.get("deliveryDays")),
+        "logisticsCost": normalize_text_value(company.get("logisticsCost")),
+        "mainIssues": normalize_text_value(company.get("mainIssues")),
+        "upgradeGoals": normalize_text_value(company.get("upgradeGoals")),
+    }
+
+
+def enrich_phase_and_solution_details(report):
+    dimensions = [item for item in ensure_list(report.get("dimensionAnalysis")) if isinstance(item, dict)]
+    profile = build_company_profile_snapshot(report)
+    if not dimensions:
+        return report
+
+    priority_dims = sorted(
+        dimensions,
+        key=lambda item: (-(clamp_score(item.get("gap", 0))), clamp_score(item.get("score", 0))),
+    )
+    top_names = [normalize_text_value(item.get("name")) for item in priority_dims[:4] if normalize_text_value(item.get("name"))]
+    revenue = profile.get("revenue") or "当前营收规模"
+    export_ratio = profile.get("exportRatio") or "当前出口占比"
+    brand_ratio = profile.get("brandRatio") or "当前品牌收入占比"
+    ecommerce_ratio = profile.get("ecommerceRatio") or "当前电商占比"
+    rd_ratio = profile.get("rdRatio") or "当前研发投入占比"
+    delivery_days = profile.get("deliveryDays") or "当前交付周期"
+    logistics_cost = profile.get("logisticsCost") or "当前物流成本占比"
+
+    phases = []
+    raw_phases = [item for item in ensure_list(report.get("phases")) if isinstance(item, dict)]
+    default_phase_names = ["诊断校准期", "专项突破期", "复制固化期", "规模跃迁期"]
+    for index in range(4):
+        item = raw_phases[index] if index < len(raw_phases) else {}
+        name = normalize_text_value(item.get("name")) or default_phase_names[index]
+        goals = normalize_text_list(item.get("goals"))
+        milestones = normalize_text_list(item.get("milestones"))
+        focus = normalize_text_list(item.get("focusDimensions"))
+        explanation = normalize_text_value(item.get("explanation"))
+        if not focus:
+            focus = top_names[index:index + 2] or top_names[:2]
+        if not goals:
+            if index == 0:
+                goals = [
+                    f"围绕{ '、'.join(focus[:2]) or '关键短板'}建立专项台账、责任人和预算口径",
+                    f"把品牌占比{brand_ratio}、电商占比{ecommerce_ratio}、研发投入{rd_ratio}统一为月度跟踪指标",
+                    "完成重点客户、产品、渠道与供应链问题清单并排序",
+                ]
+            elif index == 1:
+                goals = [
+                    f"针对{ '、'.join(focus[:2]) or '关键短板'}启动样板项目，形成首轮可验证结果",
+                    f"把交付周期{delivery_days}、物流成本{logistics_cost}纳入专项纠偏节奏",
+                    "形成跨部门周例会和问题升级机制，避免动作悬空",
+                ]
+            elif index == 2:
+                goals = [
+                    "把首轮有效动作固化成流程、模板和奖惩规则",
+                    f"围绕营收{revenue}和出口占比{export_ratio}设定季度提升目标",
+                    "把试点经验复制到更多产品线、渠道或重点客户群",
+                ]
+            else:
+                goals = [
+                    "把阶段成果转化为全年经营计划和预算安排",
+                    "形成对标头部企业的年度跃迁目标与复盘机制",
+                    "完成下一轮品牌、研发、交付和资金协同的升级方案",
+                ]
+        if not milestones:
+            milestones = [
+                f"30天内完成{name}责任人、预算和项目清单确认",
+                f"60天内形成{name}首轮量化结果与问题复盘",
+                f"90天内完成{name}阶段评估并决定下一步扩围或纠偏",
+            ]
+        if not explanation:
+            if index == 0:
+                explanation = "先统一口径、台账、预算和责任链，避免后续行动没有抓手。"
+            elif index == 1:
+                explanation = "先在关键短板上做样板突破，用可验证结果替代泛泛推进。"
+            elif index == 2:
+                explanation = "把已验证动作沉淀为制度和流程，避免成果停留在单点修补。"
+            else:
+                explanation = "把阶段成果并入年度经营计划，形成下一轮可持续跃迁节奏。"
+        phases.append(
+            {
+                "name": name,
+                "goals": goals[:4],
+                "milestones": milestones[:4],
+                "focusDimensions": focus[:4],
+                "explanation": explanation,
+            }
+        )
+    report["phases"] = phases
+
+    raw_solutions = [item for item in ensure_list(report.get("solutions")) if isinstance(item, dict)]
+    solutions = []
+    for index, dim in enumerate(priority_dims[:6]):
+        item = raw_solutions[index] if index < len(raw_solutions) else {}
+        dim_name = normalize_text_value(dim.get("name")) or f"关键维度{index + 1}"
+        target_dimensions = normalize_text_list(item.get("targetDimensions")) or [normalize_text_value(dim.get("key") or dim_name)]
+        owner = normalize_text_value(dim.get("owner")) or "经营负责人"
+        owner_label = owner.replace("建议由", "").replace("牵头", "").strip() or owner
+        content = normalize_text_list(item.get("content"))
+        if not content:
+            content = [
+                f"由{owner}牵头，围绕{dim_name}设立90天专项项目并锁定预算",
+                f"把{dim_name}相关动作拆到产品、渠道、供应链或财务责任人",
+                f"按月复盘{dim_name}差距、预算消耗、完成率和偏差原因",
+            ]
+        steps = []
+        for step in ensure_list(item.get("steps")):
+            if isinstance(step, dict):
+                title = normalize_text_value(step.get("t") or step.get("title") or step.get("name"))
+                detail = normalize_text_value(step.get("d") or step.get("detail") or step.get("description"))
+                timeline = normalize_text_value(step.get("tm") or step.get("timeline"))
+                if title or detail or timeline:
+                    steps.append({"t": title, "d": detail, "tm": timeline})
+        if not steps:
+            steps = [
+                {"t": "明确负责人和预算", "d": f"由{owner_label}牵头确认{dim_name}专项责任链、预算和目标值。", "tm": "第1-2周"},
+                {"t": "启动样板动作", "d": f"优先选取与{dim_name}最相关的产品线、渠道或流程做试点。", "tm": "第3-6周"},
+                {"t": "月度复盘纠偏", "d": "围绕完成率、投入产出、延误原因和风险控制做复盘。", "tm": "第2-3个月"},
+            ]
+        expected_result = normalize_text_value(item.get("expectedResult")) or f"{dim_name}在90天内形成首轮量化改善，综合评分提升3-6分。"
+        why_now = normalize_text_value(item.get("whyNow")) or f"{dim_name}当前已直接拖累企业从代工向品牌化、数字化和高附加值升级的节奏。"
+        solutions.append(
+            {
+                "title": normalize_text_value(item.get("title")) or f"{dim_name}专项提升方案",
+                "priority": normalize_text_value(item.get("priority")) or ("high" if index < 2 else "medium"),
+                "targetDimensions": target_dimensions[:4],
+                "content": content[:5],
+                "steps": steps[:5],
+                "expectedResult": expected_result,
+                "whyNow": why_now,
+            }
+        )
+    report["solutions"] = solutions[:6]
+
+    core_findings = normalize_text_list(report.get("coreFindings"))
+    if len(core_findings) < 6:
+        generated_findings = []
+        for dim in priority_dims[:6]:
+            dim_name = normalize_text_value(dim.get("name")) or "关键维度"
+            score = clamp_score(dim.get("score", 0))
+            gap = clamp_score(dim.get("gap", 0))
+            evidence = normalize_text_list(dim.get("evidenceFromInput"), limit=2)
+            finding = f"{dim_name}当前{score}分、差距{gap}分，说明该维度仍是企业升级主短板。"
+            if evidence:
+                finding += " 依据：" + "；".join(evidence[:2])
+            generated_findings.append(finding)
+        report["coreFindings"] = (core_findings + generated_findings)[:8]
+    else:
+        report["coreFindings"] = core_findings[:8]
+
+    summary = normalize_text_value(report.get("executiveSummary"))
+    if len(summary) < 120:
+        top_desc = "、".join(top_names[:3]) or "品牌、营销与供应链"
+        report["executiveSummary"] = (
+            f"{profile.get('name') or report.get('companyName') or '该企业'}当前处于从制造能力积累向品牌与经营能力补课的升级阶段，"
+            f"最关键的瓶颈集中在{top_desc}。现状表现为品牌占比{brand_ratio}、电商占比{ecommerce_ratio}、研发投入{rd_ratio}、"
+            f"交付周期{delivery_days}与物流成本{logistics_cost}未形成协同改善闭环。未来12个月主线应先做口径统一和样板突破，"
+            f"再把有效动作固化为制度与预算安排，最终把专项结果并入年度经营计划，带动综合评分持续提升。"
+        )
     return report
 
 
@@ -1429,7 +1604,8 @@ def call_openai_compatible(provider, config, payload):
         return parsed
     company_name = payload["analysis_input"]["company"].get("name", "")
     report = normalize_report(parsed, provider, config["model"], company_name)
-    return enrich_dimension_details(report)
+    report = enrich_dimension_details(report)
+    return enrich_phase_and_solution_details(report)
 
 
 def run_ai_job(job_id, provider, payload, config, request_id, client_ip):

@@ -1177,7 +1177,89 @@ function showLoading(t){document.getElementById('loadingText').textContent=t||'�
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show')}
 
 // ====== 管理员后台 ======
+async function fetchAdminOverview(){
+    var base = window.AI_STATUS_URL || '';
+    if(!base)return null;
+    var url = base.replace('/api/status', '/api/admin/overview');
+    var response = await fetch(url, { method: 'GET' });
+    var data = await response.json();
+    if(!response.ok || !data.ok)throw new Error(data.error || '管理员概览加载失败');
+    return data.overview || null;
+}
+
+function renderAdminOverview(overview){
+    overview = overview || {};
+    var summary = overview.summary || {};
+    var providers = overview.providers || {};
+    var userBody = document.getElementById('userTableBody'); if(userBody)userBody.innerHTML = '';
+    var companyBody = document.getElementById('companyTableBody'); if(companyBody)companyBody.innerHTML = '';
+    var analysisBody = document.getElementById('analysisTableBody'); if(analysisBody)analysisBody.innerHTML = '';
+    var logBody = document.getElementById('loginLogBody'); if(logBody)logBody.innerHTML = '';
+
+    document.getElementById('adminTotalUsers').textContent = Object.keys(providers).length;
+    document.getElementById('adminTotalCompanies').textContent = summary.totalJobs || 0;
+    document.getElementById('adminTotalAnalysis').textContent = summary.completedJobs || 0;
+    document.getElementById('adminToday').textContent = new Date().toLocaleDateString('zh-CN');
+
+    Object.keys(providers).forEach(function(providerKey){
+        var provider = providers[providerKey] || {};
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td style="color:#fff">' + esc(provider.label || providerKey) + '</td>' +
+            '<td>' + esc(provider.configured ? '后端已配置' : '后端未配置') + '</td>' +
+            '<td>' + esc(provider.total || 0) + '</td>' +
+            '<td>' + esc(provider.completed || 0) + '</td>' +
+            '<td>' + esc(provider.failed || 0) + '</td>' +
+            '<td>' + esc(provider.lastUpdatedAt ? new Date(provider.lastUpdatedAt).toLocaleString('zh-CN') : '-') + '</td>';
+        userBody.appendChild(tr);
+    });
+
+    (overview.jobs || []).slice(0, 20).forEach(function(job){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td style="color:#fff">' + esc(job.provider || '-') + '</td>' +
+            '<td>' + esc(job.requestId || '-') + '</td>' +
+            '<td>' + esc(((job.progress || {}).label) || '-') + '</td>' +
+            '<td>' + esc(((job.progress || {}).percent) != null ? ((job.progress || {}).percent + '%') : '-') + '</td>' +
+            '<td>' + esc(job.status || '-') + '</td>' +
+            '<td><span class="tag ' + ((job.status === 'completed') ? 'tag-success' : (job.status === 'failed' ? 'tag-danger' : 'tag-warning')) + '">' + esc(job.status || '-') + '</span></td>';
+        companyBody.appendChild(tr);
+    });
+
+    (overview.recentRequests || []).slice(0, 30).forEach(function(item){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td style="color:#fff">' + esc(item.companyName || '-') + '</td>' +
+            '<td>' + esc(item.provider || '-') + '</td>' +
+            '<td style="color:' + (item.status === 'success' ? '#00ff88' : '#ff6b6b') + ';font-weight:700">' + esc(item.elapsedMs || 0) + 'ms</td>' +
+            '<td><span class="tag ' + (item.status === 'success' ? 'tag-success' : 'tag-danger') + '">' + esc(item.status || '-') + '</span></td>' +
+            '<td>' + esc(item.time ? new Date(item.time).toLocaleString('zh-CN') : '-') + '</td>';
+        analysisBody.appendChild(tr);
+    });
+
+    (overview.recentAccess || []).slice(0, 30).forEach(function(item){
+        var tr = document.createElement('tr');
+        var detail = [item.method || '', item.path || '', item.ip || ''].filter(Boolean).join(' ');
+        tr.innerHTML =
+            '<td style="color:#fff">' + esc(item.ip || '-') + '</td>' +
+            '<td>' + esc(item.time ? new Date(item.time).toLocaleString('zh-CN') : '-') + '</td>' +
+            '<td><span class="tag tag-info">' + esc(detail || '-') + '</span></td>';
+        logBody.appendChild(tr);
+    });
+}
+
 async function loadAdminData(){
+    if(window.AI_STATUS_URL){
+        try{
+            var overview = await fetchAdminOverview();
+            if(overview){
+                renderAdminOverview(overview);
+                return;
+            }
+        }catch(error){
+            console.warn('fetchAdminOverview failed', error);
+        }
+    }
     var users=await getUsers(),totalC=0,totalA=0;
     var ub=document.getElementById('userTableBody');ub.innerHTML='';
     var cb=document.getElementById('companyTableBody');cb.innerHTML='';

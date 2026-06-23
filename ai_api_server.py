@@ -8,6 +8,7 @@ import time
 import subprocess
 import threading
 import uuid
+from collections import deque
 from io import BytesIO
 from pathlib import Path
 from datetime import datetime, timezone
@@ -40,6 +41,9 @@ UPLOAD_MAGIC_PREFIXES = {
 REQUEST_BUCKETS = {}
 AI_JOBS = {}
 AI_JOBS_LOCK = threading.Lock()
+SERVER_EVENTS = deque(maxlen=int(os.environ.get("LJ_ADMIN_EVENT_LIMIT", "800")))
+SERVER_EVENTS_LOCK = threading.Lock()
+SERVER_STARTED_AT = time.time()
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_FILE = BASE_DIR / "index.html"
 SECRET_FILE = Path(
@@ -144,6 +148,104 @@ def get_ai_job(job_id):
         job = AI_JOBS.get(job_id)
         return build_job_snapshot(job) if job else None
 
+
+def list_ai_jobs(limit=50):
+    cleanup_expired_jobs()
+    with AI_JOBS_LOCK:
+        jobs = [build_job_snapshot(job) for job in AI_JOBS.values()]
+    jobs.sort(key=lambda item: item.get("updatedAt", ""), reverse=True)
+    return jobs[: max(1, int(limit or 50))]
+
+
+def record_server_event(payload):
+    with SERVER_EVENTS_LOCK:
+        SERVER_EVENTS.append(payload)
+
+
+def list_server_events(limit=100):
+    with SERVER_EVENTS_LOCK:
+        events = list(SERVER_EVENTS)
+    events.sort(key=lambda item: item.get("ts", ""), reverse=True)
+    return events[: max(1, int(limit or 100))]
+
+
+def build_admin_overview():
+    jobs = list_ai_jobs(120)
+    events = list_server_events(200)
+    provider_stats = {}
+    for provider_key, info in PROVIDER_DEFAULTS.items():
+        provider_stats[provider_key] = {
+            "label": info["label"],
+            "configured": bool(info.get("api_key")),
+            "total": 0,
+            "completed": 0,
+            "failed": 0,
+            "running": 0,
+            "queued": 0,
+            "lastUpdatedAt": "",
+        }
+    for job in jobs:
+        provider_key = job.get("provider") or ""
+        stats = provider_stats.get(provider_key)
+        if not stats:
+            continue
+        stats["total"] += 1
+        status = (job.get("status") or "").lower()
+        if status in ("completed", "failed", "running", "queued"):
+            stats[status] += 1
+        updated_at = job.get("updatedAt") or ""
+        if updated_at and updated_at > stats["lastUpdatedAt"]:
+            stats["lastUpdatedAt"] = updated_at
+
+    ai_events = [item for item in events if item.get("event") in ("ai_request_succeeded", "ai_request_failed")]
+    request_rows = []
+    for item in ai_events[:40]:
+        request_rows.append(
+            {
+                "time": item.get("ts", ""),
+                "provider": item.get("provider", ""),
+                "module": item.get("module", ""),
+                "companyName": item.get("companyName", ""),
+                "status": "success" if item.get("event") == "ai_request_succeeded" else "failed",
+                "elapsedMs": item.get("elapsedMs", 0),
+                "error": item.get("error", ""),
+                "requestId": item.get("requestId", ""),
+            }
+        )
+
+    http_events = [item for item in events if item.get("event") == "http_access"]
+    recent_access = [
+        {
+            "time": item.get("ts", ""),
+            "ip": item.get("ip", ""),
+            "method": item.get("method", ""),
+            "path": item.get("path", ""),
+            "detail": item.get("detail", ""),
+        }
+        for item in http_events[:30]
+    ]
+
+    return {
+        "serverTime": now_iso(),
+        "uptimeSeconds": int(max(0, time.time() - SERVER_STARTED_AT)),
+        "secretStore": {
+            "file": str(SECRET_FILE),
+            "configured": bool(BACKEND_SECRETS),
+        },
+        "providers": provider_stats,
+        "jobs": jobs[:40],
+        "recentRequests": request_rows,
+        "recentAccess": recent_access,
+        "summary": {
+            "totalJobs": len(jobs),
+            "completedJobs": sum(1 for item in jobs if (item.get("status") or "").lower() == "completed"),
+            "failedJobs": sum(1 for item in jobs if (item.get("status") or "").lower() == "failed"),
+            "runningJobs": sum(1 for item in jobs if (item.get("status") or "").lower() == "running"),
+            "queuedJobs": sum(1 for item in jobs if (item.get("status") or "").lower() == "queued"),
+            "recentRequestCount": len(request_rows),
+        },
+    }
+
 BACKEND_SECRETS = load_backend_secrets()
 
 PROVIDER_DEFAULTS = {
@@ -244,6 +346,7 @@ def parse_multipart_file(raw_bytes, content_type):
 def json_log(event, **fields):
     payload = {"ts": now_iso(), "event": event}
     payload.update(fields)
+    record_server_event(payload)
     print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
@@ -1458,6 +1561,15 @@ class Handler(BaseHTTPRequestHandler):
                         "configured": bool(BACKEND_SECRETS),
                     },
                     "providers": providers,
+                },
+            )
+            return
+        if route_path == "/api/admin/overview":
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "overview": build_admin_overview(),
                 },
             )
             return

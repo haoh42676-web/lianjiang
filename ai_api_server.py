@@ -53,6 +53,7 @@ SECRET_FILE = Path(
     )
 ).resolve()
 AI_JOB_TTL_SECONDS = int(os.environ.get("LJ_AI_JOB_TTL_SECONDS", str(30 * 60)))
+SECRET_FILE_SIGNATURE = None
 
 
 def load_backend_secrets():
@@ -66,6 +67,30 @@ def load_backend_secrets():
         if env_value:
             secrets[env_name] = env_value
     return secrets
+
+
+def get_secret_file_signature():
+    try:
+        stat = SECRET_FILE.stat()
+        return (stat.st_mtime_ns, stat.st_size)
+    except FileNotFoundError:
+        return None
+    except Exception as exc:
+        json_log("secret_store_stat_failed", file=str(SECRET_FILE), error=str(exc))
+        return None
+
+
+def refresh_backend_secrets_if_needed(force=False):
+    global BACKEND_SECRETS, SECRET_FILE_SIGNATURE
+    signature = get_secret_file_signature()
+    if not force and signature == SECRET_FILE_SIGNATURE:
+        return
+    BACKEND_SECRETS = load_backend_secrets()
+    SECRET_FILE_SIGNATURE = signature
+    if "PROVIDER_DEFAULTS" in globals():
+        PROVIDER_DEFAULTS["openai"]["api_key"] = BACKEND_SECRETS.get("OPENAI_API_KEY", "")
+        PROVIDER_DEFAULTS["deepseek"]["api_key"] = BACKEND_SECRETS.get("DEEPSEEK_API_KEY", "")
+        PROVIDER_DEFAULTS["mimo"]["api_key"] = BACKEND_SECRETS.get("MIMO_API_KEY", "")
 
 
 def cleanup_expired_jobs():
@@ -275,6 +300,8 @@ PROVIDER_DEFAULTS = {
     },
 }
 
+refresh_backend_secrets_if_needed(force=True)
+
 DIMENSION_ORDER = [
     "brand",
     "marketing",
@@ -394,6 +421,7 @@ def level_from_score(score):
 
 
 def normalize_provider_config(provider):
+    refresh_backend_secrets_if_needed()
     base = dict(PROVIDER_DEFAULTS.get(provider, {}))
     if base.get("base_url"):
         base["base_url"] = base["base_url"].rstrip("/")
@@ -641,8 +669,11 @@ def maybe_decode_text(data):
     return data.decode("utf-8", errors="ignore")
 
 
-def normalize_report(raw, provider, model, company_name):
-    company_profile = raw.get("companyProfile") if isinstance(raw.get("companyProfile"), dict) else {}
+def normalize_report(raw, provider, model, company_name, input_company=None):
+    company_profile = merge_company_profile(
+        input_company if isinstance(input_company, dict) else {},
+        raw.get("companyProfile") if isinstance(raw.get("companyProfile"), dict) else {},
+    )
     scores = raw.get("scores") or {}
     normalized_scores = {}
     for key in DIMENSION_ORDER:
@@ -839,6 +870,768 @@ def build_company_profile_snapshot(report):
     }
 
 
+def profile_value(profile, key, fallback):
+    value = normalize_text_value((profile or {}).get(key))
+    return value or fallback
+
+
+def clean_owner_label(owner):
+    owner_text = normalize_text_value(owner)
+    for token in ("建议由", "建议", "牵头", "负责"):
+        owner_text = owner_text.replace(token, "")
+    owner_text = owner_text.strip("：: ，,")
+    return owner_text or "企业负责人"
+
+
+def build_dimension_defaults_v2(dim_key, dim_name, profile, score, gap):
+    company_name = profile_value(profile, "name", "企业")
+    industry = profile_value(profile, "industry", "当前行业")
+    revenue = profile_value(profile, "revenue", "当前营收规模")
+    export_ratio = profile_value(profile, "exportRatio", "当前出口占比")
+    brand_ratio = profile_value(profile, "brandRatio", "当前品牌收入占比")
+    oem_ratio = profile_value(profile, "oemRatio", "当前OEM占比")
+    ecommerce_ratio = profile_value(profile, "ecommerceRatio", "当前电商占比")
+    rd_ratio = profile_value(profile, "rdRatio", "当前研发投入占比")
+    delivery_days = profile_value(profile, "deliveryDays", "当前交付周期")
+    logistics_cost = profile_value(profile, "logisticsCost", "当前物流成本占比")
+    employees = profile_value(profile, "employees", "当前人员规模")
+    main_issues = profile_value(profile, "mainIssues", "当前升级难点")
+    upgrade_goals = profile_value(profile, "upgradeGoals", "当前升级目标")
+
+    defaults = {
+        "diagnosis": f"{company_name}在{dim_name}上当前约{score}分，关键矛盾集中在{main_issues}，需要把升级目标“{upgrade_goals}”拆成可执行动作。",
+        "scoreExplanation": f"{dim_name}评分不是看单一资源，而是看资源是否转成经营结果、是否有稳定组织机制、是否能支撑阶段升级。",
+        "benchmarkComparison": f"{dim_name}当前得分{score}分。{'已具备一定基础，但还没形成复制优势。' if score >= 60 else '仍是当前转型中的明显短板，需要优先补课。'}",
+        "rootCauses": [
+            f"{dim_name}缺少量化经营目标，导致执行动作容易泛化",
+            f"{dim_name}责任链与复盘节奏不稳定，跨部门协同效果差",
+            f"{dim_name}没有与当前升级目标“{upgrade_goals}”形成清晰的转化路径",
+        ],
+        "evidenceFromInput": [f"企业营收：{revenue}", f"当前问题：{main_issues}", f"升级目标：{upgrade_goals}"],
+        "swotFocus": f"{dim_name}既要利用{company_name}现有能力，也要补齐从资源到结果的经营转化机制。",
+        "actions": [
+            f"先把{dim_name}拆成90天项目清单、责任人和预算，避免继续停留在口号层面",
+            f"围绕{dim_name}选1个样板场景，先做出首轮可验证结果",
+            f"把{dim_name}指标纳入月度经营会，持续复盘完成率、投入产出和偏差原因",
+        ],
+        "kpis": [
+            f"{dim_name}90天内形成项目台账与月度复盘机制",
+            f"{dim_name}180天内形成至少1个可复制样板",
+            f"{dim_name}12个月内带动综合评分提升5分以上",
+        ],
+        "risks": [
+            f"{dim_name}如果只加预算不改责任链，容易继续产出低密度动作",
+            f"{dim_name}涉及多部门协同，若没有一把手节奏管理，执行会走样",
+        ],
+        "owner": "企业负责人",
+        "resources": ["专项预算", "跨部门周例会", "经营数据看板"],
+        "milestones": [
+            f"30天内完成{dim_name}责任人、预算和项目清单确认",
+            f"60天内拿出首轮量化结果并识别执行偏差",
+            f"90天内完成样板复盘并决定扩围或纠偏",
+        ],
+        "expectedImpact": f"{dim_name}补强后，将直接提升{company_name}围绕“{upgrade_goals}”推进的落地速度。",
+        "paperMethodMapping": f"{dim_name}按八要素评分、阶段跃迁逻辑、经营约束与企业输入数据综合判断。",
+    }
+
+    if dim_key == "brand":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前品牌收入占比为{brand_ratio}，但OEM占比仍有{oem_ratio}，说明企业利润和议价能力仍主要受代工结构限制。",
+                "scoreExplanation": f"品牌维度重点看品牌收入占比、品牌独立性以及品牌是否能反向带动研发和渠道；当前{brand_ratio}仍偏低。",
+                "rootCauses": [
+                    f"品牌主张没有从{industry}制造优势中提炼成消费者可感知价值",
+                    "品牌预算、产品定义、渠道运营之间没有形成统一负责人机制",
+                    "品牌建设没有绑定自主产品销售目标，动作容易碎片化",
+                ],
+                "evidenceFromInput": [f"品牌收入占比：{brand_ratio}", f"OEM占比：{oem_ratio}", f"升级目标：{upgrade_goals}"],
+                "actions": [
+                    "30天内明确1个主品牌、2个主推SKU和1套统一价值主张",
+                    "重做品牌物料体系，统一包装、详情页、短视频脚本和渠道话术",
+                    "要求新品立项必须说明品牌贡献、价格带策略和目标渠道",
+                ],
+                "kpis": ["自主品牌收入占比", "主推SKU毛利率", "品牌搜索指数或私域沉淀人数"],
+                "owner": "品牌负责人",
+                "resources": ["品牌预算", "主推SKU资源位", "内容设计与渠道投放支持"],
+            }
+        )
+    elif dim_key == "marketing":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前电商占比为{ecommerce_ratio}，出口占比为{export_ratio}，说明终端渠道和用户运营能力仍弱，渠道结构偏订单导向。",
+                "scoreExplanation": f"营销维度重点看渠道结构、流量获取、转化效率和复购能力；当前{ecommerce_ratio}说明距离稳定终端运营仍有明显距离。",
+                "rootCauses": [
+                    "渠道布局仍围绕存量客户和传统订单，缺少面向终端用户的增长机制",
+                    "内容、投放、转化、复购没有形成统一经营闭环",
+                    "营销动作没有与产品和库存节奏联动，爆品逻辑不强",
+                ],
+                "actions": [
+                    "先选1个平台和1个重点价格带做样板，避免多平台同时投入",
+                    "建立内容-投放-转化日报，重点跟踪点击率、转化率、退货率和投产比",
+                    "把营销动作与新品上市节奏绑定，活动前先准备卖点、库存和客服话术",
+                ],
+                "kpis": ["样板渠道月销售额", "投放ROI", "加购转化率/复购率"],
+                "owner": "渠道营销负责人",
+                "resources": ["渠道投放预算", "内容团队", "数据归因看板"],
+            }
+        )
+    elif dim_key == "production":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前交付周期约为{delivery_days}，以{employees}人员规模支撑业务，说明生产基础在，但柔性排产和交付效率仍有提升空间。",
+                "scoreExplanation": f"生产维度不只看产能，还看交付速度、排产柔性、换线效率和异常响应速度；{delivery_days}说明交付能力还没完全跟上升级要求。",
+                "rootCauses": [
+                    "生产仍偏向大单逻辑，面对品牌化小批量、多批次需求时响应慢",
+                    "排产、采购、库存和销售预测联动不足，产销协同效率不高",
+                    "异常问题没有沉淀成标准化纠偏机制",
+                ],
+                "actions": [
+                    "把生产目标从“完成订单”升级为“交付周期和毛利共同达标”",
+                    "先挑1条主力产品线做周排产试点，拆解缺料、换线、返工损失时间",
+                    "建立销售预测与生产计划周对齐机制，减少新品和促销插单",
+                ],
+                "kpis": ["平均交付周期", "换线时长", "返工率/计划达成率"],
+                "owner": "生产运营负责人",
+                "resources": ["排产数据台账", "工序瓶颈改善预算", "跨部门周计划会"],
+            }
+        )
+    elif dim_key == "rd":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前研发投入占比约为{rd_ratio}，但研发是否真正转成可卖产品和可讲卖点，仍是核心问题。",
+                "scoreExplanation": f"研发维度重点看投入是否转成产品差异化、上市节奏和销售贡献；单有{rd_ratio}投入并不代表研发已有效。",
+                "rootCauses": [
+                    "研发立项与用户需求、渠道卖点之间没有形成闭环",
+                    "研发成果评估偏重完成项目，不够重视上市表现和毛利贡献",
+                    "新品定义、试产验证、渠道反馈之间节奏脱节",
+                ],
+                "actions": [
+                    "把研发项目按引流款、利润款、形象款重排，先保证立项与销售目标对齐",
+                    "建立新品上市复盘表，跟踪首月销量、毛利、退货原因和用户差评",
+                    "要求研发、营销、生产三方共同参加新品立项和试产评审",
+                ],
+                "kpis": ["新品上市成功率", "新品首月销售额", "研发项目按期转产率"],
+                "owner": "研发负责人",
+                "resources": ["样机验证预算", "用户反馈样本", "研发-营销联合评审机制"],
+            }
+        )
+    elif dim_key == "standard":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}所在行业为{industry}，当前出口占比为{export_ratio}，说明标准、认证和合规能力会直接影响客户信任和市场进入速度。",
+                "scoreExplanation": "标准维度重点看认证覆盖、内控标准化和对关键市场规则的响应速度，而不是只看是否“有证”。",
+                "rootCauses": [
+                    "标准与认证更多停留在满足当前订单，缺少支持升级目标的前置规划",
+                    "不同市场、不同渠道的合规要求没有沉淀成可复用清单",
+                    "产品开发阶段缺少认证前置介入，导致后期反复补件和返工",
+                ],
+                "actions": [
+                    "先梳理目标市场和渠道对应的认证清单，按优先级排序",
+                    "把认证准备前置到新品开发阶段，避免样机完成后再补合规",
+                    "建立法规变化月报，让销售、研发、品控同步知道红线变化",
+                ],
+                "kpis": ["重点市场认证完成率", "认证周期", "因合规问题导致的延误次数"],
+                "owner": "质量与认证负责人",
+                "resources": ["认证费用预算", "法规顾问/检测机构", "认证进度台账"],
+            }
+        )
+    elif dim_key == "logistics":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前物流成本占比约为{logistics_cost}，交付周期约为{delivery_days}，说明供应链和履约效率已经开始影响利润和渠道体验。",
+                "scoreExplanation": f"物流维度重点看成本、时效、库存周转和异常履约；{logistics_cost}与{delivery_days}都说明改进空间明显。",
+                "rootCauses": [
+                    "物流目标更多看发出去，没有把时效、成本和渠道服务体验一起管理",
+                    "库存布局、补货策略和销售节奏没有形成联动",
+                    "异常订单、退货和售后问题没有反向进入供应链优化",
+                ],
+                "actions": [
+                    "先按渠道拆开统计物流成本和时效，找到利润被侵蚀最严重的场景",
+                    "把库存周转、履约时效和售后退换货一起纳入供应链周报",
+                    "围绕样板渠道优化仓配策略，优先缩短高频SKU履约链路",
+                ],
+                "kpis": ["物流成本占比", "72小时内发货率", "库存周转天数/退货时效"],
+                "owner": "供应链负责人",
+                "resources": ["仓配数据看板", "重点SKU库存策略", "物流承运商谈判资源"],
+            }
+        )
+    elif dim_key == "capital":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前营收规模为{revenue}，升级目标是“{upgrade_goals}”，说明资本安排必须服务于转型节奏，而不是只追求拿钱。",
+                "scoreExplanation": "资本维度重点看企业是否有与阶段目标匹配的资金安排、投资优先级和资本沟通能力。",
+                "rootCauses": [
+                    "转型项目很多，但资金优先级没有明确排序",
+                    "资本动作和经营动作脱节，融资或补贴申请没有对准关键短板",
+                    "缺少能向投资人或政府清楚说明项目回报逻辑的材料体系",
+                ],
+                "actions": [
+                    "按品牌、研发、产能、渠道四类项目重排资本优先级，只保留真正影响主线的投入",
+                    "梳理政府补贴、银行授信、股权融资三类资金路径，明确每条路径服务什么项目",
+                    "建立项目回报测算表，要求每一笔投入都能说明回收周期和经营结果",
+                ],
+                "kpis": ["重点项目资金覆盖率", "融资/补贴到位金额", "单项目投入回收周期"],
+                "owner": "战略与资本负责人",
+                "resources": ["项目回报测算表", "融资材料", "政府项目申报资源"],
+            }
+        )
+    elif dim_key == "finance":
+        defaults.update(
+            {
+                "diagnosis": f"{company_name}当前营收规模为{revenue}，同时OEM占比{oem_ratio}、物流成本占比{logistics_cost}，说明财务管理要从记账视角转向经营决策视角。",
+                "scoreExplanation": "财务维度重点看是否能把收入结构、毛利结构、费用投放和现金流变化及时翻译成经营动作。",
+                "rootCauses": [
+                    "财务口径与业务口径没有完全打通，经营层拿不到可直接决策的数据",
+                    "利润分析停留在总账层面，无法快速看清SKU、渠道和客户的真实贡献",
+                    "预算、复盘、纠偏没有闭环，财务对经营动作的牵引偏弱",
+                ],
+                "actions": [
+                    "先按SKU、渠道、客户三层建立毛利分析表，找出真正赚钱和拖利润的部分",
+                    "把预算执行、投放费用、库存占压和回款节奏放到一张经营报表里统一复盘",
+                    "要求重大促销、新品、渠道动作都同步做财务测算和复盘",
+                ],
+                "kpis": ["SKU级毛利可视化覆盖率", "预算偏差率", "经营现金流/回款周期"],
+                "owner": "财务负责人",
+                "resources": ["经营分析报表", "预算滚动机制", "业务-财务对账口径"],
+            }
+        )
+    return defaults
+
+
+def looks_generic_text_list(items):
+    generic_flags = (
+        "执行机制",
+        "资源投入不足",
+        "市场/订单反馈",
+        "专项台账",
+        "按月复盘",
+        "专项预算",
+        "责任人与计划",
+        "阶段性动作闭环",
+        "牵头确认",
+        "最相关的产品线",
+    )
+    normalized = normalize_text_list(items)
+    if not normalized:
+        return True
+    joined = " | ".join(normalized)
+    return any(flag in joined for flag in generic_flags)
+
+
+def looks_generic_step_list(steps):
+    if not steps:
+        return True
+    generic_flags = (
+        "明确负责人",
+        "明确责任链",
+        "启动样板",
+        "先做一个样板",
+        "月度复盘",
+        "结果并入经营会",
+    )
+    normalized = []
+    for step in ensure_list(steps):
+        if isinstance(step, dict):
+            title = normalize_text_value(step.get("t") or step.get("title") or step.get("name"))
+            detail = normalize_text_value(step.get("d") or step.get("detail") or step.get("description"))
+            timeline = normalize_text_value(step.get("tm") or step.get("timeline"))
+            combined = " ".join(part for part in (title, detail, timeline) if part)
+            if combined:
+                normalized.append(combined)
+        else:
+            text = normalize_text_value(step)
+            if text:
+                normalized.append(text)
+    if not normalized:
+        return True
+    joined = " | ".join(normalized)
+    return any(flag in joined for flag in generic_flags)
+
+
+def build_phase_defaults_v2(index, focus, profile):
+    focus_text = "、".join([item for item in ensure_list(focus) if normalize_text_value(item)][:2]) or "关键短板"
+    brand_ratio = profile_value(profile, "brandRatio", "当前品牌收入占比")
+    ecommerce_ratio = profile_value(profile, "ecommerceRatio", "当前电商占比")
+    rd_ratio = profile_value(profile, "rdRatio", "当前研发投入占比")
+    delivery_days = profile_value(profile, "deliveryDays", "当前交付周期")
+    logistics_cost = profile_value(profile, "logisticsCost", "当前物流成本占比")
+    revenue = profile_value(profile, "revenue", "当前营收规模")
+    export_ratio = profile_value(profile, "exportRatio", "当前出口占比")
+    if index == 0:
+        return {
+            "goals": [
+                f"围绕{focus_text}建立一张专项台账，明确负责人、预算、目标值和周复盘节奏",
+                f"把品牌占比{brand_ratio}、电商占比{ecommerce_ratio}、研发投入{rd_ratio}统一成月度经营指标",
+                "完成重点客户、主推产品、核心渠道和供应链异常问题清单，并按影响利润优先级排序",
+                "用一页经营看板同步老板、业务、生产、财务对当前短板的同一判断口径",
+            ],
+            "milestones": [
+                "第2周前确认专项负责人、预算上限、目标值和例会机制",
+                "第4周前完成客户/产品/渠道/供应链问题清单和优先级排序",
+                "第6周前形成第一版经营看板并进入管理层周会",
+                "第8周前冻结第一轮样板项目名单和验证口径",
+            ],
+            "explanation": "这一阶段先统一判断口径和抓手，避免后面看起来很忙，但每个部门理解的优先级都不一样。",
+        }
+    if index == 1:
+        return {
+            "goals": [
+                f"围绕{focus_text}各做1个样板项目，要求6周内拿出可量化结果",
+                f"把交付周期{delivery_days}、物流成本{logistics_cost}纳入专项周报，不再只看最终出货",
+                "建立跨部门周例会、异常升级和负责人闭环机制，问题超过48小时必须有人接单",
+                "每个样板项目都同步记录投入、产出、异常、修正动作，形成可复盘证据",
+            ],
+            "milestones": [
+                "第10周前完成样板项目启动会并锁定验证指标",
+                "第12周前拿到首轮样板结果，区分有效动作和无效动作",
+                "第14周前完成一次跨部门纠偏，解决最关键的执行堵点",
+                "第16周前给出是否扩围、暂停或重构的管理层决策",
+            ],
+            "explanation": "这一阶段不追求面面俱到，而是先把最影响经营结果的短板做出样板，确保动作不是空转。",
+        }
+    if index == 2:
+        return {
+            "goals": [
+                "把样板项目里验证有效的动作沉淀为流程、模板、例会规则和考核口径",
+                f"围绕营收{revenue}和出口占比{export_ratio}设定季度提升目标，并拆分到责任部门",
+                "把样板经验复制到更多产品线、渠道或重点客户群，验证是否具备规模化可复制性",
+                "同步梳理预算、人员、系统和数据需求，避免复制时因资源断档失败",
+            ],
+            "milestones": [
+                "第5个月前完成模板、SOP、例会规则和考核口径发布",
+                "第6个月前至少完成2条产品线或2个渠道的复制落地",
+                "第7个月前输出复制效果复盘，识别放大后的新瓶颈",
+                "第8个月前形成下一轮优化清单和资源补位方案",
+            ],
+            "explanation": "这一阶段重点是从单点改善走向组织能力，防止前面的结果只停留在几个能打的个人身上。",
+        }
+    return {
+        "goals": [
+            "把阶段成果转化为全年经营计划、预算安排和季度经营目标，不再作为临时专项存在",
+            "形成对标头部企业的年度跃迁目标，明确品牌、研发、交付、资金四条主线的联动节奏",
+            "把关键提升指标纳入董事会或经营班子固定复盘，确保升级动作不因短期订单波动中断",
+            "完成下一轮增长方案储备，为新的渠道、产品和区域扩张预留资源和方法论",
+        ],
+        "milestones": [
+            "第9个月前把专项成果写入年度经营预算和部门KPI",
+            "第10个月前完成一次对标头部企业的差距复盘和来年规划",
+            "第11个月前明确下一轮品牌、研发、交付和资金协同项目储备",
+            "第12个月前提交年度总结和下一年度升级路线图",
+        ],
+        "explanation": "这一阶段的任务是把前面有效的动作升级为全年经营能力，让改善可以持续滚动，而不是做一轮就结束。",
+    }
+
+
+def build_solution_content_v2(dim_key, dim_name, owner, owner_label, profile):
+    company_name = profile_value(profile, "name", "企业")
+    brand_ratio = profile_value(profile, "brandRatio", "当前品牌收入占比")
+    ecommerce_ratio = profile_value(profile, "ecommerceRatio", "当前电商占比")
+    rd_ratio = profile_value(profile, "rdRatio", "当前研发投入占比")
+    delivery_days = profile_value(profile, "deliveryDays", "当前交付周期")
+    logistics_cost = profile_value(profile, "logisticsCost", "当前物流成本占比")
+    upgrade_goals = profile_value(profile, "upgradeGoals", "当前升级目标")
+    default_items = [
+        f"由{owner}牵头，把{dim_name}拆成90天专项，写清目标值、预算上限、负责人和周复盘节奏",
+        f"围绕{dim_name}只选1个样板场景先做深，避免同时铺太多动作导致看不到结果",
+        f"把{dim_name}相关动作拆到产品、渠道、供应链、财务等责任人，每周检查完成率和异常原因",
+        f"要求每个动作同步记录投入、产出、风险和下周修正项，月底进入经营会复盘",
+    ]
+    mapping = {
+        "brand": [
+            f"由{owner}牵头，明确1个主品牌、3个主推SKU和统一价值主张，目标是拉动品牌收入占比脱离当前{brand_ratio}",
+            "重做包装、详情页、短视频脚本、招商话术和渠道陈列素材，确保品牌表达在各渠道一致",
+            "新产品立项必须写清品牌贡献、目标价格带、目标客群和渠道打法，不能再只按生产逻辑立项",
+            "把品牌预算优先投向主推SKU验证，而不是平均分散到所有产品线上",
+        ],
+        "marketing": [
+            f"围绕当前电商占比{ecommerce_ratio}，只选1个平台和1个价格带做增长样板，先把转化跑通再扩平台",
+            "建立内容、投放、转化、复购一体化日报，至少盯住点击率、转化率、退货率和ROI",
+            "把营销节奏与新品上市、库存深度和客服话术绑定，避免活动做起来但供货与承接掉链子",
+            "沉淀高转化素材、页面结构和人群策略，形成可复制的渠道打法模板",
+        ],
+        "production": [
+            f"把交付周期从当前{delivery_days}作为一号改进指标，拆解缺料、换线、返工和插单造成的时间损失",
+            "先在1条主力产品线做周排产样板，建立生产、采购、仓储、销售联动节奏",
+            "把异常停线、返工、插单原因写入日报，超过阈值的异常必须在48小时内给出处置人",
+            "把生产目标从只看完工量改成同时看交付周期、毛利影响和计划达成率",
+        ],
+        "rd": [
+            f"围绕升级目标“{upgrade_goals}”重排研发项目，先做能带来销量、毛利或品牌增量的产品",
+            f"要求研发投入{rd_ratio}对应到具体新品和差异化卖点，避免投入与结果脱钩",
+            "建立新品上市复盘表，跟踪首月销量、毛利、差评原因、退货原因和渠道反馈",
+            "研发、营销、生产三方共同参与新品立项和试产评审，减少产品定义偏差",
+        ],
+        "standard": [
+            f"围绕{company_name}目标市场建立认证清单、时间表和预算，不再等订单来了再被动补证",
+            "把认证准备前移到新品开发阶段，样机设计时就校验法规、检测和标签要求",
+            "建立法规变化月报，销售、研发、品控同步更新，减少后期返工和延误",
+            "沉淀一份按市场和渠道分类的合规资料包，缩短客户审核和入驻准备周期",
+        ],
+        "logistics": [
+            f"围绕物流成本占比{logistics_cost}和交付周期{delivery_days}建立渠道级成本与时效看板",
+            "按渠道拆分库存布局、补货节奏、售后退换货和承运商表现，找出利润被侵蚀最严重的环节",
+            "先优化高频SKU的仓配链路，缩短高销量产品的履约路径和异常处理时间",
+            "把售后、退货、延误和缺货原因反向写回供应链周报，推动采购与仓配共同纠偏",
+        ],
+        "capital": [
+            f"围绕升级目标“{upgrade_goals}”重排资金优先级，只保留真正影响增长主线的投入项目",
+            f"把品牌、研发、产能、渠道四类投入分别写清预算、回收周期和负责人，避免资源分散",
+            "同步梳理银行授信、政府补贴、产业基金等资金路径，明确各自服务哪个专项",
+            "建立项目回报测算表，每笔大额投入都要在经营会上解释回本逻辑和阶段结果",
+        ],
+        "finance": [
+            "先按SKU、渠道、客户三层建立毛利分析表，识别哪些订单在放大营收但吞噬利润",
+            f"把OEM占比、物流成本占比和回款周期一起放进经营报表，形成真实经营质量视角",
+            "所有重大促销、新品、渠道动作都要做事前测算和事后复盘，财务不再只做记账",
+            "建立预算偏差、库存占压、回款异常三类预警，超过阈值自动进入月度经营会",
+        ],
+    }
+    return mapping.get(dim_key, default_items)
+
+
+def build_solution_steps_v2(dim_key, dim_name, owner_label, profile):
+    company_name = profile_value(profile, "name", "企业")
+    brand_ratio = profile_value(profile, "brandRatio", "当前品牌收入占比")
+    ecommerce_ratio = profile_value(profile, "ecommerceRatio", "当前电商占比")
+    delivery_days = profile_value(profile, "deliveryDays", "当前交付周期")
+    logistics_cost = profile_value(profile, "logisticsCost", "当前物流成本占比")
+    common_steps = [
+        {
+            "t": "确认专项口径与目标值",
+            "d": f"由{owner_label}在第1周内确认{dim_name}专项负责人、预算上限、季度目标值、例会频次和升级机制，避免执行口径继续分散。",
+            "tm": "第1周",
+        },
+        {
+            "t": "锁定单一样板场景",
+            "d": f"围绕{dim_name}选择1个最能出结果的样板产品、样板渠道或样板流程，只做一组可验证动作，不同时铺开多个方向。",
+            "tm": "第2周",
+        },
+        {
+            "t": "连续跟踪过程指标",
+            "d": f"从第3周开始按周跟踪{dim_name}的投入、完成率、异常原因和修正动作，要求每周都有新增证据，不接受只报进度口号。",
+            "tm": "第3-8周",
+        },
+        {
+            "t": "月度经营会决策扩围",
+            "d": f"第2个月末把{dim_name}样板结果带入经营会，按结果决定继续加码、复制到更多场景，还是停止无效动作重做方案。",
+            "tm": "第2-3个月",
+        },
+    ]
+    mapping = {
+        "brand": [
+            {
+                "t": "确定主品牌与主推SKU",
+                "d": f"第1周内确认1个主品牌、3个主推SKU和统一价值主张，目标是让品牌收入占比逐步脱离当前{brand_ratio}水平。",
+                "tm": "第1周",
+            },
+            {
+                "t": "重做品牌表达物料",
+                "d": "第2-4周统一完成包装、详情页、视频脚本、销售话术和招商素材，确保品牌表达在不同渠道不再各说各话。",
+                "tm": "第2-4周",
+            },
+            {
+                "t": "把新品立项绑定品牌贡献",
+                "d": "从第2个月开始，所有新品立项必须同时写清目标客群、价格带、渠道打法和品牌贡献，否则不进入开发排期。",
+                "tm": "第2个月",
+            },
+            {
+                "t": "复盘品牌带来的经营结果",
+                "d": "第3个月复盘品牌搜索、私域沉淀、主推SKU毛利和品牌收入占比变化，决定下一轮要加码的产品与渠道。",
+                "tm": "第3个月",
+            },
+        ],
+        "marketing": [
+            {
+                "t": "确定单平台增长样板",
+                "d": f"第1周锁定1个平台和1个价格带，围绕当前电商占比{ecommerce_ratio}先跑通单平台转化模型，不同时追多个平台。",
+                "tm": "第1周",
+            },
+            {
+                "t": "搭建内容投放转化日报",
+                "d": "第2周起按日跟踪内容产出、投放花费、点击率、转化率、退货率和ROI，并标记每条素材的真实表现。",
+                "tm": "第2-8周",
+            },
+            {
+                "t": "把活动节奏和库存承接打通",
+                "d": "所有促销或上新动作上线前，必须同步检查库存深度、客服话术、发货承诺和售后预案，避免流量来了接不住。",
+                "tm": "第3-8周",
+            },
+            {
+                "t": "沉淀可复制打法模板",
+                "d": "第3个月汇总高转化素材、页面结构、人群策略和客服话术，形成可复制的渠道作战模板。",
+                "tm": "第3个月",
+            },
+        ],
+        "production": [
+            {
+                "t": "拆解交付周期损失",
+                "d": f"第1周开始把当前{delivery_days}交付周期拆成缺料、换线、返工、插单四类损失，找出最拖后腿的工序与班组。",
+                "tm": "第1-2周",
+            },
+            {
+                "t": "上线主力产品周排产样板",
+                "d": "第3周选1条主力产品线做周排产试点，强制采购、仓储、生产、销售按同一节奏滚动更新。",
+                "tm": "第3-6周",
+            },
+            {
+                "t": "建立异常48小时闭环",
+                "d": "所有停线、返工、缺料、插单异常在48小时内必须给出责任人、临时措施和永久改善动作，避免周周重复发生。",
+                "tm": "第3-8周",
+            },
+            {
+                "t": "按交付与毛利双指标复盘",
+                "d": "第3个月用交付周期、计划达成率、返工率和毛利影响四个指标复盘是否值得扩到更多产线。",
+                "tm": "第3个月",
+            },
+        ],
+        "rd": [
+            {
+                "t": "重排研发项目优先级",
+                "d": "第1周按销量潜力、毛利贡献、品牌贡献重排研发项目，砍掉不能支撑经营目标的低价值立项。",
+                "tm": "第1周",
+            },
+            {
+                "t": "建立新品立项共评机制",
+                "d": f"第2周起研发、营销、生产共同评审新品，确保{company_name}的研发动作不是只做技术完成，而是直接服务销售结果。",
+                "tm": "第2-4周",
+            },
+            {
+                "t": "跟踪新品上市首月表现",
+                "d": "从第2个月开始跟踪首月销量、毛利、差评、退货和渠道反馈，判断研发投入是否真正转成市场结果。",
+                "tm": "第2-3个月",
+            },
+            {
+                "t": "淘汰无效研发路径",
+                "d": "第3个月根据上市结果决定继续加码、调整卖点还是终止项目，把研发资源集中到有效方向。",
+                "tm": "第3个月",
+            },
+        ],
+        "logistics": [
+            {
+                "t": "建立渠道级成本时效看板",
+                "d": f"第1周按渠道拆开物流成本占比{logistics_cost}和交付周期{delivery_days}，找出利润被侵蚀最明显的渠道与SKU。",
+                "tm": "第1-2周",
+            },
+            {
+                "t": "优化高频SKU仓配链路",
+                "d": "第3-5周优先优化高销量SKU的仓库发货路径、补货策略和承运商组合，先把大头问题解决。",
+                "tm": "第3-5周",
+            },
+            {
+                "t": "把售后异常反向写回供应链",
+                "d": "第2个月开始把延误、破损、退货和售后异常写回供应链周报，让采购、仓储、客服对同一问题负责。",
+                "tm": "第2个月",
+            },
+            {
+                "t": "评估是否扩展到更多渠道",
+                "d": "第3个月用成本、时效、退货和客户投诉四类数据评估优化动作是否应复制到更多仓配场景。",
+                "tm": "第3个月",
+            },
+        ],
+    }
+    return mapping.get(dim_key, common_steps)
+
+
+def build_solution_expected_result_v2(dim_key, dim_name, profile):
+    brand_ratio = profile_value(profile, "brandRatio", "当前品牌收入占比")
+    ecommerce_ratio = profile_value(profile, "ecommerceRatio", "当前电商占比")
+    delivery_days = profile_value(profile, "deliveryDays", "当前交付周期")
+    logistics_cost = profile_value(profile, "logisticsCost", "当前物流成本占比")
+    mapping = {
+        "brand": f"90天内形成主品牌与主推SKU统一打法，品牌收入占比相对当前{brand_ratio}开始抬升，销售与渠道对品牌表达口径一致。",
+        "marketing": f"90天内跑通单平台增长样板，相对当前电商占比{ecommerce_ratio}形成更清晰的流量、转化和复购改进路径。",
+        "production": f"90天内识别并压缩交付周期中的关键损失环节，交付与计划达成的改善开始可量化体现，不再只靠加班兜底。",
+        "rd": "90天内完成研发项目优先级重排，并能用新品销量、毛利和用户反馈判断研发投入是否有效。",
+        "logistics": f"90天内形成渠道级成本时效看板，物流成本占比{logistics_cost}与交付周期{delivery_days}至少有一项出现实质改善。",
+    }
+    return mapping.get(dim_key, f"{dim_name}在90天内形成首轮量化改善，管理层能看清哪些动作值得继续投、哪些动作应该停止。")
+
+
+def build_solution_why_now_v2(dim_key, dim_name, profile):
+    upgrade_goals = profile_value(profile, "upgradeGoals", "当前升级目标")
+    main_issues = profile_value(profile, "mainIssues", "当前经营短板")
+    mapping = {
+        "brand": f"如果品牌能力不先补齐，企业就会继续被代工结构锁住，升级目标“{upgrade_goals}”很难转成更高毛利和更强议价权。",
+        "marketing": f"当前核心问题“{main_issues}”已经说明订单结构不稳，营销如果不能直接沉淀终端用户和高质量渠道，增长会继续波动。",
+        "production": f"{dim_name}直接影响客户体验、回款节奏和利润兑现，若交付和计划执行仍旧脆弱，前端品牌与营销投入会被后端拖垮。",
+        "rd": f"升级目标“{upgrade_goals}”最终要靠产品兑现，如果研发继续只追项目完成，不追市场结果，企业很难形成真正差异化。",
+        "logistics": f"{dim_name}已经不只是成本问题，而是订单履约与客户体验问题，拖得越久，渠道投诉和利润侵蚀会越难纠偏。",
+    }
+    return mapping.get(dim_key, f"{dim_name}当前已经成为企业升级中的真实约束，如果不先解决，其他改善动作也很难稳定兑现经营结果。")
+
+
+def build_priority_dim_key(dim):
+    key = normalize_text_value((dim or {}).get("key")).lower()
+    if key:
+        return key
+    name = normalize_text_value((dim or {}).get("name"))
+    mapping = {
+        "品牌": "brand",
+        "营销": "marketing",
+        "生产": "production",
+        "研发": "rd",
+        "标准": "standard",
+        "物流": "logistics",
+        "资本": "capital",
+        "财务": "finance",
+    }
+    for token, token_key in mapping.items():
+        if token in name:
+            return token_key
+    return ""
+
+
+def normalize_dimension_key_token(value):
+    text = normalize_text_value(value).strip().lower()
+    if not text:
+        return ""
+    alias_map = {
+        "brand": "brand",
+        "品牌": "brand",
+        "国际化品牌": "brand",
+        "marketing": "marketing",
+        "营销": "marketing",
+        "国际化营销": "marketing",
+        "production": "production",
+        "制成": "production",
+        "生产": "production",
+        "国际化制成": "production",
+        "rd": "rd",
+        "研发": "rd",
+        "国际化研发": "rd",
+        "standard": "standard",
+        "标准": "standard",
+        "认证": "standard",
+        "国际化标准": "standard",
+        "国际化标准与认证": "standard",
+        "logistics": "logistics",
+        "物流": "logistics",
+        "供应链": "logistics",
+        "国际化物流": "logistics",
+        "capital": "capital",
+        "资本": "capital",
+        "国际化资本": "capital",
+        "finance": "finance",
+        "财务": "finance",
+        "金融": "finance",
+        "国际化金融": "finance",
+    }
+    if text in alias_map:
+        return alias_map[text]
+    for token, dim_key in alias_map.items():
+        if token and token in text:
+            return dim_key
+    return ""
+
+
+def infer_solution_dim_key(item, fallback_dim):
+    fallback_key = build_priority_dim_key(fallback_dim)
+    target_dimensions = normalize_text_list((item or {}).get("targetDimensions"))
+    for target in target_dimensions:
+        dim_key = normalize_dimension_key_token(target)
+        if dim_key:
+            return dim_key
+    text_candidates = [
+        normalize_text_value((item or {}).get("title")),
+        normalize_text_value((item or {}).get("expectedResult")),
+        normalize_text_value((item or {}).get("whyNow")),
+    ]
+    text_candidates.extend(normalize_text_list((item or {}).get("content"), limit=4))
+    text_candidates.extend(
+        normalize_text_value(step.get("title") or step.get("name") or step.get("detail") or step.get("description"))
+        for step in ensure_list((item or {}).get("steps"))
+        if isinstance(step, dict)
+    )
+    merged_text = " ".join(part for part in text_candidates if part)
+    dim_key = normalize_dimension_key_token(merged_text)
+    return dim_key or fallback_key
+
+
+def merge_company_profile(input_company, report_company_profile):
+    merged = {}
+    for source in (input_company, report_company_profile):
+        if not isinstance(source, dict):
+            continue
+        for key, value in source.items():
+            text = normalize_text_value(value)
+            if text:
+                merged[key] = text
+    return merged
+
+
+def normalize_solution_step_entries(steps):
+    normalized = []
+    for step in ensure_list(steps):
+        if not isinstance(step, dict):
+            continue
+        title = normalize_text_value(step.get("t") or step.get("title") or step.get("name"))
+        detail = normalize_text_value(step.get("d") or step.get("detail") or step.get("description"))
+        timeline = normalize_text_value(step.get("tm") or step.get("timeline"))
+        if title or detail or timeline:
+            normalized.append({"t": title, "d": detail, "tm": timeline})
+    return normalized
+def enrich_dimension_details_v2(report):
+    profile = build_company_profile_snapshot(report)
+    dimensions = ensure_list(report.get("dimensionAnalysis"))
+    enriched = []
+    for item in dimensions:
+        if not isinstance(item, dict):
+            continue
+        score = clamp_score(item.get("score"))
+        gap = clamp_score(item.get("gap"))
+        dim_key = normalize_text_value(item.get("key"))
+        dim_name = normalize_text_value(item.get("name")) or DIMENSION_LABELS.get(dim_key, "关键维度")
+        defaults = build_dimension_defaults_v2(dim_key, dim_name, profile, score, gap)
+
+        diagnosis = normalize_text_value(item.get("diagnosis")) or defaults["diagnosis"]
+        score_explanation = normalize_text_value(item.get("scoreExplanation")) or defaults["scoreExplanation"]
+        benchmark = normalize_text_value(item.get("benchmarkComparison")) or defaults["benchmarkComparison"]
+        root_causes = normalize_text_list(item.get("rootCauses"))
+        if not root_causes or looks_generic_text_list(root_causes):
+            root_causes = defaults["rootCauses"]
+        evidence = normalize_text_list(item.get("evidenceFromInput")) or defaults["evidenceFromInput"]
+        actions = normalize_text_list(item.get("actions"))
+        if not actions or looks_generic_text_list(actions):
+            actions = defaults["actions"]
+        kpis = normalize_text_list(item.get("kpis"))
+        if not kpis or looks_generic_text_list(kpis):
+            kpis = defaults["kpis"]
+        risks = normalize_text_list(item.get("risks"))
+        if not risks or looks_generic_text_list(risks):
+            risks = defaults["risks"]
+        owner = normalize_text_value(item.get("owner")) or defaults["owner"]
+        resources = normalize_text_list(item.get("resources"))
+        if not resources or looks_generic_text_list(resources):
+            resources = defaults["resources"]
+        milestones = normalize_text_list(item.get("milestones"))
+        if not milestones or looks_generic_text_list(milestones):
+            milestones = defaults["milestones"]
+        expected_impact = normalize_text_value(item.get("expectedImpact")) or defaults["expectedImpact"]
+        paper_method_mapping = normalize_text_value(item.get("paperMethodMapping")) or defaults["paperMethodMapping"]
+        swot_focus = normalize_text_value(item.get("swotFocus")) or defaults["swotFocus"]
+
+        enriched.append(
+            {
+                **item,
+                "name": dim_name,
+                "diagnosis": diagnosis,
+                "scoreExplanation": score_explanation,
+                "benchmarkComparison": benchmark,
+                "rootCauses": root_causes[:4],
+                "evidenceFromInput": evidence[:6],
+                "swotFocus": swot_focus,
+                "actions": actions[:5],
+                "kpis": kpis[:4],
+                "risks": risks[:3],
+                "owner": owner,
+                "resources": resources[:3],
+                "milestones": milestones[:4],
+                "expectedImpact": expected_impact,
+                "paperMethodMapping": paper_method_mapping,
+            }
+        )
+    report["dimensionAnalysis"] = enriched
+    return report
 def enrich_phase_and_solution_details(report):
     dimensions = [item for item in ensure_list(report.get("dimensionAnalysis")) if isinstance(item, dict)]
     profile = build_company_profile_snapshot(report)
@@ -850,13 +1643,6 @@ def enrich_phase_and_solution_details(report):
         key=lambda item: (-(clamp_score(item.get("gap", 0))), clamp_score(item.get("score", 0))),
     )
     top_names = [normalize_text_value(item.get("name")) for item in priority_dims[:4] if normalize_text_value(item.get("name"))]
-    revenue = profile.get("revenue") or "当前营收规模"
-    export_ratio = profile.get("exportRatio") or "当前出口占比"
-    brand_ratio = profile.get("brandRatio") or "当前品牌收入占比"
-    ecommerce_ratio = profile.get("ecommerceRatio") or "当前电商占比"
-    rd_ratio = profile.get("rdRatio") or "当前研发投入占比"
-    delivery_days = profile.get("deliveryDays") or "当前交付周期"
-    logistics_cost = profile.get("logisticsCost") or "当前物流成本占比"
 
     phases = []
     raw_phases = [item for item in ensure_list(report.get("phases")) if isinstance(item, dict)]
@@ -870,46 +1656,13 @@ def enrich_phase_and_solution_details(report):
         explanation = normalize_text_value(item.get("explanation"))
         if not focus:
             focus = top_names[index:index + 2] or top_names[:2]
-        if not goals:
-            if index == 0:
-                goals = [
-                    f"围绕{ '、'.join(focus[:2]) or '关键短板'}建立专项台账、责任人和预算口径",
-                    f"把品牌占比{brand_ratio}、电商占比{ecommerce_ratio}、研发投入{rd_ratio}统一为月度跟踪指标",
-                    "完成重点客户、产品、渠道与供应链问题清单并排序",
-                ]
-            elif index == 1:
-                goals = [
-                    f"针对{ '、'.join(focus[:2]) or '关键短板'}启动样板项目，形成首轮可验证结果",
-                    f"把交付周期{delivery_days}、物流成本{logistics_cost}纳入专项纠偏节奏",
-                    "形成跨部门周例会和问题升级机制，避免动作悬空",
-                ]
-            elif index == 2:
-                goals = [
-                    "把首轮有效动作固化成流程、模板和奖惩规则",
-                    f"围绕营收{revenue}和出口占比{export_ratio}设定季度提升目标",
-                    "把试点经验复制到更多产品线、渠道或重点客户群",
-                ]
-            else:
-                goals = [
-                    "把阶段成果转化为全年经营计划和预算安排",
-                    "形成对标头部企业的年度跃迁目标与复盘机制",
-                    "完成下一轮品牌、研发、交付和资金协同的升级方案",
-                ]
-        if not milestones:
-            milestones = [
-                f"30天内完成{name}责任人、预算和项目清单确认",
-                f"60天内形成{name}首轮量化结果与问题复盘",
-                f"90天内完成{name}阶段评估并决定下一步扩围或纠偏",
-            ]
+        phase_defaults = build_phase_defaults_v2(index, focus, profile)
+        if not goals or looks_generic_text_list(goals):
+            goals = phase_defaults["goals"]
+        if not milestones or looks_generic_text_list(milestones):
+            milestones = phase_defaults["milestones"]
         if not explanation:
-            if index == 0:
-                explanation = "先统一口径、台账、预算和责任链，避免后续行动没有抓手。"
-            elif index == 1:
-                explanation = "先在关键短板上做样板突破，用可验证结果替代泛泛推进。"
-            elif index == 2:
-                explanation = "把已验证动作沉淀为制度和流程，避免成果停留在单点修补。"
-            else:
-                explanation = "把阶段成果并入年度经营计划，形成下一轮可持续跃迁节奏。"
+            explanation = phase_defaults["explanation"]
         phases.append(
             {
                 "name": name,
@@ -926,32 +1679,22 @@ def enrich_phase_and_solution_details(report):
     for index, dim in enumerate(priority_dims[:6]):
         item = raw_solutions[index] if index < len(raw_solutions) else {}
         dim_name = normalize_text_value(dim.get("name")) or f"关键维度{index + 1}"
+        dim_key = infer_solution_dim_key(item, dim)
         target_dimensions = normalize_text_list(item.get("targetDimensions")) or [normalize_text_value(dim.get("key") or dim_name)]
         owner = normalize_text_value(dim.get("owner")) or "经营负责人"
-        owner_label = owner.replace("建议由", "").replace("牵头", "").strip() or owner
+        owner_label = clean_owner_label(owner)
         content = normalize_text_list(item.get("content"))
-        if not content:
-            content = [
-                f"由{owner}牵头，围绕{dim_name}设立90天专项项目并锁定预算",
-                f"把{dim_name}相关动作拆到产品、渠道、供应链或财务责任人",
-                f"按月复盘{dim_name}差距、预算消耗、完成率和偏差原因",
-            ]
-        steps = []
-        for step in ensure_list(item.get("steps")):
-            if isinstance(step, dict):
-                title = normalize_text_value(step.get("t") or step.get("title") or step.get("name"))
-                detail = normalize_text_value(step.get("d") or step.get("detail") or step.get("description"))
-                timeline = normalize_text_value(step.get("tm") or step.get("timeline"))
-                if title or detail or timeline:
-                    steps.append({"t": title, "d": detail, "tm": timeline})
-        if not steps:
-            steps = [
-                {"t": "明确负责人和预算", "d": f"由{owner_label}牵头确认{dim_name}专项责任链、预算和目标值。", "tm": "第1-2周"},
-                {"t": "启动样板动作", "d": f"优先选取与{dim_name}最相关的产品线、渠道或流程做试点。", "tm": "第3-6周"},
-                {"t": "月度复盘纠偏", "d": "围绕完成率、投入产出、延误原因和风险控制做复盘。", "tm": "第2-3个月"},
-            ]
-        expected_result = normalize_text_value(item.get("expectedResult")) or f"{dim_name}在90天内形成首轮量化改善，综合评分提升3-6分。"
-        why_now = normalize_text_value(item.get("whyNow")) or f"{dim_name}当前已直接拖累企业从代工向品牌化、数字化和高附加值升级的节奏。"
+        if not content or looks_generic_text_list(content):
+            content = build_solution_content_v2(dim_key, dim_name, owner, owner_label, profile)
+        steps = normalize_solution_step_entries(item.get("steps"))
+        if looks_generic_step_list(steps):
+            steps = build_solution_steps_v2(dim_key, dim_name, owner_label, profile)
+        expected_result = normalize_text_value(item.get("expectedResult"))
+        if not expected_result or len(expected_result) < 25:
+            expected_result = build_solution_expected_result_v2(dim_key, dim_name, profile)
+        why_now = normalize_text_value(item.get("whyNow"))
+        if not why_now or len(why_now) < 25:
+            why_now = build_solution_why_now_v2(dim_key, dim_name, profile)
         solutions.append(
             {
                 "title": normalize_text_value(item.get("title")) or f"{dim_name}专项提升方案",
@@ -984,6 +1727,11 @@ def enrich_phase_and_solution_details(report):
     summary = normalize_text_value(report.get("executiveSummary"))
     if len(summary) < 120:
         top_desc = "、".join(top_names[:3]) or "品牌、营销与供应链"
+        brand_ratio = profile_value(profile, "brandRatio", "当前品牌收入占比")
+        ecommerce_ratio = profile_value(profile, "ecommerceRatio", "当前电商占比")
+        rd_ratio = profile_value(profile, "rdRatio", "当前研发投入占比")
+        delivery_days = profile_value(profile, "deliveryDays", "当前交付周期")
+        logistics_cost = profile_value(profile, "logisticsCost", "当前物流成本占比")
         report["executiveSummary"] = (
             f"{profile.get('name') or report.get('companyName') or '该企业'}当前处于从制造能力积累向品牌与经营能力补课的升级阶段，"
             f"最关键的瓶颈集中在{top_desc}。现状表现为品牌占比{brand_ratio}、电商占比{ecommerce_ratio}、研发投入{rd_ratio}、"
@@ -1603,8 +2351,9 @@ def call_openai_compatible(provider, config, payload):
             parsed["model"] = config["model"]
         return parsed
     company_name = payload["analysis_input"]["company"].get("name", "")
-    report = normalize_report(parsed, provider, config["model"], company_name)
+    report = normalize_report(parsed, provider, config["model"], company_name, payload["analysis_input"].get("company"))
     report = enrich_dimension_details(report)
+    report = enrich_dimension_details_v2(report)
     return enrich_phase_and_solution_details(report)
 
 

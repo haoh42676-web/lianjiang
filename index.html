@@ -8209,6 +8209,8 @@ async function runManagedAnalysis(provider, options){
         }
         stopProviderProgress(provider);
         setProviderProgress(provider, 100, '分析完成', window.getProviderMeta(provider).label + ' 已生成完整报告');
+        var statusEl = document.getElementById('apiStatus-' + provider);
+        if(statusEl)statusEl.textContent = backendStatusText() + ' 后端已配置';
         if(typeof window.setApiInlineAlert === 'function'){
             window.setApiInlineAlert(provider, window.getProviderMeta(provider).label + ' 已成功返回分析结果，报告已生成。', true);
         }

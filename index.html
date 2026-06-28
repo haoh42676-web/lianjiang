@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ff6b35'/%3E%3Cstop offset='100%25' stop-color='%2300d4ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%23111614'/%3E%3Cpath d='M18 42h6V26h-6zm11-6h6V18h-6zm11 6h6V22h-6z' fill='url(%23g)'/%3E%3Cpath d='M18 46h28' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' opacity='.9'/%3E%3C/svg%3E">
 <title>廉江小家电集群分析综合平台</title>
 <script>
 (function(){
@@ -8862,7 +8863,7 @@ function renderProviderHealthCards(hostId, providers){
                 ? ('Last verified: ' + formatRuntimeStamp(provider.lastUpdatedAt || provider.lastCheckedAt))
                 : provider.configured
                     ? 'Configured and waiting for first successful call'
-                    : 'Backend secret is not configured yet';
+                    : 'Backend secret is not configured yet. Add the provider API key in Render environment settings before production testing.';
         return '<div class="provider-health-card">' +
             '<div><strong>' + window.esc(provider.label || providerKey) + '</strong><div class="provider-health-meta">' + window.esc(detail) + '</div></div>' +
             '<span class="' + runtimeStatusClass(summary.kind) + '">' + window.esc(summary.label) + '</span>' +
@@ -8889,7 +8890,7 @@ function renderLandingRuntimeSummary(statusPayload){
             ? 'Managed analysis is available now, so we can continue with enterprise analysis and regression testing.'
             : configuredCount
                 ? 'Providers are configured but still waiting for a successful verification run.'
-                : 'The backend has not finished provider setup yet, so input and page flow work should come first.';
+                : 'The backend is online, but production API keys are still missing. Complete Render environment setup before the next live AI verification round.';
     var textEl = document.getElementById('landingRuntimeText');
     var chipEl = document.getElementById('landingRuntimeChip');
     var countEl = document.getElementById('landingManagedProviderCount');

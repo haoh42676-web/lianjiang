@@ -53,6 +53,7 @@ SECRET_FILE = Path(
     )
 ).resolve()
 AI_JOB_TTL_SECONDS = int(os.environ.get("LJ_AI_JOB_TTL_SECONDS", str(30 * 60)))
+AI_JOB_MAX_RUNTIME_SECONDS = int(os.environ.get("LJ_AI_JOB_MAX_RUNTIME_SECONDS", str(8 * 60)))
 SECRET_FILE_SIGNATURE = None
 
 
@@ -105,6 +106,46 @@ def cleanup_expired_jobs():
             AI_JOBS.pop(job_id, None)
 
 
+def expire_stuck_jobs():
+    now = time.time()
+    expired_jobs = []
+    with AI_JOBS_LOCK:
+        for job in AI_JOBS.values():
+            status = str(job.get("status") or "").lower()
+            started_at_ts = float(job.get("startedAtTs") or job.get("createdAtTs") or 0)
+            max_runtime_seconds = int(job.get("maxRuntimeSeconds") or AI_JOB_MAX_RUNTIME_SECONDS or 0)
+            if status not in ("queued", "running"):
+                continue
+            if not started_at_ts or max_runtime_seconds <= 0:
+                continue
+            if now - started_at_ts < max_runtime_seconds:
+                continue
+            progress = job.setdefault("progress", {})
+            progress["percent"] = 100
+            progress["label"] = "分析超时"
+            progress["meta"] = f"任务执行超过 {max_runtime_seconds} 秒，系统已自动终止，请检查上游模型接口或稍后重试"
+            job["status"] = "failed"
+            job["error"] = f"analysis timeout after {max_runtime_seconds}s"
+            job["updatedAtTs"] = now
+            job["updatedAt"] = now_iso()
+            expired_jobs.append(
+                {
+                    "jobId": job.get("jobId", ""),
+                    "provider": job.get("provider", ""),
+                    "requestId": job.get("requestId", ""),
+                    "maxRuntimeSeconds": max_runtime_seconds,
+                }
+            )
+    for item in expired_jobs:
+        json_log(
+            "ai_job_timeout",
+            jobId=item["jobId"],
+            provider=item["provider"],
+            requestId=item["requestId"],
+            maxRuntimeSeconds=item["maxRuntimeSeconds"],
+        )
+
+
 def build_job_snapshot(job):
     return {
         "jobId": job["jobId"],
@@ -145,7 +186,9 @@ def set_job_progress(job_id, *, status=None, percent=None, label=None, meta=None
 def create_ai_job(provider, request_id):
     cleanup_expired_jobs()
     created_at = now_iso()
+    created_at_ts = time.time()
     job_id = uuid.uuid4().hex
+    max_runtime_seconds = int(max(10, AI_JOB_MAX_RUNTIME_SECONDS or 60))
     job = {
         "jobId": job_id,
         "provider": provider,
@@ -156,8 +199,11 @@ def create_ai_job(provider, request_id):
             "meta": "后端已接收任务，准备调用模型",
         },
         "createdAt": created_at,
+        "createdAtTs": created_at_ts,
+        "startedAtTs": created_at_ts,
         "updatedAt": created_at,
-        "updatedAtTs": time.time(),
+        "updatedAtTs": created_at_ts,
+        "maxRuntimeSeconds": max_runtime_seconds,
         "requestId": request_id,
         "report": None,
         "error": "",
@@ -169,6 +215,7 @@ def create_ai_job(provider, request_id):
 
 def get_ai_job(job_id):
     cleanup_expired_jobs()
+    expire_stuck_jobs()
     with AI_JOBS_LOCK:
         job = AI_JOBS.get(job_id)
         return build_job_snapshot(job) if job else None
@@ -176,6 +223,7 @@ def get_ai_job(job_id):
 
 def list_ai_jobs(limit=50):
     cleanup_expired_jobs()
+    expire_stuck_jobs()
     with AI_JOBS_LOCK:
         jobs = [build_job_snapshot(job) for job in AI_JOBS.values()]
     jobs.sort(key=lambda item: item.get("updatedAt", ""), reverse=True)
@@ -324,7 +372,7 @@ PROVIDER_DEFAULTS = {
         "endpoint": os.environ.get("MIMO_ENDPOINT", "/chat/completions"),
         "model": os.environ.get("MIMO_MODEL", "mimo-v2.5-pro"),
         "api_key": BACKEND_SECRETS.get("MIMO_API_KEY", ""),
-        "request_timeout_seconds": int(os.environ.get("MIMO_REQUEST_TIMEOUT_SECONDS", "360")),
+        "request_timeout_seconds": int(os.environ.get("MIMO_REQUEST_TIMEOUT_SECONDS", "120")),
     },
 }
 
@@ -462,13 +510,16 @@ def normalize_provider_config(provider):
     except Exception:
         base["request_timeout_seconds"] = 120
     if provider == "mimo":
-        base["request_timeout_seconds"] = max(180, base["request_timeout_seconds"])
+        base["request_timeout_seconds"] = max(60, base["request_timeout_seconds"])
     return base
 
 
 def provider_attempt_count(provider):
     if provider == "mimo":
-        return 3
+        try:
+            return max(1, int(os.environ.get("MIMO_MAX_ATTEMPTS", "1")))
+        except Exception:
+            return 1
     return 2
 
 

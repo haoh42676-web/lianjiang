@@ -23,3 +23,9 @@ services:
         value: "12"
       - key: LJ_AI_LIMIT_PER_WINDOW
         value: "30"
+      - key: MIMO_REQUEST_TIMEOUT_SECONDS
+        value: "120"
+      - key: MIMO_MAX_ATTEMPTS
+        value: "1"
+      - key: LJ_AI_JOB_MAX_RUNTIME_SECONDS
+        value: "480"

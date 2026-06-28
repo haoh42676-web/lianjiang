@@ -90,7 +90,7 @@ def load_secret_store(secret_file=DEFAULT_SECRET_FILE):
     path = Path(secret_file)
     if not path.is_file():
         return {}
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
     file_format = str(data.get("format") or "").strip().lower()
     if file_format == "plain-text-v1":
         secrets = data.get("secrets") or {}

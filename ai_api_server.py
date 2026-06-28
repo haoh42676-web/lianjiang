@@ -58,12 +58,21 @@ SECRET_FILE_SIGNATURE = None
 RELEASE_INFO_CACHE = None
 
 
+def early_log(event, **fields):
+    payload = {"ts": datetime.now(timezone.utc).isoformat(), "event": event}
+    payload.update(fields)
+    try:
+        print(json.dumps(payload, ensure_ascii=False), flush=True)
+    except Exception:
+        pass
+
+
 def load_backend_secrets():
     secrets = {}
     try:
         secrets = load_secret_store(SECRET_FILE)
     except Exception as exc:
-        json_log("secret_store_load_failed", file=str(SECRET_FILE), error=str(exc))
+        early_log("secret_store_load_failed", file=str(SECRET_FILE), error=str(exc))
     for env_name in ("OPENAI_API_KEY", "DEEPSEEK_API_KEY", "MIMO_API_KEY"):
         env_value = os.environ.get(env_name, "").strip()
         if env_value:
@@ -78,7 +87,7 @@ def get_secret_file_signature():
     except FileNotFoundError:
         return None
     except Exception as exc:
-        json_log("secret_store_stat_failed", file=str(SECRET_FILE), error=str(exc))
+        early_log("secret_store_stat_failed", file=str(SECRET_FILE), error=str(exc))
         return None
 
 
@@ -93,6 +102,16 @@ def refresh_backend_secrets_if_needed(force=False):
         PROVIDER_DEFAULTS["openai"]["api_key"] = BACKEND_SECRETS.get("OPENAI_API_KEY", "")
         PROVIDER_DEFAULTS["deepseek"]["api_key"] = BACKEND_SECRETS.get("DEEPSEEK_API_KEY", "")
         PROVIDER_DEFAULTS["mimo"]["api_key"] = BACKEND_SECRETS.get("MIMO_API_KEY", "")
+
+
+def list_missing_secret_names():
+    refresh_backend_secrets_if_needed()
+    required = ("OPENAI_API_KEY", "DEEPSEEK_API_KEY", "MIMO_API_KEY")
+    missing = []
+    for env_name in required:
+        if not str(BACKEND_SECRETS.get(env_name, "") or "").strip():
+            missing.append(env_name)
+    return missing
 
 
 def get_release_info():
@@ -361,6 +380,7 @@ def build_admin_overview():
         "secretStore": {
             "file": str(SECRET_FILE),
             "configured": bool(BACKEND_SECRETS),
+            "missingSecrets": list_missing_secret_names(),
         },
         "providers": provider_stats,
         "jobs": jobs[:40],
@@ -2620,6 +2640,7 @@ class Handler(BaseHTTPRequestHandler):
                     "secretStore": {
                         "file": str(SECRET_FILE),
                         "configured": bool(BACKEND_SECRETS),
+                        "missingSecrets": list_missing_secret_names(),
                     },
                     "providers": build_provider_status_payload(),
                 },

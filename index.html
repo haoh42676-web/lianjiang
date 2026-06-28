@@ -8873,6 +8873,11 @@ function renderProviderHealthCards(hostId, providers){
     }).join('');
 }
 
+function formatMissingSecrets(secretStore){
+    var names = secretStore && Array.isArray(secretStore.missingSecrets) ? secretStore.missingSecrets.filter(Boolean) : [];
+    return names.length ? names.join(', ') : '';
+}
+
 function renderLandingRuntimeSummary(statusPayload){
     statusPayload = statusPayload || {};
     var providers = statusPayload.providers || {};
@@ -8881,6 +8886,7 @@ function renderLandingRuntimeSummary(statusPayload){
     var configuredCount = providerKeys.filter(function(key){ return !!(providers[key] || {}).configured; }).length;
     var availableCount = providerKeys.filter(function(key){ return (providers[key] || {}).available === true; }).length;
     var failingCount = providerKeys.filter(function(key){ return (providers[key] || {}).available === false; }).length;
+    var missingSecretsLabel = formatMissingSecrets(statusPayload.secretStore);
     var latestStamp = providerKeys.map(function(key){
         return (providers[key] || {}).lastCheckedAt || (providers[key] || {}).lastUpdatedAt || '';
     }).filter(Boolean).sort().reverse()[0] || '';
@@ -8893,7 +8899,7 @@ function renderLandingRuntimeSummary(statusPayload){
             ? 'Managed analysis is available now, so we can continue with enterprise analysis and regression testing.'
             : configuredCount
                 ? 'Providers are configured but still waiting for a successful verification run.'
-                : 'The backend is online, but production API keys are still missing. Complete Render environment setup before the next live AI verification round.';
+                : 'The backend is online, but production API keys are still missing.' + (missingSecretsLabel ? ' Missing: ' + missingSecretsLabel + '.' : '') + ' Complete Render environment setup before the next live AI verification round.';
     var textEl = document.getElementById('landingRuntimeText');
     var chipEl = document.getElementById('landingRuntimeChip');
     var countEl = document.getElementById('landingManagedProviderCount');

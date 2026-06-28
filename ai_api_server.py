@@ -55,6 +55,7 @@ SECRET_FILE = Path(
 AI_JOB_TTL_SECONDS = int(os.environ.get("LJ_AI_JOB_TTL_SECONDS", str(30 * 60)))
 AI_JOB_MAX_RUNTIME_SECONDS = int(os.environ.get("LJ_AI_JOB_MAX_RUNTIME_SECONDS", str(8 * 60)))
 SECRET_FILE_SIGNATURE = None
+RELEASE_INFO_CACHE = None
 
 
 def load_backend_secrets():
@@ -92,6 +93,61 @@ def refresh_backend_secrets_if_needed(force=False):
         PROVIDER_DEFAULTS["openai"]["api_key"] = BACKEND_SECRETS.get("OPENAI_API_KEY", "")
         PROVIDER_DEFAULTS["deepseek"]["api_key"] = BACKEND_SECRETS.get("DEEPSEEK_API_KEY", "")
         PROVIDER_DEFAULTS["mimo"]["api_key"] = BACKEND_SECRETS.get("MIMO_API_KEY", "")
+
+
+def get_release_info():
+    global RELEASE_INFO_CACHE
+    if RELEASE_INFO_CACHE is not None:
+        return dict(RELEASE_INFO_CACHE)
+
+    explicit_version = os.environ.get("LJ_RELEASE_VERSION", "").strip()
+    commit = (
+        explicit_version
+        or os.environ.get("RENDER_GIT_COMMIT", "").strip()
+        or os.environ.get("GIT_COMMIT", "").strip()
+    )
+    branch = (
+        os.environ.get("RENDER_GIT_BRANCH", "").strip()
+        or os.environ.get("GIT_BRANCH", "").strip()
+    )
+    source = "render" if os.environ.get("RENDER", "").strip() else "local"
+
+    if not commit and (BASE_DIR / ".git").exists():
+        try:
+            commit = (
+                subprocess.check_output(
+                    ["git", "-C", str(BASE_DIR), "rev-parse", "HEAD"],
+                    stderr=subprocess.DEVNULL,
+                    timeout=3,
+                    text=True,
+                ).strip()
+            )
+        except Exception:
+            commit = ""
+    if not branch and (BASE_DIR / ".git").exists():
+        try:
+            branch = (
+                subprocess.check_output(
+                    ["git", "-C", str(BASE_DIR), "rev-parse", "--abbrev-ref", "HEAD"],
+                    stderr=subprocess.DEVNULL,
+                    timeout=3,
+                    text=True,
+                ).strip()
+            )
+        except Exception:
+            branch = ""
+
+    version = explicit_version or commit
+    if version and re.fullmatch(r"[0-9a-fA-F]{40}", version):
+        version = version[:7]
+
+    RELEASE_INFO_CACHE = {
+        "source": source,
+        "branch": branch,
+        "commit": commit,
+        "version": version or ("render" if source == "render" else "dev-local"),
+    }
+    return dict(RELEASE_INFO_CACHE)
 
 
 def cleanup_expired_jobs():
@@ -301,6 +357,7 @@ def build_admin_overview():
     return {
         "serverTime": now_iso(),
         "uptimeSeconds": int(max(0, time.time() - SERVER_STARTED_AT)),
+        "release": get_release_info(),
         "secretStore": {
             "file": str(SECRET_FILE),
             "configured": bool(BACKEND_SECRETS),
@@ -2559,6 +2616,7 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "serverTime": now_iso(),
+                    "release": get_release_info(),
                     "secretStore": {
                         "file": str(SECRET_FILE),
                         "configured": bool(BACKEND_SECRETS),

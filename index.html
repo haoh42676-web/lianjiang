@@ -1364,6 +1364,7 @@ function renderProviderHealthCards(hostId, providers){
 function renderLandingRuntimeSummary(statusPayload){
     statusPayload = statusPayload || {};
     var providers = statusPayload.providers || {};
+    var release = statusPayload.release || {};
     var providerKeys = Object.keys(providers);
     var configuredCount = providerKeys.filter(function(key){ return !!(providers[key] || {}).configured; }).length;
     var availableCount = providerKeys.filter(function(key){ return (providers[key] || {}).available === true; }).length;
@@ -1385,6 +1386,7 @@ function renderLandingRuntimeSummary(statusPayload){
     var lastEl = document.getElementById('landingLastChecked');
     var flowEl = document.getElementById('landingSuggestedFlow');
     var modeEl = document.getElementById('landingRuntimeMode');
+    var releaseLabel = release.version ? ('BUILD ' + release.version + (release.branch ? (' · ' + String(release.branch).toUpperCase()) : '')) : '';
     if(textEl)textEl.textContent = runtimeText;
     if(chipEl){
         chipEl.className = runtimeStatusClass(chipKind);
@@ -8874,6 +8876,7 @@ function renderProviderHealthCards(hostId, providers){
 function renderLandingRuntimeSummary(statusPayload){
     statusPayload = statusPayload || {};
     var providers = statusPayload.providers || {};
+    var release = statusPayload.release || {};
     var providerKeys = Object.keys(providers);
     var configuredCount = providerKeys.filter(function(key){ return !!(providers[key] || {}).configured; }).length;
     var availableCount = providerKeys.filter(function(key){ return (providers[key] || {}).available === true; }).length;
@@ -8897,15 +8900,16 @@ function renderLandingRuntimeSummary(statusPayload){
     var lastEl = document.getElementById('landingLastChecked');
     var flowEl = document.getElementById('landingSuggestedFlow');
     var modeEl = document.getElementById('landingRuntimeMode');
+    var releaseLabel = release.version ? ('BUILD ' + release.version + (release.branch ? (' · ' + String(release.branch).toUpperCase()) : '')) : '';
     if(textEl)textEl.textContent = runtimeText;
     if(chipEl){
         chipEl.className = runtimeStatusClass(chipKind);
         chipEl.textContent = chipLabel;
     }
     if(countEl)countEl.textContent = configuredCount + '/' + providerKeys.length;
-    if(lastEl)lastEl.textContent = formatRuntimeStamp(latestStamp);
+    if(lastEl)lastEl.textContent = formatRuntimeStamp(latestStamp || statusPayload.serverTime);
     if(flowEl)flowEl.textContent = flow;
-    if(modeEl)modeEl.textContent = statusPayload.secretStore && statusPayload.secretStore.configured ? 'MANAGED' : 'PENDING';
+    if(modeEl)modeEl.textContent = (statusPayload.secretStore && statusPayload.secretStore.configured ? 'MANAGED' : 'PENDING') + (releaseLabel ? ' · ' + releaseLabel : '');
     renderProviderHealthCards('landingProviderHealth', providers);
 }
 
@@ -8925,6 +8929,10 @@ async function refreshLandingRuntimeSummary(){
             chipEl.textContent = 'OFFLINE';
         }
         if(textEl)textEl.textContent = 'The managed API is unreachable right now. Check Render health and network access.';
+        var lastEl = document.getElementById('landingLastChecked');
+        var modeEl = document.getElementById('landingRuntimeMode');
+        if(lastEl)lastEl.textContent = '--';
+        if(modeEl)modeEl.textContent = 'OFFLINE';
         renderProviderHealthCards('landingProviderHealth', {});
     }
 }
@@ -8955,7 +8963,11 @@ function renderAdminOverviewFixed(overview){
     if(totalCompaniesEl)totalCompaniesEl.textContent = summary.totalJobs || 0;
     if(totalAnalysisEl)totalAnalysisEl.textContent = summary.completedJobs || 0;
     if(todayEl)todayEl.textContent = new Date().toLocaleDateString('zh-CN');
-    if(serverTimeEl)serverTimeEl.textContent = formatRuntimeStamp(overview.serverTime);
+    if(serverTimeEl){
+        var release = overview.release || {};
+        var releaseText = release.version ? (' #' + release.version + (release.branch ? ' · ' + release.branch : '')) : '';
+        serverTimeEl.textContent = formatRuntimeStamp(overview.serverTime) + releaseText;
+    }
     if(uptimeEl)uptimeEl.textContent = formatUptime(overview.uptimeSeconds);
     if(runningEl)runningEl.textContent = summary.runningJobs || 0;
     if(failedEl)failedEl.textContent = summary.failedJobs || 0;

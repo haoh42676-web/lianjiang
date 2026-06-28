@@ -271,14 +271,42 @@ def build_admin_overview():
         },
     }
 
+
+def build_provider_status_payload():
+    refresh_backend_secrets_if_needed()
+    recent_events = list_server_events(400)
+    latest_ai_event_by_provider = {}
+    for item in recent_events:
+        provider_key = item.get("provider") or ""
+        if provider_key and provider_key not in latest_ai_event_by_provider and item.get("event") in (
+            "ai_request_succeeded",
+            "ai_request_failed",
+        ):
+            latest_ai_event_by_provider[provider_key] = item
+
+    providers = {}
+    for key, info in PROVIDER_DEFAULTS.items():
+        configured = bool(info.get("base_url") and info.get("model") and info.get("api_key"))
+        last_event = latest_ai_event_by_provider.get(key) or {}
+        last_event_name = last_event.get("event") or ""
+        providers[key] = {
+            "label": info["label"],
+            "configured": configured,
+            "server_managed": True,
+            "available": True if last_event_name == "ai_request_succeeded" else False if last_event_name == "ai_request_failed" else None,
+            "lastCheckedAt": last_event.get("ts", ""),
+            "lastError": last_event.get("error", "") if last_event_name == "ai_request_failed" else "",
+        }
+    return providers
+
 BACKEND_SECRETS = load_backend_secrets()
 
 PROVIDER_DEFAULTS = {
     "openai": {
         "label": "OpenAI",
-        "base_url": os.environ.get("OPENAI_BASE_URL", "https://gpt.fengxiaole.top/v1"),
+        "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         "endpoint": "/chat/completions",
-        "model": os.environ.get("OPENAI_MODEL", "gpt-5.4"),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
         "api_key": BACKEND_SECRETS.get("OPENAI_API_KEY", ""),
         "request_timeout_seconds": int(os.environ.get("OPENAI_REQUEST_TIMEOUT_SECONDS", "240")),
     },
@@ -674,10 +702,15 @@ def normalize_report(raw, provider, model, company_name, input_company=None):
         input_company if isinstance(input_company, dict) else {},
         raw.get("companyProfile") if isinstance(raw.get("companyProfile"), dict) else {},
     )
+    dimension_analysis = raw.get("dimensionAnalysis") or []
+    by_key = {item.get("key"): item for item in dimension_analysis if isinstance(item, dict)}
     scores = raw.get("scores") or {}
     normalized_scores = {}
     for key in DIMENSION_ORDER:
-        normalized_scores[key] = clamp_score(scores.get(key, 0))
+        score_value = scores.get(key)
+        if score_value is None:
+            score_value = (by_key.get(key) or {}).get("score", 0)
+        normalized_scores[key] = clamp_score(score_value)
 
     total = raw.get("overallScore")
     if total is None:
@@ -686,8 +719,6 @@ def normalize_report(raw, provider, model, company_name, input_company=None):
     overall_level = raw.get("overallLevel") or level_from_score(total)
 
     dims = []
-    dimension_analysis = raw.get("dimensionAnalysis") or []
-    by_key = {item.get("key"): item for item in dimension_analysis if isinstance(item, dict)}
     for key in DIMENSION_ORDER:
         item = by_key.get(key, {})
         score = normalized_scores[key]
@@ -2468,14 +2499,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlsplit(self.path)
         route_path = parsed.path or "/"
+        if route_path == "/favicon.ico":
+            self._send_bytes(204, b"", "image/x-icon", cache_control="public, max-age=86400")
+            return
         if self.path.startswith("/api/status"):
-            providers = {}
-            for key, info in PROVIDER_DEFAULTS.items():
-                providers[key] = {
-                    "label": info["label"],
-                    "configured": bool(info.get("api_key")),
-                    "server_managed": True,
-                }
             self._send(
                 200,
                 {
@@ -2485,7 +2512,7 @@ class Handler(BaseHTTPRequestHandler):
                         "file": str(SECRET_FILE),
                         "configured": bool(BACKEND_SECRETS),
                     },
-                    "providers": providers,
+                    "providers": build_provider_status_payload(),
                 },
             )
             return

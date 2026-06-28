@@ -7699,6 +7699,30 @@ function backendStatusText(){
     return '服务端托管：' + String(window.AI_PROXY_URL || '');
 }
 
+function providerStatusTagClass(providerStatus){
+    if(!providerStatus)return 'tag-info';
+    if(!providerStatus.configured)return 'tag-warning';
+    if(providerStatus.available === false)return 'tag-danger';
+    if(providerStatus.available === true)return 'tag-success';
+    return 'tag-info';
+}
+
+function providerStatusLabel(providerStatus){
+    if(!providerStatus)return '等待检测';
+    if(!providerStatus.configured)return '后端未配置';
+    if(providerStatus.available === false)return '后端异常';
+    if(providerStatus.available === true)return '后端可用';
+    return '已配置待验证';
+}
+
+function providerStatusDetail(providerStatus){
+    if(!providerStatus)return ' 等待检测';
+    if(!providerStatus.configured)return ' 后端未配置';
+    if(providerStatus.available === false)return ' 后端异常';
+    if(providerStatus.available === true)return ' 后端可用';
+    return ' 已配置待验证';
+}
+
 function ensureProgressStyle(){
     if(document.getElementById('ai-progress-style'))return;
     var style = document.createElement('style');
@@ -7798,7 +7822,7 @@ function renderManagedApiConfigPanel(provider){
         ? window.aiServerStatusCache.providers[window.getProviderKey(provider)]
         : null;
     var badge = providerStatus
-        ? '<span class="tag ' + (providerStatus.configured ? 'tag-success' : 'tag-warning') + '">' + (providerStatus.configured ? '后端已配置' : '后端未配置') + '</span>'
+        ? '<span class="tag ' + providerStatusTagClass(providerStatus) + '">' + providerStatusLabel(providerStatus) + '</span>'
         : '<span class="tag tag-info">等待检测</span>';
     var html =
         '<div class="preset-info-box" style="margin-bottom:14px">' +
@@ -7887,11 +7911,28 @@ window.checkAIServer = async function(){
         PROVIDERS.forEach(function(provider){
             var providerStatus = data.providers ? data.providers[window.getProviderKey(provider)] : null;
             var statusEl = document.getElementById('apiStatus-' + provider);
-            if(statusEl)statusEl.textContent = backendStatusText() + (providerStatus && providerStatus.configured ? ' 后端已配置' : ' 后端未配置');
+            if(statusEl)statusEl.textContent = backendStatusText() + providerStatusDetail(providerStatus);
             ensureProviderProgress(provider);
-            setProviderProgress(provider, 0, '等待启动', providerStatus && providerStatus.configured ? '后端检测通过，可直接开始分析' : '该模型后端尚未完成配置');
+            setProviderProgress(
+                provider,
+                0,
+                '等待启动',
+                !providerStatus ? '等待检测'
+                    : !providerStatus.configured ? '该模型后端尚未完成配置'
+                    : providerStatus.available === false ? ('最近一次调用失败：' + (providerStatus.lastError || '请检查密钥或上游接口'))
+                    : providerStatus.available === true ? '后端检测通过，可直接开始分析'
+                    : '已配置，等待首次调用验证'
+            );
             if(typeof window.setApiInlineAlert === 'function'){
-                window.setApiInlineAlert(provider, providerStatus && providerStatus.configured ? '后端检测正常，可以直接开始分析。' : '该模型后端尚未完成配置。', !!(providerStatus && providerStatus.configured));
+                window.setApiInlineAlert(
+                    provider,
+                    !providerStatus ? '等待后端检测结果。'
+                        : !providerStatus.configured ? '该模型后端尚未完成配置。'
+                        : providerStatus.available === false ? ('最近一次调用失败：' + (providerStatus.lastError || '请检查密钥或上游接口'))
+                        : providerStatus.available === true ? '后端检测正常，可以直接开始分析。'
+                        : '已检测到后端配置，等待首次调用验证。',
+                    !!(providerStatus && providerStatus.configured && providerStatus.available !== false)
+                );
             }
         });
         if(typeof window.showToast === 'function')window.showToast('后端 AI 配置检测正常');
@@ -8278,6 +8319,15 @@ async function rerunFailedBatchProviders(results){
     return results;
 }
 
+function pickBestBatchResult(results){
+    var okResults = (results || []).filter(function(item){ return item && item.ok && item.report; });
+    if(!okResults.length)return null;
+    okResults.sort(function(a, b){
+        return Number(b.score || 0) - Number(a.score || 0);
+    });
+    return okResults[0];
+}
+
 window.startAllAIAnalysis = window.startAllAIAnalysis || async function(){
     var providers = ['mimo', 'deepseek', 'chatgpt'];
     if(typeof window.showLoading === 'function'){
@@ -8300,6 +8350,13 @@ window.startAllAIAnalysis = window.startAllAIAnalysis || async function(){
         }).join(' | ');
     }
     var okResults = results.filter(function(item){ return item && item.ok && item.report; });
+    var bestResult = pickBestBatchResult(results);
+    if(bestResult){
+        renderAnalysisResult(bestResult.provider, { report: bestResult.report }, bestResult.companyName);
+        if(summary && okResults.length !== providers.length){
+            summary.textContent += ' | 已展示最佳可用报告：' + bestResult.label;
+        }
+    }
     if(okResults.length === providers.length){
         try{
             if(summary){
@@ -8341,6 +8398,9 @@ window.startAllAIAnalysis = window.startAllAIAnalysis || async function(){
         }catch(error){
             if(summary){
                 summary.textContent += ' | 综合汇总失败：' + error.message;
+            }
+            if(bestResult){
+                renderAnalysisResult(bestResult.provider, { report: bestResult.report }, bestResult.companyName);
             }
             if(typeof window.showToast === 'function')window.showToast('三模型已完成，但最终汇总失败：' + error.message);
         }

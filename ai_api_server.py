@@ -500,6 +500,15 @@ def mask_secret(value):
     return value[:4] + "*" * (len(value) - 8) + value[-4:]
 
 
+def redact_sensitive_text(value):
+    text = str(value or "")
+    if not text:
+        return text
+    text = re.sub(r"sk-[A-Za-z0-9_*.-]+", "[redacted-api-key]", text)
+    text = re.sub(r"(Bearer\s+)[A-Za-z0-9._-]+", r"\1***", text, flags=re.IGNORECASE)
+    return text
+
+
 def parse_multipart_file(raw_bytes, content_type):
     match = re.search(r'boundary="?([^";]+)"?', str(content_type or ""), re.I)
     if not match:
@@ -2485,7 +2494,7 @@ def call_openai_compatible(provider, config, payload):
             ):
                 raw = call_gateway_via_browser(config, body)
                 break
-            raise RuntimeError(f"{provider} HTTP {exc.code}: {response_text}") from exc
+            raise RuntimeError(f"{provider} HTTP {exc.code}: {redact_sensitive_text(response_text)}") from exc
         except Exception as exc:
             is_last_attempt = attempt >= attempt_count - 1
             if not is_last_attempt and (provider != "mimo" or is_timeout_error(exc)):
@@ -2494,7 +2503,7 @@ def call_openai_compatible(provider, config, payload):
             if provider == "openai" and "gpt.fengxiaole.top" in str(config.get("base_url", "")):
                 raw = call_gateway_via_browser(config, body)
                 break
-            raise RuntimeError(f"{provider} network error: {exc}") from exc
+            raise RuntimeError(f"{provider} network error: {redact_sensitive_text(exc)}") from exc
     if raw is None:
         raise RuntimeError(f"{provider} returned empty response")
 

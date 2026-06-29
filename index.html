@@ -8427,6 +8427,21 @@ function renderAnalysisResult(provider, data, companyName){
     if(typeof window.updateEvaluationPage === 'function')window.updateEvaluationPage();
 }
 
+function clearAnalysisResultView(){
+    window.diagnosisResult = null;
+    var wrap = document.getElementById('aiAnalysisResult');
+    var content = document.getElementById('aiReportContent');
+    if(content)content.innerHTML = '';
+    if(wrap)wrap.style.display = 'none';
+}
+
+function sanitizeProviderErrorMessage(message){
+    var text = String(message == null ? '' : message);
+    text = text.replace(/sk-[A-Za-z0-9_*.-]+/g, '[redacted-api-key]');
+    text = text.replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, '$1***');
+    return text;
+}
+
 async function pollManagedAnalysisJob(provider, jobId, options){
     options = options || {};
     var timeoutMs = options.timeoutMs || 360000;
@@ -8510,14 +8525,18 @@ async function runManagedAnalysis(provider, options){
         };
     }catch(error){
         stopProviderProgress(provider);
-        setProviderProgress(provider, 100, '分析失败', error.message);
+        var safeMessage = sanitizeProviderErrorMessage(error && error.message ? error.message : error);
+        if(!options.deferRender){
+            clearAnalysisResultView();
+        }
+        setProviderProgress(provider, 100, '分析失败', safeMessage);
         var statusEl = document.getElementById('apiStatus-' + provider);
-        if(statusEl)statusEl.textContent = backendStatusText() + ' 分析失败：' + error.message;
+        if(statusEl)statusEl.textContent = backendStatusText() + ' 分析失败：' + safeMessage;
         if(typeof window.setApiInlineAlert === 'function'){
-            window.setApiInlineAlert(provider, '后端代理调用失败：' + error.message);
+            window.setApiInlineAlert(provider, '后端代理调用失败：' + safeMessage);
         }
         if(!options.silent && typeof window.showToast === 'function'){
-            window.showToast('分析失败：' + error.message);
+            window.showToast('分析失败：' + safeMessage);
         }
         throw error;
     }finally{
